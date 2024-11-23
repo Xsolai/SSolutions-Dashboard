@@ -9,81 +9,81 @@ from sqlalchemy import func
 router = APIRouter()
 
 
-# def get_sla_percentage(db: Session):
-#     """Endpoint to retrieve sla% per queue."""
-#     sla_data = db.query(
-#         func.avg(GuruDailyCallData.sla)
-#     ).scalar() or 0
-#     print("SLA Data:", sla_data)
+def get_sla_percentage(db: Session):
+    """Endpoint to retrieve sla% per queue."""
+    sla_data = db.query(
+        func.avg(GuruDailyCallData.sla)
+    ).scalar() or 0
+    print("SLA Data:", sla_data)
 
-#     return sla_data
-
-
-# def get_average_wait_time(db: Session):
-#     """Endpoint to retrieve average wait time for calls."""
-#     avg_wait_time = db.query(func.avg(
-#         GuruDailyCallData.avg_wait_time
-#     )).scalar() or 0
-#     print("Average Wait Time Data:", avg_wait_time)
-
-#     return avg_wait_time
-
-# def get_max_wait_time(db: Session):
-#     """Endpoint to retrieve max wait time for calls."""
-#     max_wait_time = db.query(func.max(GuruDailyCallData.max_wait_time)).scalar() or 0
-#     # Print the structured average wait time data
-#     print("Max Wait Time Data:", max_wait_time)
-
-#     return max_wait_time
+    return sla_data
 
 
-# def get_talk_time(db: Session):
-#     """Endpoint to retrieve average wait time for calls."""
-#     avg_talk_time = db.query(func.avg(
-#         GuruDailyCallData.total_talk_time
-#     )).scalar() or 0
+def get_average_wait_time(db: Session):
+    """Endpoint to retrieve average wait time for calls."""
+    avg_wait_time = db.query(func.avg(
+        GuruDailyCallData.avg_wait_time
+    )).scalar() or 0
+    print("Average Wait Time Data:", avg_wait_time)
 
-#     print("Talk Time:", avg_talk_time)
-#     return avg_talk_time
+    return avg_wait_time
 
-# def get_inbound_after_call(db: Session):
-#     """Endpoint to retrieve average wait time for calls."""
-#     after_call = db.query(func.avg(
-#         GuruDailyCallData.inbound_after_call
-#     )).scalar() or 0
+def get_max_wait_time(db: Session):
+    """Endpoint to retrieve max wait time for calls."""
+    max_wait_time = db.query(func.max(GuruDailyCallData.max_wait_time)).scalar() or 0
+    # Print the structured average wait time data
+    print("Max Wait Time Data:", max_wait_time)
 
-#     print("After work Talk Time:", after_call)
-
-#     return after_call
+    return max_wait_time
 
 
-# @router.get("/calls_kpis")
-# async def get_calls(db: Session = Depends(get_db)):
-#     """Endpoint to retrieve calls data from the database."""
-#     db = SessionLocal()
-#     calls = db.query(GuruDailyCallData).all()
-#     total_calls = db.query(func.sum(GuruDailyCallData.total_calls)).scalar() or 0
-#     total_answered_calls = db.query(func.sum(GuruDailyCallData.answered_calls)).scalar() or 0
-#     total_call_reasons = db.query(func.sum(GuruCallReason.total_calls)).scalar() or 0
-#     asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
-#     avg_handling_time = db.query(func.avg(
-#         GuruDailyCallData.avg_handling_time
-#     )).scalar()
-#     dropped_calls = db.query(func.avg(
-#         GuruDailyCallData.dropped_calls
-#     )).scalar()
+def get_talk_time(db: Session):
+    """Endpoint to retrieve average wait time for calls."""
+    avg_talk_time = db.query(func.avg(
+        GuruDailyCallData.total_talk_time
+    )).scalar() or 0
+
+    print("Talk Time:", avg_talk_time)
+    return avg_talk_time
+
+def get_inbound_after_call(db: Session):
+    """Endpoint to retrieve average wait time for calls."""
+    after_call = db.query(func.avg(
+        GuruDailyCallData.inbound_after_call
+    )).scalar() or 0
+
+    print("After work Talk Time:", after_call)
+
+    return after_call
+
+
+@router.get("/calls_kpis")
+async def get_calls(db: Session = Depends(get_db)):
+    """Endpoint to retrieve calls data from the database."""
+    db = SessionLocal()
+    calls = db.query(GuruDailyCallData).all()
+    total_calls = db.query(func.sum(GuruDailyCallData.total_calls)).scalar() or 0
+    total_answered_calls = db.query(func.sum(GuruDailyCallData.answered_calls)).scalar() or 0
+    total_call_reasons = db.query(func.sum(GuruCallReason.total_calls)).scalar() or 0
+    asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
+    avg_handling_time = db.query(func.avg(
+        GuruDailyCallData.avg_handling_time
+    )).scalar()
+    dropped_calls = db.query(func.avg(
+        GuruDailyCallData.dropped_calls
+    )).scalar()
     
     
-#     return {"total_calls": total_calls, 
-#             "total_call_reasons": total_call_reasons, 
-#             "asr": round(asr, 2),
-#             "SLA":round(get_sla_percentage(db), 2),
-#             "avg wait time": round(get_average_wait_time(db), 2),
-#             "max. wait time": round(get_max_wait_time(db), 2),
-#             "After call work time": round(get_inbound_after_call(db), 2),
-#             "avg handling time": round(avg_handling_time, 2),
-#             "Dropped calls": int(dropped_calls)
-#             }
+    return {"total_calls": total_calls, 
+            "total_call_reasons": total_call_reasons, 
+            "asr": round(asr, 2),
+            "SLA":round(get_sla_percentage(db), 2),
+            "avg wait time": round(get_average_wait_time(db), 2),
+            "max. wait time": round(get_max_wait_time(db), 2),
+            "After call work time": round(get_inbound_after_call(db), 2),
+            "avg handling time": round(avg_handling_time, 2),
+            "Dropped calls": int(dropped_calls)
+            }
 
 
 @router.get("/call_data")
