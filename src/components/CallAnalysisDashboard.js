@@ -1,83 +1,75 @@
-"use client";
-import React from 'react';
-import { useVisibility } from "@/context/VisibilityContext";
-
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import React, { useState } from 'react';
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-// Modern color palette
-const colors = {
-  pprimary: '#002B50',    // Dark Blue
-  secondary: '#FFD100',  // Yellow
-  success: '#10B981',    // Keep success green for clarity
-  warning: '#FFD100',    // Yellow for warnings
-  danger: '#EF4444',     // Keep red for danger
-  info: '#002B50',       // Dark Blue
-  background: '#FFFFFF', // White
-  card: '#F8F9FA',      // Light gray
-  text: '#001E4A',       // Dark Blue
-  textMuted: '#6C757D',  // Muted text
-  border: '#DEE2E6'    // Border color
+
+const AnimatedText = () => {
+  const titleLines = ["Call", "Center", "Analytics"];
+
+  return (
+    <div className="inline-flex">
+      {titleLines.map((line, lineIndex) => (
+        <motion.div
+          key={lineIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            duration: 1,
+            staggerChildren: 0.1,
+          }}
+          className="text-3xl sm:text-4xl md:text-5xl px- sm:px-1.5 lg:text-5xl font-bold text-[#fdcc00] flex"
+        >
+          {line.split("").map((letter, index) => (
+            <motion.span
+              key={index}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.3,
+                delay: index * 0.1 + lineIndex * 0.5,
+              }}
+              className="block"
+            >
+              {letter}
+            </motion.span>
+          ))}
+        </motion.div>
+      ))}
+    </div>
+  );
 };
 
 
-const StatCard = ({ title, value, icon: Icon, change, description, variant = 'default' }) => (
-  <div className={`relative overflow-hidden bg-white
-    rounded-lg p-6 border border-gray-200 shadow-sm
-    hover:border-yellow-400 transition-all duration-300 group
-    ${variant === 'warning' ? 'bg-yellow-50' :
-      variant === 'danger' ? 'bg-red-50' :
-        variant === 'success' ? 'bg-emerald-50' : ''}`}>
-    <div className="flex items-center justify-between mb-4">
+const StatCard = ({ title, value, icon: Icon, change, description }) => (
+  <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+    <div className="flex items-center justify-between mb-1">
       <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-      <Icon className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-        variant === 'warning' ? 'text-yellow-400' :
-        variant === 'danger' ? 'text-red-500' :
-        variant === 'success' ? 'text-emerald-500' :
-        'text-blue-900'
-      }`} />
+      <div className="p-2 bg-yellow-50 rounded-lg">
+        <Icon className="h-5 w-5 text-yellow-400" />
+      </div>
     </div>
-    <div className="text-3xl font-bold text-blue-900 mb-3">{value}</div>
-    <p className="text-xs text-gray-600">
-      <span className={`inline-block mr-2 ${change.includes('-') ? 'text-emerald-600' : 'text-red-600'}`}>
-        {change}
-      </span>
-      {description}
-    </p>
+    <div className="text-2xl font-bold text-gray-900 mb-2">{value}</div>
+    {change && description && (
+      <p className="text-xs text-gray-500">
+        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-blue-500' : 'text-blue-500'}`}>
+          {change}
+        </span>
+        {description}
+      </p>
+    )}
   </div>
 );
 
-
 const ChartCard = ({ title, children }) => (
-  <div className="bg-white rounded-lg p-6 border border-gray-200 
-    shadow-sm hover:border-yellow-400 transition-all duration-300">
-    <h3 className="text-lg font-medium text-blue-900 mb-6">{title}</h3>
+  <div className="bg-white p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+    <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
     {children}
   </div>
 );
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-800 p-3 rounded-lg border border-slate-700 shadow-xl">
-        <p className="text-slate-200 font-medium mb-1">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm text-slate-400">
-            {entry.name}: <span className="text-slate-200">{entry.value}</span>
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
-
 const CallAnalysisDashboard = () => {
-  const { visibility } = useVisibility(); // Consume the visibility context
-
-  // Conditional rendering based on visibility
-  if (!visibility.callAnalysis) return null;
-
+  const [activeTab, setActiveTab] = useState('overview');
 
   const dailyCallData = [
     { date: "Mon", calls: 145, asr: 92.3, sla: 87.4, avgWaitTime: 14.2, maxWaitTime: 45, talkTime: 12.3, afterCallWork: 4.5, droppedCalls: 12, aht: 16.8 },
@@ -106,156 +98,101 @@ const CallAnalysisDashboard = () => {
     { reason: "OTHER", value: 94 }
   ];
 
-  const totalCalls = dailyCallData.reduce((sum, day) => sum + day.calls, 0);
-  const totalAsr = dailyCallData.reduce((sum, day) => sum + day.asr, 0) / dailyCallData.length;
-  const totalSla = dailyCallData.reduce((sum, day) => sum + day.sla, 0) / dailyCallData.length;
-  const totalAvgWaitTime = dailyCallData.reduce((sum, day) => sum + day.avgWaitTime, 0) / dailyCallData.length;
-  const totalMaxWaitTime = dailyCallData.reduce((max, day) => Math.max(max, day.maxWaitTime), 0);
-  const totalCallsByQueue = callQueueData.reduce((sum, queue) => sum + queue.calls, 0);
-  const totalTalkTime = dailyCallData.reduce((sum, day) => sum + day.talkTime, 0) / dailyCallData.length;
-  const totalAfterCallWork = dailyCallData.reduce((sum, day) => sum + day.afterCallWork, 0) / dailyCallData.length;
-  const totalAht = dailyCallData.reduce((sum, day) => sum + day.aht, 0) / dailyCallData.length;
+  const COLORS = [
+    '#1a1a1a',    // Black
+    '#fdcc00',    // Yellow
+    '#2225C5',    // Blue
+    '#4a4a4a',    // Dark Gray
+    '#6c757d',    // Medium Gray
+    '#94a3b8',    // Light Blue Gray
+    '#e5e5e5',    // Light Gray
+    '#002B50',    // Dark Blue
+    '#FFD100',    // Bright Yellow
+    '#4299e1'     // Bright Blue
+  ];
+  
 
-  const getSLAVariant = (value) => {
-    if (value >= 90) return 'success';
-    if (value >= 80) return 'warning';
-    return 'danger';
-  };
-
-
-  const stats = [
-    {
-      title: "Total Calls",
-      value: totalCalls.toLocaleString(),
-      icon: Phone,
-      change: "+12.5%",
-      description: "from last week"
-    },
-    {
-      title: "Call Reasons",
-      value: callReasonData.length,
-      icon: Activity,
-      change: "-2.1%",
-      description: "from last week"
-    },
-    {
-      title: "Answer Success Rate",
-      value: totalAsr.toFixed(1) + "%",
-      icon: CheckCircle,
-      change: "+0.8%",
-      description: "from last week"
-    },
-    {
-      title: "Service Level",
-      value: totalSla.toFixed(1) + "%",
-      icon: Clock,
-      change: "-0.4%",
-      description: "from last week"
-    },
-    {
-      title: "Avg. Wait Time",
-      value: totalAvgWaitTime.toFixed(1) + " sec",
-      icon: Clock,
-      change: "-1.2 sec",
-      description: "from last week"
-    },
-    {
-      title: "Max Wait Time",
-      value: totalMaxWaitTime.toFixed(1) + " sec",
-      icon: Clock,
-      change: "-4 sec",
-      description: "from last week"
-    },
-    {
-      title: "Calls by Queue",
-      value: totalCallsByQueue.toLocaleString(),
-      icon: Phone,
-      change: "+7.3%",
-      description: "from last week"
-    },
-    {
-      title: "Avg. Talk Time",
-      value: totalTalkTime.toFixed(1) + " min",
-      icon: Clipboard,
-      change: "-0.3 min",
-      description: "from last week"
-    },
-    {
-      title: "Avg. After-Call Work",
-      value: totalAfterCallWork.toFixed(1) + " min",
-      icon: Clipboard,
-      change: "+0.1 min",
-      description: "from last week"
-    },
-    {
-      title: "Avg. Handling Time",
-      value: totalAht.toFixed(1) + " min",
-      icon: Clipboard,
-      change: "-0.2 min",
-      description: "from last week"
-    },
-    {
-      title: "Dropped Calls",
-      value: dailyCallData.reduce((sum, day) => sum + day.droppedCalls, 0).toLocaleString(),
-      icon: CreditCard,
-      change: "-5.2%",
-      description: "from last week"
-    }
+  const overviewStats = [
+    { title: "Total Calls", value: "1,257", icon: Phone, change: "+12.5%", description: "from last week" },
+    { title: "Answer Success Rate", value: "91.4%", icon: CheckCircle, change: "+0.8%", description: "from last week" },
+    { title: "Service Level", value: "89.6%", icon: Clock, change: "-0.4%", description: "from last week" },
+    { title: "Dropped Calls", value: "103", icon: CreditCard, change: "-5.2%", description: "from last week" },
+    { title: "Avg. Wait Time", value: "13.5 sec", icon: Clock, change: "-1.2 sec", description: "from last week" },
+    { title: "Max Wait Time", value: "52.0 sec", icon: Clock, change: "-4 sec", description: "from last week" },
+    { title: "Avg. Talk Time", value: "12.0 min", icon: Clipboard, change: "-0.3 min", description: "from last week" },
+    { title: "After-Call Work", value: "4.1 min", icon: Clipboard, change: "+0.1 min", description: "from last week" }
   ];
 
-  const COLORS = ['#002B50', '#FFD100', '#10B981', '#6C757D', '#4B5563', '#94A3B8', '#E5E7EB', '#4B5563', '#FFD100', '#EF4444'];
+  const OverviewTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {overviewStats.map((stat, index) => (
+          <StatCard key={index} {...stat} />
+        ))}
+      </div>
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6 px-2 sm:px-6 md:p-8 lg:p-12">
-      <div className="space-y-10">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-[#fdcc00]">Call Center Analytics</h1>
-          <p className="text-[#001E4A]">Monitor your call center performance metrics and team efficiency in real-time</p>
-        </div>
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <StatCard key={index} {...stat} />
-          ))}
-        </div>
+{/* Daily Calls Chart */}
+<ChartCard title="Daily Call Volume">
+  <div className="relative flex-1 w-full h-80 min-h-[400px] overflow-hidden">
+    <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
+      <div className="min-w-[800px] h-full"> {/* Minimum width to prevent squishing */}
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={dailyCallData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12, fill: COLORS[3] }}
+              height={50}
+              padding={{ left: 10, right: 10 }}
+            />
+            <YAxis 
+              tickCount={6} 
+              domain={[0, 'dataMax']} 
+              tick={{ fontSize: 12, fill: COLORS[3] }}
+              width={60}
+            />
+            <Tooltip 
+              wrapperStyle={{ zIndex: 10 }}
+              cursor={{ fill: 'transparent' }}
+            />
+            <Legend
+              verticalAlign="top"
+              height={36}
+              iconType="circle"
+              iconSize={12}
+              wrapperStyle={{
+                paddingBottom: '10px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            />
+            <Bar dataKey="calls" name="Calls" fill={COLORS[2]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="asr" name="ASR" fill={COLORS[0]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="sla" name="SLA" fill={COLORS[1]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="avgWaitTime" name="Avg. Wait Time" fill={COLORS[7]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="maxWaitTime" name="Max Wait Time" fill={COLORS[4]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="talkTime" name="Talk Time" fill={COLORS[9]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="afterCallWork" name="After-Call Work" fill={COLORS[5]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="aht" name="AHT" fill={COLORS[8]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+            <Bar dataKey="droppedCalls" name="Dropped Calls" fill={COLORS[6]} radius={[4, 4, 0, 0]} maxBarSize={50} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  </div>
+</ChartCard>
 
-        {/* Daily Calls Chart */}
-        <ChartCard title="Daily Call Volume">
-          <div className="h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyCallData}>
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                <YAxis tickCount={6} domain={[0, 'dataMax']} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                <Tooltip />
-                <Legend
-                  verticalAlign="top"
-                  height={36}
-                  iconType="circle"
-                  iconSize={12}
-                  formatter={(value) => (
-                    <span className="text-sm text-gray-300">{value}</span>
-                  )}
-                />
-                <Bar dataKey="calls" name="Calls" fill="#60A5FA" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="asr" name="ASR" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sla" name="SLA" fill="#FDE047" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="avgWaitTime" name="Avg. Wait Time" fill="#9CA3AF" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="maxWaitTime" name="Max Wait Time" fill="#6B7280" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="talkTime" name="Talk Time" fill="#4B5563" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="afterCallWork" name="After-Call Work" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="aht" name="AHT" fill="#DC2626" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="droppedCalls" name="Dropped Calls" fill="#94A3B8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
 
-        {/* Call Reasons Breakdown and Calls by Queue */}
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-5'>
+    </div>
+  );
+
+  const PerformanceTab = () => (
+    <div className="space-y-6">
+        {/* Call Reasons and Queue Charts Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
           {/* Call Reasons Breakdown */}
           <ChartCard title="Call Reasons Breakdown">
-            <div className="h-[400px] w-full">
+            <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -265,7 +202,6 @@ const CallAnalysisDashboard = () => {
                     cx="50%"
                     cy="50%"
                     outerRadius={120}
-                    fill="#8884d8"
                     label
                   >
                     {callReasonData.map((entry, index) => (
@@ -273,6 +209,7 @@ const CallAnalysisDashboard = () => {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -280,27 +217,81 @@ const CallAnalysisDashboard = () => {
 
           {/* Calls by Queue */}
           <ChartCard title="Calls by Queue">
-            <div className="h-[400px] w-full">
+            <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={callQueueData}>
-                  <XAxis dataKey="queue" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                  <YAxis tickCount={6} domain={[0, 'dataMax']} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                  <XAxis dataKey="queue" tick={{ fontSize: 12, fill: COLORS[3] }} />
+                  <YAxis tickCount={6} domain={[0, 'dataMax']} tick={{ fontSize: 12, fill: COLORS[3] }} />
                   <Tooltip />
                   <Legend
                     verticalAlign="top"
                     height={36}
                     iconType="circle"
                     iconSize={12}
-                    formatter={(value) => (
-                      <span className="text-sm text-gray-300">{value}</span>
-                    )}
                   />
-                  <Bar dataKey="calls" name="Calls" fill="#60A5FA" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="aht" name="AHT" fill="#DC2626" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="calls" name="Calls" fill={COLORS[2]} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aht" name="AHT" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
+        </div>
+
+    </div>
+  );
+
+  const tabs = [
+    { id: "overview", name: "Overview" },
+    { id: "performance", name: "Performance Metrics" }
+  ];
+
+  return (
+    <div className="bg-gray-50 rounded-[50px]">
+      <div className="max-w-full mx-auto p-6">
+        {/* Header */}
+        <div className="mb-10 px-1 sm:mb-6 flex justify-between items-center">
+          <AnimatedText />
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="border-b border-gray-200 mb-6">
+          {/* Dropdown for Mobile */}
+          <div className="sm:hidden">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+            >
+              {tabs.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tabs for Desktop */}
+          <div className="hidden sm:flex space-x-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
+                  activeTab === tab.id
+                    ? "text-black border-yellow-400"
+                    : "text-gray-500 border-transparent hover:text-black hover:border-yellow-300"
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="py-4">
+          {activeTab === "overview" && <OverviewTab />}
+          {activeTab === "performance" && <PerformanceTab />}
         </div>
       </div>
     </div>

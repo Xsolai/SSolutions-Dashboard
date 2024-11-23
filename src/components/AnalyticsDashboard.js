@@ -1,29 +1,35 @@
-import React from 'react';
+"use client";
+import React, { useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart } from 'recharts';
-import { Mail, PhoneCall, BookOpen, TrendingUp, Archive, Clock, CheckCircle, AlertCircle, Send } from 'lucide-react';
+import { Mail, PhoneCall, BookOpen, TrendingUp, Archive, Clock, CheckCircle, AlertCircle, Send, Users, Activity } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-// Colors remain the same
+// Color theme
 const colors = {
-  primary: '#001e4a',
-  secondary: '#fdcc00',
-  success: '#10B981',
-  warning: '#fdcc00',
-  danger: '#EF4444'
+  primary: '#fdcc00',    // yellow
+  dark: '#1a1a1a',      // black
+  gray: '#4a4a4a',      // medium gray
+  lightGray: '#e5e5e5', // light gray
+  white: '#ffffff',     // white
+  success: '#2225C5FF', // blue
+  danger: '#fdcc00',    // yellow
+  accent: '#4299e1'     // bright blue
 };
 
-const CHART_COLORS = ['#001e4a', '#fdcc00', '#10B981', '#60A5FA', '#EF4444'];
 
-// Component definitions remain the same
+// Stat Card component
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
-  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm hover:border-yellow-400 transition-all">
-    <div className="flex items-center justify-between mb-4">
+  <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+    <div className="flex items-center justify-between mb-1">
       <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-      <Icon className="h-5 w-5 text-blue-900" />
+      <div className="p-2 bg-yellow-50 rounded-lg">
+        <Icon className="h-5 w-5 text-yellow-400" />
+      </div>
     </div>
-    <div className="text-3xl font-bold text-blue-900 mb-3">{value}</div>
+    <div className="text-2xl font-bold text-gray-900 mb-2">{value}</div>
     {change && description && (
-      <p className="text-xs text-gray-600">
-        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-emerald-600' : 'text-red-600'}`}>
+      <p className="text-xs text-gray-500">
+        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-blue-500' : 'text-blue-500'}`}>
           {change}
         </span>
         {description}
@@ -32,15 +38,52 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
   </div>
 );
 
+const AnimatedText = () => {
+  const letters = "Analytics".split(""); // Convert the string into an array of letters
+
+  return (
+    <div className="inline-block">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{
+          duration: 1, // Total duration for the animation
+          staggerChildren: 0.1, // Delay between revealing each letter
+        }}
+        className="text-5xl sm:px-2 md:text-4xl lg:text-5xl font-bold text-[#fdcc00] flex"
+      >
+        {letters.map((letter, index) => (
+          <motion.span
+            key={index}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.3,
+              delay: index * 0.1,
+            }}
+            className="block"
+          >
+            {letter}
+          </motion.span>
+        ))}
+      </motion.span>
+    </div>
+  );
+};
+
+// Chart Card component
 const ChartCard = ({ title, children }) => (
-  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm hover:border-yellow-400 transition-all">
-    <h3 className="text-lg font-medium text-blue-900 mb-6">{title}</h3>
+  <div className="bg-white p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+    <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
     {children}
   </div>
 );
 
 const AnalyticsDashboard = () => {
-  // NEW: Added email metrics data structure
+  // Tab state
+  const [activeTab, setActiveTab] = useState('email');
+
+  // Data structures
   const emailMetrics = {
     received: 468,
     answered: 357,
@@ -59,7 +102,6 @@ const AnalyticsDashboard = () => {
     }
   };
 
-  // NEW: Added time series data for SL Gross
   const slGrossData = [
     { time: '00:00', value: 8200 },
     { time: '04:00', value: 8400 },
@@ -69,7 +111,6 @@ const AnalyticsDashboard = () => {
     { time: '20:00', value: 8982.84 }
   ];
 
-  // NEW: Added processing time data
   const processingTimeData = [
     { time: '00:00', seconds: 25000 },
     { time: '04:00', seconds: 26000 },
@@ -79,7 +120,6 @@ const AnalyticsDashboard = () => {
     { time: '20:00', seconds: 28713 }
   ];
 
-  // Keep existing data structures for other sections
   const salesServiceData = {
     sales: {
       handled: 43,
@@ -114,134 +154,217 @@ const AnalyticsDashboard = () => {
     }
   };
 
-  return (
-    <div className="space-y-12">
-      {/* NEW: Email Analytics Section with expanded metrics */}
-      <section>
-        <h2 className="text-2xl font-bold mb-6 text-blue-900">Email Analytics</h2>
-        {/* NEW: Expanded Email KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
-          <StatCard
-            title="Emails Received"
-            value={emailMetrics.received}
-            icon={Mail}
-            change="+12%"
-            description="vs. yesterday"
-          />
-          <StatCard
-            title="Emails Answered"
-            value={emailMetrics.answered}
-            icon={Mail}
-            change="+8%"
-            description="vs. yesterday"
-          />
-          <StatCard
-            title="Emails Forwarded"
-            value={emailMetrics.forwarded}
-            icon={Send}
-            change="-5%"
-            description="vs. yesterday"
-          />
-          <StatCard
-            title="New Emails Sent"
-            value={emailMetrics.newSent}
-            icon={Send}
-            change="+15%"
-            description="vs. yesterday"
-          />
-          <StatCard
-            title="Emails Archived"
-            value={emailMetrics.archived}
-            icon={Archive}
-            change="+10%"
-            description="vs. yesterday"
-          />
-        </div>
+  // Email Analytics Tab
+  const EmailTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <StatCard
+          title="Emails Received"
+          value={emailMetrics.received}
+          icon={Mail}
+          change="+12%"
+          description="vs. yesterday"
+        />
+        <StatCard
+          title="Emails Answered"
+          value={emailMetrics.answered}
+          icon={Mail}
+          change="+8%"
+          description="vs. yesterday"
+        />
+        <StatCard
+          title="Emails Forwarded"
+          value={emailMetrics.forwarded}
+          icon={Send}
+          change="-5%"
+          description="vs. yesterday"
+        />
+        <StatCard
+          title="New Sent"
+          value={emailMetrics.newSent}
+          icon={Send}
+          change="+15%"
+          description="vs. yesterday"
+        />
+        <StatCard
+          title="Archived"
+          value={emailMetrics.archived}
+          icon={Archive}
+          change="+10%"
+          description="vs. yesterday"
+        />
+      </div>
 
-        <section>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          
-          <StatCard
-            title="SL Gross"
-            value="€8,982.84"
-            icon={TrendingUp}
-          />
-          <StatCard
-            title="Processing Time"
-            value="478m"
-            icon={Clock}
-          />
-          
-        </div>
-        
-        <ChartCard title="Email Processing Overview">
-          <div className="h-80">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <StatCard
+          title="SL Gross"
+          value={`€${emailMetrics.slGross.toLocaleString()}`}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Processing Time"
+          value={`${Math.round(emailMetrics.processingTime / 60)}m`}
+          icon={Clock}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChartCard title="Email Processing Overview" >
+          <div className="h-60">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { name: 'Received', value: 468 },
-                { name: 'Answered', value: 357 },
-                { name: 'Forwarded', value: 2 },
-                { name: 'Archived', value: 634 }
+                { name: 'Received', value: emailMetrics.received },
+                { name: 'Answered', value: emailMetrics.answered },
+                { name: 'Forwarded', value: emailMetrics.forwarded },
+                { name: 'Archived', value: emailMetrics.archived }
               ]}>
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis dataKey="name" stroke={colors.gray} />
+                <YAxis stroke={colors.gray} />
                 <Tooltip />
-                <Bar dataKey="value" fill={colors.primary} />
+                <Bar dataKey="value" fill={colors.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
-      </section>
 
+        <ChartCard title="Processing Time Trend">
+          <div className="h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={processingTimeData}>
+                <XAxis dataKey="time" stroke={colors.gray} />
+                <YAxis stroke={colors.gray} />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="seconds" 
+                  stroke={colors.primary} 
+                  strokeWidth={2}
+                  dot={{ fill: colors.primary }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+    </div>
+  );
 
-        {/* NEW: Service Level and Processing Time Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <ChartCard title="Service Level Gross Trend">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={slGrossData}>
-                  <XAxis dataKey="time" />
-                  <YAxis domain={['dataMin - 100', 'dataMax + 100']} />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    name="SL Gross" 
-                    stroke={colors.primary} 
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+  // Sales & Service Analytics Tab
+  const SalesServiceTab = () => (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          title="Sales Service Level"
+          value={`${salesServiceData.sales.sl}%`}
+          icon={TrendingUp}
+          change="+5%"
+          description="vs. target"
+        />
+        <StatCard
+          title="Service Level"
+          value={`${salesServiceData.service.sl}%`}
+          icon={TrendingUp}
+          change="-2%"
+          description="vs. target"
+        />
+      </div>
 
-          <ChartCard title="Processing Time (seconds)">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={processingTimeData}>
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="seconds" 
-                    name="Processing Time" 
-                    stroke={colors.secondary} 
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChartCard title="Service Level Comparison">
+          <div className="h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={[
+                { name: 'Sales', sl: salesServiceData.sales.sl },
+                { name: 'Service', sl: salesServiceData.service.sl }
+              ]}>
+                <XAxis dataKey="name" stroke={colors.gray} />
+                <YAxis stroke={colors.gray} />
+                <Tooltip />
+                <Line type="monotone" dataKey="sl" stroke={colors.primary} strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="ACC Distribution">
+          <div className="h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Sales ACC', value: salesServiceData.sales.acc },
+                    { name: 'Service ACC', value: salesServiceData.service.acc }
+                  ]}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  innerRadius={60}
+                >
+                  {[colors.primary, colors.dark].map((color, index) => (
+                    <Cell key={`cell-${index}`} fill={color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+
+      <ChartCard title="Service Level Trend">
+        <div className="h-60">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={slGrossData}>
+              <XAxis dataKey="time" stroke={colors.gray} />
+              <YAxis stroke={colors.gray} />
+              <Tooltip />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke={colors.primary} 
+                strokeWidth={2}
+                dot={{ fill: colors.primary }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
+      </ChartCard>
+    </div>
+  );
 
-        {/* NEW: Booking Status and Rate */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ChartCard title="Booking Status">
-            <div className="h-80">
+  // Booking Analytics Tab
+  const BookingTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          title="Total Bookings"
+          value={emailMetrics.bookingData.booked}
+          icon={Users}
+          change="+15%"
+          description="vs. last period"
+        />
+        <StatCard
+          title="Booking Rate"
+          value={`${emailMetrics.bookingData.bookingRate}%`}
+          icon={Activity}
+          change="+5%"
+          description="vs. target"
+        />
+        <StatCard
+          title="Pending Bookings"
+          value={emailMetrics.bookingData.pending}
+          icon={Clock}
+          change="0%"
+          description="no change"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <ChartCard title="Booking Status">
+            <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
                   { category: 'Booked', value: emailMetrics.bookingData.booked },
@@ -260,164 +383,146 @@ const AnalyticsDashboard = () => {
             </div>
           </ChartCard>
 
-          <ChartCard title="SB Booking Rate">
-            <div className="h-80">
-              <div className="flex flex-col items-center justify-center h-full">
-                <div className="text-6xl font-bold text-blue-900">
-                  {emailMetrics.bookingData.bookingRate}%
-                </div>
-                <div className="text-gray-500 mt-4">Current Booking Rate</div>
-              </div>
-            </div>
-          </ChartCard>
-        </div>
-      </section>
-
-      {/* Sales and Service Section */}
-      <section>
-        <h2 className="text-2xl font-bold mb-6 text-blue-900">Sales and Service Analytics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <ChartCard title="Service Level Comparison">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={[
-                  { name: 'Sales', sl: 88 },
-                  { name: 'Service', sl: 63.14 }
-                ]}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="sl" stroke={colors.primary} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          <ChartCard title="ACC Distribution">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Sales ACC', value: 100 },
-                      { name: 'Service ACC', value: 100 }
-                    ]}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                  >
-                    {[colors.primary, colors.secondary].map((color, index) => (
-                      <Cell key={`cell-${index}`} fill={color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-      </section>
-
-      {/* Booking Analytics Section */}
-      <section>
-        <h2 className="text-2xl font-bold mb-6 text-blue-900">Booking Analytics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ChartCard title="Booking Status">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Booked', value: 137 },
-                      { name: 'Not Booked', value: 204 },
-                      { name: 'Pending', value: 0 }
-                    ]}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    innerRadius={60}
-                  >
-                    {CHART_COLORS.map((color, index) => (
-                      <Cell key={`cell-${index}`} fill={color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          <ChartCard title="OP/RQ Distribution">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: 'OP', value: 24 },
-                  { name: 'RQ', value: 6 }
-                ]}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill={colors.primary} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-      </section>
-
-      {/* Conversion Analytics Section */}
-      <section>
-        <h2 className="text-2xl font-bold mb-6 text-blue-900">Conversion Analytics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <StatCard
-            title="CB Conversion Rate"
-            value="13.33%"
-            icon={TrendingUp}
-          />
-          <StatCard
-            title="Sales Conversion Rate"
-            value="59.58%"
-            icon={TrendingUp}
-          />
-        </div>
-        <ChartCard title="CB vs Sales Performance">
-          <div className="h-80">
+        <ChartCard title="OP/RQ Distribution">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={[
-                {
-                  name: 'CB',
-                  bookings: 12,
-                  wrongCalls: 101,
-                  conversion: 13.33
-                },
-                {
-                  name: 'Sales',
-                  bookings: 12,
-                  wrongCalls: 101,
-                  conversion: 59.58
-                }
+              <BarChart data={[
+                { name: 'OP', value: emailMetrics.bookingData.op },
+                { name: 'RQ', value: emailMetrics.bookingData.rq }
               ]}>
-                <XAxis dataKey="name" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
+                <XAxis dataKey="name" stroke={colors.gray} />
+                <YAxis stroke={colors.gray} />
                 <Tooltip />
-                <Legend />
-                <Bar yAxisId="left" dataKey="bookings" fill={colors.success} />
-                <Bar yAxisId="left" dataKey="wrongCalls" fill={colors.danger} />
-                <Line yAxisId="right" type="monotone" dataKey="conversion" stroke={colors.primary} />
-              </ComposedChart>
+                <Bar dataKey="value" fill={colors.primary} radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
-      </section>
+      </div>
     </div>
-  );  
+  );
+
+  // Conversion Analytics Tab
+  const ConversionTab = () => (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          title="CB Conversion Rate"
+          value={`${conversionData.cb.conversion}%`}
+          icon={TrendingUp}
+          change="+2.5%"
+          description="vs. last period"
+        />
+        <StatCard
+          title="Sales Conversion Rate"
+          value={`${conversionData.sales.conversion}%`}
+          icon={TrendingUp}
+          change="+8.3%"
+          description="vs. last period"
+        />
+      </div>
+
+      <ChartCard title="Conversion Performance">
+        <div className="h-60">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={[
+              { 
+                name: 'CB',
+                bookings: conversionData.cb.bookings,
+                wrongCalls: conversionData.cb.wrongCalls,
+                conversion: conversionData.cb.conversion
+              },
+              { 
+                name: 'Sales',
+                bookings: conversionData.sales.bookings,
+                wrongCalls: conversionData.sales.wrongCalls,
+                conversion: conversionData.sales.conversion
+              }
+            ]}>
+              <XAxis dataKey="name" stroke={colors.gray} />
+              <YAxis yAxisId="left" stroke={colors.gray} />
+              <YAxis yAxisId="right" orientation="right" stroke={colors.gray} />
+              <Tooltip />
+              <Legend />
+              <Bar yAxisId="left" dataKey="bookings" fill={colors.success} radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="left" dataKey="wrongCalls" fill={colors.danger} radius={[4, 4, 0, 0]} />
+              <Line 
+                yAxisId="right" 
+                type="monotone" 
+                dataKey="conversion" 
+                stroke={colors.accent}
+                strokeWidth={2}
+                dot={{ fill: colors.accent }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </ChartCard>
+    </div>
+  );
+
+  const tabs = [
+    { id: "email", name: "Email Analytics" },
+    { id: "sales", name: "Sales & Service" },
+    { id: "booking", name: "Booking Analytics" },
+    { id: "conversion", name: "Conversion" },
+  ];
+
+  const handleDropdownChange = (e) => setActiveTab(e.target.value);
+
+  return (
+    <div className="bg-gray-50 rounded-[50px]">
+      <div className="max-w-full mx-auto p-6">
+        {/* Header */}
+        <div className="mb-10 px-1 sm:mb-6 flex justify-between items-center">
+          <AnimatedText />
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="border-b border-gray-200 mb-6">
+          {/* Dropdown for Mobile */}
+          <div className="sm:hidden">
+            <select
+              value={activeTab}
+              onChange={handleDropdownChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+            >
+              {tabs.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tabs for Desktop */}
+          <div className="hidden sm:flex space-x-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
+                  activeTab === tab.id
+                    ? "text-black border-yellow-400"
+                    : "text-gray-500 border-transparent hover:text-black hover:border-yellow-300"
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="py-4">
+          {activeTab === "email" && <EmailTab />}
+          {activeTab === "sales" && <SalesServiceTab />}
+          {activeTab === "booking" && <BookingTab />}
+          {activeTab === "conversion" && <ConversionTab />}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AnalyticsDashboard;

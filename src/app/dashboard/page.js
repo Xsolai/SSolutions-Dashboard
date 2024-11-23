@@ -1,19 +1,16 @@
 "use client";
-import React, { useState } from 'react';
-import { LayoutDashboard, History, X, Check, AlertTriangle, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LayoutDashboard, History, X, Check, AlertTriangle, Clock, Menu } from 'lucide-react';
 import CallAnalysisDashboard from "@/components/CallAnalysisDashboard";
 import EmailAnalysisDashboard from "@/components/EmailAnalysisDashboard";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
-import { useVisibility } from "@/context/VisibilityContext";
+import logo from "@/assets/images/logo.png";
 
 const HistorySidebar = ({ isOpen, onClose }) => {
   const histories = [
     { fileName: 'Sales_Call_2024.mp3', fetchTime: '2024-03-28 14:30', status: 'success' },
     { fileName: 'Customer_Support.mp3', fetchTime: '2024-03-28 13:15', status: 'error' },
     { fileName: 'Team_Meeting.mp3', fetchTime: '2024-03-28 12:00', status: 'success' },
-    { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
-    { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
-    { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
     { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
     { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
     { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
@@ -36,42 +33,42 @@ const HistorySidebar = ({ isOpen, onClose }) => {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-white/60 backdrop-blur-sm transition-opacity z-40"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity z-40"
           onClick={onClose}
         />
       )}
-      <div className={`fixed top-0 right-0 h-full w-80 bg-gray-800/95 backdrop-blur-md shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+      <div className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-gray-700">
+          <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                 <History className="w-6 h-6" />
                 History
               </h2>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-gray-700 rounded-full transition-colors duration-200"
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors duration-200"
               >
-                <X className="w-5 h-5 text-gray-400 hover:text-gray-200" />
+                <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-gray-700 scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-500">
+          <div className="flex-1 overflow-y-auto">
             <div className="p-4 space-y-3">
               {histories.map((item, index) => (
                 <div
                   key={index}
-                  className="bg-gray-700/50 backdrop-blur-sm rounded-xl p-3.5 hover:bg-gray-600/50 transition-colors duration-200 cursor-pointer group"
+                  className="bg-gray-50 rounded-xl p-3.5 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group border border-gray-200"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
+                    <span className="font-medium text-gray-800 group-hover:text-black transition-colors">
                       {item.fileName}
                     </span>
                     {getStatusIcon(item.status)}
                   </div>
-                  <div className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+                  <div className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
                     {item.fetchTime}
                   </div>
                 </div>
@@ -87,54 +84,64 @@ const HistorySidebar = ({ isOpen, onClose }) => {
 const Home = () => {
   const [activeTab, setActiveTab] = useState('analytics');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const { visibility } = useVisibility();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    setIsMobileMenuOpen(false);
   };
 
+  // Handle resize events
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const navigationLinks = [
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'call-analysis', label: 'Call Analysis' },
+    { id: 'email-analysis', label: 'Email Analysis' },
+  ];
+
   return (
-    <div className="min-h-screen bg-white text-[#001E4A]">
-      <div className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="block sm:flex items-center justify-between mb-6 space-y-6 sm:space-y-0">
+    <div className="min-h-screen bg-white text-black">
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <LayoutDashboard className="h-8 w-8 text-blue-500" />
-            <span className="text-xl font-semibold">Dashboard</span>
+            <img src={logo.src} alt="Dashboard Logo" className='size-6 px-2 w-fit'/>
           </div>
 
-          <div className="flex space-x-4">
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2 rounded-lg bg-black text-[#FDCC00] hover:bg-gray-800"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex space-x-4">
+            {navigationLinks.map((link) => (
+              <button
+                key={link.id}
+                className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  activeTab === link.id
+                    ? 'text-black bg-yellow-400'
+                    : 'text-black border-[#FDCC00] border-2'
+                }`}
+                onClick={() => handleTabChange(link.id)}
+              >
+                {link.label}
+              </button>
+            ))}
             <button
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                activeTab === 'analytics'
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                  : 'bg-[#FDCC00] text-white hover:bg-gray-700'
-              }`}
-              onClick={() => handleTabChange('analytics')}
-            >
-              Analytics
-            </button>
-            <button
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                activeTab === 'call-analysis'
-                  ? 'bg-blue-500 text-white shadow-lg shadow-white'
-                  : 'bg-[#FDCC00] text-white hover:bg-gray-700'
-              }`}
-              onClick={() => handleTabChange('call-analysis')}
-            >
-              Call Analysis
-            </button>
-            <button
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                activeTab === 'email-analysis'
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                  : 'bg-[#FDCC00] text-white hover:bg-gray-700'
-              }`}
-              onClick={() => handleTabChange('email-analysis')}
-            >
-              Email Analysis
-            </button>
-            <button
-              className="px-4 py-2 rounded-xl font-medium bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all duration-200 flex items-center gap-2"
+              className="px-4 py-2 rounded-xl font-medium bg-black text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
               onClick={() => setIsHistoryOpen(true)}
             >
               <History className="w-5 h-5" />
@@ -142,6 +149,35 @@ const Home = () => {
             </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-black border-2 rounded-xl mt-4 p-4 space-y-3">
+            {navigationLinks.map((link) => (
+              <button
+                key={link.id}
+                className={`w-full px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  activeTab === link.id
+                    ? 'bg-[#FDCC00] text-black'
+                    : 'text-[#FDCC00] hover:bg-gray-800'
+                }`}
+                onClick={() => handleTabChange(link.id)}
+              >
+                {link.label}
+              </button>
+            ))}
+            <button
+              className="w-full px-4 py-2 rounded-xl font-medium text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+              onClick={() => {
+                setIsHistoryOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              <History className="w-5 h-5" />
+              History
+            </button>
+          </div>
+        )}
 
         {/* Dashboard Content */}
         <div className="mt-6">
