@@ -50,7 +50,7 @@ const AnimatedText = () => {
           duration: 1, // Total duration for the animation
           staggerChildren: 0.1, // Delay between revealing each letter
         }}
-        className="text-5xl sm:px-2 md:text-4xl lg:text-5xl font-bold text-[#fdcc00] flex"
+        className="text-4xl sm:px-2 md:text-4xl lg:text-5xl font-bold text-[#fdcc00] flex"
       >
         {letters.map((letter, index) => (
           <motion.span
@@ -73,7 +73,7 @@ const AnimatedText = () => {
 
 // Chart Card component
 const ChartCard = ({ title, children }) => (
-  <div className="bg-white p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
     {children}
   </div>
@@ -472,9 +472,9 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
-      <div className="max-w-full mx-auto p-6">
+      <div className="max-w-full mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="mb-10 px-1 sm:mb-6 flex justify-between items-center">
+        <div className="mb-10 px-2 pt-4 sm:mb-6 flex justify-between items-center">
           <AnimatedText />
         </div>
 
