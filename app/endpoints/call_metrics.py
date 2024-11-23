@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason, GuruDailyCallData, 
-                                        WorkflowReportGuru, WorkflowReportGuruKF,
                                         QueueStatistics)
 from app.database.db.db_connection import SessionLocal,  get_db
-from datetime import datetime, time
 from sqlalchemy import func
 
 

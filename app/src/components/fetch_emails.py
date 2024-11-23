@@ -3,8 +3,6 @@ import email
 import os
 import re
 from datetime import datetime
-import schedule
-import time
 
 # Define your Outlook account credentials
 outlook_email = 'solasolution@ai-mitarbeiter.de'

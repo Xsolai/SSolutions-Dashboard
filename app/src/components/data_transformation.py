@@ -1,5 +1,3 @@
-from app.database.db.db_connection import SessionLocal, engine, get_db
-from app.database.models.models import GuruCallReason, GuruDailyCallData, WorkflowReportGuru, WorkflowReportGuruKF
 import pandas as pd
 from app.src.logger import logging
 import os 

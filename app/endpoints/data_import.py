@@ -1,7 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.orm import Session
-from datetime import datetime
-from app.src.components.fetch_emails import download_attachments
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from app.database.db.db_connection import SessionLocal
 from app.src.components.data_ingestion import (populate_guru_call_reason, populate_guru_daily,
                                                populate_email_table, populate_workflow_report, 
