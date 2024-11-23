@@ -35,6 +35,7 @@ class GuruCallReason(Base):
 class GuruDailyCallData(Base):
     __tablename__ = "guru_daily"
     id = Column(Integer, primary_key=True, index=True)
+    weekday = Column(String)
     queue_name = Column(String, index=True)
     total_calls = Column(Integer)
     answered_calls = Column(Integer)

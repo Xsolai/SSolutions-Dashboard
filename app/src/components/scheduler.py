@@ -15,6 +15,15 @@ import os
 pk_timezone = timezone('Asia/Karachi')
 scheduler = BackgroundScheduler(timezone=pk_timezone)
 
+def parse_date_to_weekday(date_str):
+    """Convert a date string (e.g., '22-Nov-2024') to the weekday name."""
+    try:
+        date_obj = datetime.strptime(date_str, '%d-%b-%Y')  # Adjust format if needed
+        return date_obj.strftime('%A')  # Convert to weekday name (e.g., 'Monday')
+    except ValueError:
+        return None  # Return None if the date string is invalid
+    
+
 def run_task():
     print(f"Running task at: {datetime.now(pk_timezone).strftime('%Y-%m-%d %H:%M:%S')}")
     
@@ -24,6 +33,7 @@ def run_task():
     # Today's date for file processing
     # TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
     TODAY_DATE = "23-Nov-2024"
+    weeday_name = parse_date_to_weekday(TODAY_DATE) if TODAY_DATE else None
     all_files = os.listdir(os.path.join(os.getcwd(), "attachments", TODAY_DATE))
     files = {
         "call_reason": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(str(file) for file in all_files if "Guru_CallReason" in file)),
@@ -54,7 +64,7 @@ def run_task():
                 if file_type == "call_reason":
                     populate_guru_call_reason(data, db)
                 elif file_type == "daily":
-                    populate_guru_daily(data, db)
+                    populate_guru_daily(data, db, day=weeday_name)
                 elif file_type == "5vFlug":
                     populate_queue_statistics(data, db)
                 elif file_type == "email_KF":

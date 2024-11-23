@@ -31,7 +31,7 @@ def populate_guru_call_reason(data, db: Session):
         logging.error(f"Error populating GuruCallReason table: {e}")
         print(f"Exception occurred while populating GuruCallReason table: {e}")
 
-def populate_guru_daily(data, db: Session):
+def populate_guru_daily(data, db: Session, day):
     """Populate GuruDailyCallData table."""
     try:
         for _, row in data.iterrows():
@@ -40,6 +40,7 @@ def populate_guru_daily(data, db: Session):
 
             # Use .get() to access each column, and provide a default if missing
             db_record = GuruDailyCallData(
+                weekday = day,
                 queue_name=row.get('Warteschleife', ''),
                 total_calls=row.get('Anrufe', 0),
                 answered_calls=row.get('Angenommen', 0),
