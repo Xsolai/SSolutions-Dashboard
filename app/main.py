@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 app = FastAPI()
 
+print("backend start")
 # Enable CORS for specific origins or allow all
 app.add_middleware(
     CORSMiddleware,
