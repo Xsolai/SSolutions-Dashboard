@@ -31,8 +31,8 @@ def run_task():
     download_attachments()
     
     # Today's date for file processing
-    # TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-    TODAY_DATE = "23-Nov-2024"
+    TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
+    # TODAY_DATE = "23-Nov-2024"
     weeday_name = parse_date_to_weekday(TODAY_DATE) if TODAY_DATE else None
     all_files = os.listdir(os.path.join(os.getcwd(), "attachments", TODAY_DATE))
     files = {
