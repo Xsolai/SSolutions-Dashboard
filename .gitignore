@@ -1,0 +1,7 @@
+attachments/
+
+logs/
+
+venv/
+
+__pycache__/
