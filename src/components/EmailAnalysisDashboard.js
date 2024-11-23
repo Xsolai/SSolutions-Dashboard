@@ -4,17 +4,18 @@ import { Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucid
 
 // Modern color palette
 const colors = {
-  primary: '#6366F1',    // Indigo
-  secondary: '#8B5CF6',  // Purple
-  success: '#10B981',    // Emerald
-  warning: '#F59E0B',    // Amber
-  danger: '#EF4444',     // Red
-  info: '#3B82F6',       // Blue
-  background: '#0F172A', // Slate-900
-  card: '#1E293B',       // Slate-800
-  text: '#E2E8F0',       // Slate-200
-  textMuted: '#94A3B8',  // Slate-400
-  border: '#334155'      // Slate-700
+  primary: '#001e4a',    // Dark Blue
+  secondary: '#fdcc00',  // Yellow
+  success: '#10B981',    // Keep success green for clarity
+  warning: '#fdcc00',    // Yellow for warnings
+  danger: '#EF4444',     // Keep red for danger
+  info: '#001e4a',       // Dark Blue
+  background: '#FFFFFF', // White
+  card: '#F8F9FA',      // Light gray
+  text: '#000000',      // Black for paragraphs
+  textMuted: '#001e4a', // Dark Blue for subheadings
+  border: '#DEE2E6',    // Light border
+  heading: '#fdcc00'   // Slate-700
 };
 
 // Sample data
@@ -41,23 +42,20 @@ const avgVolume = Math.round(emailData.reduce((acc, curr) => acc + curr.volume, 
 const avgProcessingTime = Math.round(mailboxData.reduce((acc, curr) => acc + curr.processingTime, 0) / mailboxData.length);
 
 const StatCard = ({ title, value, icon: Icon, change, description, variant = 'default' }) => (
-  <div className={`relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900
-    rounded-2xl p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm
-    hover:border-slate-600/50 transition-all duration-300 group
-    ${variant === 'warning' ? 'from-amber-500/10 to-amber-600/10' : 
-      variant === 'danger' ? 'from-red-500/10 to-red-600/10' : 
-      variant === 'success' ? 'from-emerald-500/10 to-emerald-600/10' : ''}`}>
+  <div className={`relative overflow-hidden bg-white
+    rounded-2xl p-6 border border-slate-200 shadow-lg
+    hover:border-slate-300 transition-all duration-300 group`}>
     <div className="flex items-center justify-between mb-4">
-      <h3 className="text-sm font-medium text-slate-400">{title}</h3>
+      <h3 className="text-sm font-medium" style={{ color: colors.textMuted }}>{title}</h3>
       <Icon className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-        variant === 'warning' ? 'text-amber-500' :
+        variant === 'warning' ? 'text-yellow-500' :
         variant === 'danger' ? 'text-red-500' :
         variant === 'success' ? 'text-emerald-500' :
         'text-slate-400'
       }`} />
     </div>
-    <div className="text-3xl font-bold text-slate-100 mb-3">{value}</div>
-    <p className="text-xs text-slate-400">
+    <div className="text-3xl font-bold mb-3" style={{ color: colors.text }}>{value}</div>
+    <p className="text-xs" style={{ color: colors.textMuted }}>
       <span className={`inline-block mr-2 ${
         change.includes('-') ? 'text-emerald-400' : 'text-red-400'
       }`}>
@@ -65,15 +63,13 @@ const StatCard = ({ title, value, icon: Icon, change, description, variant = 'de
       </span>
       {description}
     </p>
-    <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-gradient-to-br from-slate-700/10 to-slate-600/5 
-      rounded-full blur-2xl group-hover:from-slate-700/20 group-hover:to-slate-600/10 transition-all duration-300" />
   </div>
 );
 
 const ChartCard = ({ title, children }) => (
-  <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 
-    shadow-lg hover:border-slate-600/50 transition-all duration-300">
-    <h3 className="text-lg font-medium text-slate-100 mb-6">{title}</h3>
+  <div className="bg-white rounded-2xl p-6 border border-slate-200 
+    shadow-lg hover:border-slate-300 transition-all duration-300">
+    <h3 className="text-lg font-medium mb-6" style={{ color: colors.heading }}>{title}</h3>
     {children}
   </div>
 );
@@ -93,11 +89,11 @@ const getSLAVariant = (value) => {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-800 p-3 rounded-lg border border-slate-700 shadow-xl">
-        <p className="text-slate-200 font-medium mb-1">{label}</p>
+      <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-xl">
+        <p className="font-medium mb-1" style={{ color: colors.heading }}>{label}</p>
         {payload.map((entry, index) => (
-          <p key={index} className="text-sm text-slate-400">
-            {entry.name}: <span className="text-slate-200">{entry.value}</span>
+          <p key={index} className="text-sm" style={{ color: colors.textMuted }}>
+            {entry.name}: <span style={{ color: colors.text }}>{entry.value}</span>
           </p>
         ))}
       </div>
@@ -105,6 +101,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   }
   return null;
 };
+
 
 const EmailAnalysisDashboard = () => {
   const getBarColor = (sla) => {
@@ -114,13 +111,16 @@ const EmailAnalysisDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6 px-2 sm:px-6 md:p-8 lg:p-12">
+    <div className="min-h-screen bg-gray-50 p-6 px-2 sm:px-6 md:p-8 lg:p-12">
       <div className="max-w-7xl mx-auto space-y-10">
         {/* Header */}
-        <div className="mb-8 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 
-          text-transparent bg-clip-text">
-          <h1 className="text-3xl font-bold mb-2">Email Response Analytics</h1>
-          <p className="text-slate-400">Real-time insights from Workflow Report GuruKF</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: colors.heading }}>
+            Email Response Analytics
+          </h1>
+          <p style={{ color: colors.text }}>
+            Real-time insights from Workflow Report GuruKF
+          </p>
         </div>
 
         {/* KPI Cards */}
@@ -236,6 +236,7 @@ const EmailAnalysisDashboard = () => {
               </ResponsiveContainer>
             </div>
           </ChartCard>
+
 
           <ChartCard title="Service Level by Mailbox">
             <div className="h-[400px] w-full">

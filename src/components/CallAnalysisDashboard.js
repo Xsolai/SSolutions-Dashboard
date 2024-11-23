@@ -1,57 +1,57 @@
 "use client";
 import React from 'react';
+import { useVisibility } from "@/context/VisibilityContext";
+
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
 
 // Modern color palette
 const colors = {
-  primary: '#6366F1',    // Indigo
-  secondary: '#8B5CF6',  // Purple
-  success: '#10B981',    // Emerald
-  warning: '#F59E0B',    // Amber
-  danger: '#EF4444',     // Red
-  info: '#3B82F6',       // Blue
-  background: '#0F172A', // Slate-900
-  card: '#1E293B',       // Slate-800
-  text: '#E2E8F0',       // Slate-200
-  textMuted: '#94A3B8',  // Slate-400
-  border: '#334155'      // Slate-700
+  pprimary: '#002B50',    // Dark Blue
+  secondary: '#FFD100',  // Yellow
+  success: '#10B981',    // Keep success green for clarity
+  warning: '#FFD100',    // Yellow for warnings
+  danger: '#EF4444',     // Keep red for danger
+  info: '#002B50',       // Dark Blue
+  background: '#FFFFFF', // White
+  card: '#F8F9FA',      // Light gray
+  text: '#001E4A',       // Dark Blue
+  textMuted: '#6C757D',  // Muted text
+  border: '#DEE2E6'    // Border color
 };
 
+
 const StatCard = ({ title, value, icon: Icon, change, description, variant = 'default' }) => (
-  <div className={`relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900
-    rounded-2xl p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm
-    hover:border-slate-600/50 transition-all duration-300 group
-    ${variant === 'warning' ? 'from-amber-500/10 to-amber-600/10' : 
-      variant === 'danger' ? 'from-red-500/10 to-red-600/10' : 
-      variant === 'success' ? 'from-emerald-500/10 to-emerald-600/10' : ''}`}>
+  <div className={`relative overflow-hidden bg-white
+    rounded-lg p-6 border border-gray-200 shadow-sm
+    hover:border-yellow-400 transition-all duration-300 group
+    ${variant === 'warning' ? 'bg-yellow-50' :
+      variant === 'danger' ? 'bg-red-50' :
+        variant === 'success' ? 'bg-emerald-50' : ''}`}>
     <div className="flex items-center justify-between mb-4">
-      <h3 className="text-sm font-medium text-slate-400">{title}</h3>
+      <h3 className="text-sm font-medium text-gray-600">{title}</h3>
       <Icon className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-        variant === 'warning' ? 'text-amber-500' :
+        variant === 'warning' ? 'text-yellow-400' :
         variant === 'danger' ? 'text-red-500' :
         variant === 'success' ? 'text-emerald-500' :
-        'text-slate-400'
+        'text-blue-900'
       }`} />
     </div>
-    <div className="text-3xl font-bold text-slate-100 mb-3">{value}</div>
-    <p className="text-xs text-slate-400">
-      <span className={`inline-block mr-2 ${
-        change.includes('-') ? 'text-emerald-400' : 'text-red-400'
-      }`}>
+    <div className="text-3xl font-bold text-blue-900 mb-3">{value}</div>
+    <p className="text-xs text-gray-600">
+      <span className={`inline-block mr-2 ${change.includes('-') ? 'text-emerald-600' : 'text-red-600'}`}>
         {change}
       </span>
       {description}
     </p>
-    <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-gradient-to-br from-slate-700/10 to-slate-600/5 
-      rounded-full blur-2xl group-hover:from-slate-700/20 group-hover:to-slate-600/10 transition-all duration-300" />
   </div>
 );
 
+
 const ChartCard = ({ title, children }) => (
-  <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 
-    shadow-lg hover:border-slate-600/50 transition-all duration-300">
-    <h3 className="text-lg font-medium text-slate-100 mb-6">{title}</h3>
+  <div className="bg-white rounded-lg p-6 border border-gray-200 
+    shadow-sm hover:border-yellow-400 transition-all duration-300">
+    <h3 className="text-lg font-medium text-blue-900 mb-6">{title}</h3>
     {children}
   </div>
 );
@@ -73,6 +73,12 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const CallAnalysisDashboard = () => {
+  const { visibility } = useVisibility(); // Consume the visibility context
+
+  // Conditional rendering based on visibility
+  if (!visibility.callAnalysis) return null;
+
+
   const dailyCallData = [
     { date: "Mon", calls: 145, asr: 92.3, sla: 87.4, avgWaitTime: 14.2, maxWaitTime: 45, talkTime: 12.3, afterCallWork: 4.5, droppedCalls: 12, aht: 16.8 },
     { date: "Tue", calls: 232, asr: 88.7, sla: 85.2, avgWaitTime: 16.5, maxWaitTime: 52, talkTime: 14.1, afterCallWork: 5.2, droppedCalls: 23, aht: 19.3 },
@@ -197,18 +203,16 @@ const CallAnalysisDashboard = () => {
     }
   ];
 
-  const COLORS = ['#60A5FA', '#10B981', '#FDE047', '#9CA3AF', '#6B7280', '#94A3B8', '#E5E7EB', '#4B5563', '#F59E0B', '#DC2626'];
+  const COLORS = ['#002B50', '#FFD100', '#10B981', '#6C757D', '#4B5563', '#94A3B8', '#E5E7EB', '#4B5563', '#FFD100', '#EF4444'];
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6 px-2 sm:px-6 md:p-8 lg:p-12">
+    <div className="min-h-screen bg-gray-50 p-6 px-2 sm:px-6 md:p-8 lg:p-12">
       <div className="space-y-10">
         {/* Header */}
- <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 
-            text-transparent bg-clip-text">Call Center Analytics</h1>
-          <p className="text-slate-400">Monitor your call center performance metrics and team efficiency in real-time</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-[#fdcc00]">Call Center Analytics</h1>
+          <p className="text-[#001E4A]">Monitor your call center performance metrics and team efficiency in real-time</p>
         </div>
-
         {/* Key Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
