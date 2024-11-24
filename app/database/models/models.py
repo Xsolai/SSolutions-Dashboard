@@ -150,3 +150,12 @@ class BookingData(Base):
     external_system = Column(String(255), nullable=True)  # CRS (Standard Externes System)
     order_creation_date = Column(String, nullable=True)  # Auftrag Anlagedatum (Auftrag)
     crs_original_booking_number = Column(String(255), nullable=True)  # CRS (Standard) original Buchungsnummer
+    
+    
+class FileProcessingHistory(Base):
+    __tablename__ = "file_processing_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), nullable=False)  # Name of the file
+    status = Column(String(50), nullable=False)  # Status of the processing (e.g., 'Success', 'Failed')
+    processed_at = Column(DateTime, default=datetime.utcnow)  # Timestamp when the file was processed

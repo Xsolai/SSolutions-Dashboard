@@ -3,7 +3,7 @@ import uvicorn
 from app.database.db.db_connection import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 from app.src.logger import logging
-from app.endpoints import email_metrics, call_metrics, booking_metrics, login
+from app.endpoints import email_metrics, call_metrics, booking_metrics, login, history
 from app.src.components.scheduler import schedule_daily_task
 import warnings
 
@@ -25,7 +25,7 @@ app.add_middleware(
 async def startup_event():
     # Schedule the data import task to run daily at a fixed time
     # This will run the task every day at 13:00 (1:00 PM) Pakistani time
-    schedule_daily_task(22, 22)  # Set your desired hour and minute here
+    schedule_daily_task(19, 14)  # Set your desired hour and minute here
 
 # Create tables in database
 Base.metadata.create_all(bind=engine)
@@ -40,27 +40,7 @@ app.include_router(email_metrics.router)
 app.include_router(call_metrics.router)
 app.include_router(booking_metrics.router)
 app.include_router(login.router)
-
-# def get_local_time(hour, minute):
-#     now_utc = datetime.now(tz=timezone('UTC'))
-#     pk_time = now_utc.astimezone(pk_timezone)
-#     print("Time now",pk_time)
-#     pk_time = pk_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
-#     return pk_time.strftime('%H:%M')
-
-# def schedule_email_fetch():
-#     # Schedule the job in Pakistani Time
-#     local_time = get_local_time(12, 57)  # 1:00 PM Pakistani Time
-#     schedule.every().day.at(local_time).do(download_attachments)
-
-#     while True:
-#         schedule.run_pending()
-#         time.sleep(1)
-
-# # Run scheduler in a thread
-# def start_scheduler():
-#     scheduler_thread = threading.Thread(target=schedule_email_fetch, daemon=True)
-#     scheduler_thread.start()
+app.include_router(history.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

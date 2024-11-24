@@ -10,6 +10,7 @@ from app.src.components.data_ingestion import (
 )
 from app.src.components.data_transformation import load_excel_data, load_csv_data
 import os
+from app.src.utils import add_file_record
 
 # Define the Pakistani timezone
 pk_timezone = timezone('Asia/Karachi')
@@ -49,16 +50,22 @@ def run_task():
         try:
             if file_type == "call_reason":
                 data = load_excel_data(path, skiprows=[0])
+                add_file_record(db=db, filename="Guru_CallReason", status="added")
             elif file_type == "daily":
                 data = load_excel_data(path, skiprows=[0, 2])
+                add_file_record(db=db, filename="Guru Daily", status="added")
             elif file_type == "5vFlug":
                 data = load_excel_data(path, skiprows=[0, 2])
+                add_file_record(db=db, filename="5vFlug", status="added")
             elif file_type == "email_KF":
                 data = load_excel_data(path, skiprows=[0, 1, 2, 3])
+                add_file_record(db=db, filename="Workflow-Report-GuruKF", status="added")
             elif file_type == "email":
                 data = load_excel_data(path, skiprows=[0, 1, 2, 3])
+                add_file_record(db=db, filename="Workflow-Report-Guru_(ID__14)", status="added")
             elif file_type == "booking_data":
                 data = load_csv_data(path)
+                add_file_record(db=db, filename="SB_Buchungen_AI", status="added")
 
             if data is not None:
                 if file_type == "call_reason":
