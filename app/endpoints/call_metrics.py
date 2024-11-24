@@ -267,3 +267,46 @@ async def get_call_reasons_breakdowns(db: Session = Depends(get_db)):
         "wrong_calls": guru_wrong_calls+cb_wrong_calls,
         "others": others
     }
+    
+    
+@router.get("/call_by_queue")
+async def get_call_reasons_breakdowns(db: Session = Depends(get_db)):
+    """Endpoint to retrieve queue-wise calls KPIs from the database."""
+    # Query total calls by queue
+    guru_service_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Guru_ServiceAT").scalar() or 0
+    guru_service_de_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Guru_ServiceDE").scalar() or 0
+    guru_service_decb_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Guru_ServiceDE_CB").scalar() or 0
+    urlaubsguru_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Urlaubsguru AT").scalar() or 0
+    urlaubsguru_de_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Urlaubsguru DE").scalar() or 0
+    urlaubsguru_cbat_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Urlaubsguru_CB_AT").scalar() or 0
+    urlaubsguru_cbde_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Urlaubsguru_CB_DE").scalar() or 0
+    guru_service_ch_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Guru Service_CH").scalar() or 0
+
+    # Query average handling times by queue
+    guru_service_at_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Guru_ServiceAT").scalar() or 0
+    guru_service_de_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Guru_ServiceDE").scalar() or 0
+    guru_service_decb_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Guru_ServiceDE_CB").scalar() or 0
+    urlaubsguru_at_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Urlaubsguru AT").scalar() or 0
+    urlaubsguru_de_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Urlaubsguru DE").scalar() or 0
+    urlaubsguru_cbat_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Urlaubsguru_CB_AT").scalar() or 0
+    urlaubsguru_cbde_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Urlaubsguru_CB_DE").scalar() or 0
+    guru_service_ch_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(GuruDailyCallData.queue_name == "Guru Service_CH").scalar() or 0
+
+    return {
+        "Guru Service Calls": guru_service_at_calls,
+        "Guru ServiceDE Calls": guru_service_de_calls,
+        "Guru ServiceDECB Calls": guru_service_decb_calls,
+        "Urlaubsguru AT Calls": urlaubsguru_at_calls,
+        "Urlaubsguru DE Calls": urlaubsguru_de_calls,
+        "Urlaubsguru CB AT Calls": urlaubsguru_cbat_calls,
+        "Urlaubsguru CB DE Calls": urlaubsguru_cbde_calls,
+        "Guru ServiceCH Calls": guru_service_ch_calls,
+        "Guru Service AHT": round(guru_service_at_aht, 2),
+        "Guru ServiceDE AHT": round(guru_service_de_aht, 2),
+        "Guru ServiceDECB AHT": round(guru_service_decb_aht, 2),
+        "Urlaubsguru AT AHT": round(urlaubsguru_at_aht, 2),
+        "Urlaubsguru DE AHT": round(urlaubsguru_de_aht, 2),
+        "Urlaubsguru CB AT AHT": round(urlaubsguru_cbat_aht, 2),
+        "Urlaubsguru CB DE AHT": round(urlaubsguru_cbde_aht, 2),
+        "Guru ServiceCH AHT": round(guru_service_ch_aht, 2)
+    }
