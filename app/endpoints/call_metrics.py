@@ -236,3 +236,34 @@ async def get_calls_weekdays(db: Session = Depends(get_db)):
             })
 
     return result
+
+
+@router.get("/call_reasons_breakdowns")
+async def get_call_reasons_breakdowns(db: Session = Depends(get_db)):
+    """Endpoint to retrieve weekdays-wise calls KPIs from the database."""
+    # Query weekday-wise grouped data
+    guru_sales_data = db.query(
+        func.sum(GuruCallReason.guru_sales)
+    ).scalar() or 0
+    cb_sales = db.query(
+        func.sum(GuruCallReason.guru_service)
+    ).scalar() or 0
+    guru_service = db.query(
+        func.sum(GuruCallReason.cb_sales)
+    ).scalar() or 0
+    guru_wrong_calls = db.query(
+        func.sum(GuruCallReason.guru_wrong)
+    ).scalar() or 0
+    cb_wrong_calls = db.query(
+        func.sum(GuruCallReason.guru_wrong)
+    ).scalar() or 0
+    others = db.query(
+        func.sum(GuruCallReason.other_guru)
+    ).scalar() or 0
+    return {
+        "cb_sales": cb_sales,
+        "guru_sales": guru_sales_data,
+        "gurur_service": guru_service,
+        "wrong_calls": guru_wrong_calls+cb_wrong_calls,
+        "others": others
+    }
