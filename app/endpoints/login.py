@@ -55,53 +55,53 @@ async def login(request: OAuth2PasswordRequestForm = Depends(), db: Session = De
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/registration", response_model=schemas.ShowUser, status_code=status.HTTP_201_CREATED, tags=['users'])
-async def registration(request: schemas.User, db: Session = Depends(get_db)):
-    """
-    Endpoint for user registration with email and password validation.
-    """
-    try:
-        # Check if passwords match
-        if request.password1 != request.password2:
-            raise HTTPException(status_code=400, detail="Passwords do not match")
+# @router.post("/registration", response_model=schemas.ShowUser, status_code=status.HTTP_201_CREATED, tags=['users'])
+# async def registration(request: schemas.User, db: Session = Depends(get_db)):
+#     """
+#     Endpoint for user registration with email and password validation.
+#     """
+#     try:
+#         # Check if passwords match
+#         if request.password1 != request.password2:
+#             raise HTTPException(status_code=400, detail="Passwords do not match")
         
-        # Validate email
-        if not is_valid_email(request.email):
-            raise HTTPException(status_code=400, detail="Invalid email address format")
+#         # Validate email
+#         if not is_valid_email(request.email):
+#             raise HTTPException(status_code=400, detail="Invalid email address format")
         
-        # Validate password strength
-        if not is_strong_password(request.password1):
-            raise HTTPException(
-                status_code=400,
-                detail="Password must be at least 8 characters long, contain letters, numbers, and special characters"
-            )
+#         # Validate password strength
+#         if not is_strong_password(request.password1):
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail="Password must be at least 8 characters long, contain letters, numbers, and special characters"
+#             )
         
-        # Check if email is already registered
-        existing_user = db.query(models.User).filter(models.User.email == request.email).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
+#         # Check if email is already registered
+#         existing_user = db.query(models.User).filter(models.User.email == request.email).first()
+#         if existing_user:
+#             raise HTTPException(status_code=400, detail="Email already registered")
         
-        # Create new user
-        new_user = models.User(
-            username=request.name,
-            email=request.email,
-            role=request.role,
-            password=Hash.bcrypt(request.password1)  # Encrypt password
-        )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        return new_user
+#         # Create new user
+#         new_user = models.User(
+#             username=request.name,
+#             email=request.email,
+#             role=request.role,
+#             password=Hash.bcrypt(request.password1)  # Encrypt password
+#         )
+#         db.add(new_user)
+#         db.commit()
+#         db.refresh(new_user)
+#         return new_user
 
-    except HTTPException as http_err:
-        raise http_err
-    except Exception as err:
-        # Log the error for debugging (optional)
-        logging.error(f"Error during user registration: {err}")
-        raise HTTPException(
-            status_code=500,
-            detail="An internal server error occurred. Please try again later."
-        )
+#     except HTTPException as http_err:
+#         raise http_err
+#     except Exception as err:
+#         # Log the error for debugging (optional)
+#         logging.error(f"Error during user registration: {err}")
+#         raise HTTPException(
+#             status_code=500,
+#             detail="An internal server error occurred. Please try again later."
+#         )
  
     
 @router.put("/update-profile", response_model=schemas.ShowUser, status_code=status.HTTP_200_OK, tags=['users'])
