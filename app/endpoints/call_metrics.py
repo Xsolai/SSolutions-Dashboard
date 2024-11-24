@@ -158,41 +158,41 @@ async def get_graphs_data(db: Session = Depends(get_db)):
             "longest_waiting_time_sec": service_metrics.service_longest_waiting_time_sec or 0,
             "total_talk_time_sec": round(service_metrics.service_total_talk_time_sec or 0, 2)
         },
-        "average handling time": avg_handling_time,
+        "average handling time": round(avg_handling_time,2),
         "Total Talk Time": round(total_talk_time, 2),
         "Total outbound calls": total_outbound_calls
         }
 
 
-@router.get("/kpis")
-async def get_kpis_data(db: Session = Depends(get_db)):
-    """Endpoint to retrieve graphs data from the database."""
-    sale_queue_name = "5vorFlugSales"
-    service_queue_name = "5vorFlugService"
-    try:
-        calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
-        wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
-        bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
-        cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb, 2)
+# @router.get("/kpis")
+# async def get_kpis_data(db: Session = Depends(get_db)):
+#     """Endpoint to retrieve graphs data from the database."""
+#     sale_queue_name = "5vorFlugSales"
+#     service_queue_name = "5vorFlugService"
+#     try:
+#         calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
+#         wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
+#         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
+#         cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb, 2)
         
-        sales_kpis = db.query(
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("sale_ACC"),
-            func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
-        ).filter(QueueStatistics.queue_name == sale_queue_name).first()
+#         sales_kpis = db.query(
+#             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("sale_ACC"),
+#             func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
+#         ).filter(QueueStatistics.queue_name == sale_queue_name).first()
         
-        service_kpis = db.query(
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("service_ACC"),
-            func.avg(QueueStatistics.sla_20_20).label("service_SL"),
-        ).filter(QueueStatistics.queue_name == service_queue_name).first()
+#         service_kpis = db.query(
+#             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("service_ACC"),
+#             func.avg(QueueStatistics.sla_20_20).label("service_SL"),
+#         ).filter(QueueStatistics.queue_name == service_queue_name).first()
         
-        # Return metrics as a dictionary
-        return {
-            "Sales ACC" : sales_kpis.sale_ACC,
-            "Sales SL" : sales_kpis.sale_SL,
-            "Service ACC" : service_kpis.service_ACC,
-            "Service SL" : service_kpis.service_SL,
-            "Conversion CB" : cb_conversion
-            }
+#         # Return metrics as a dictionary
+#         return {
+#             "Sales ACC" : sales_kpis.sale_ACC,
+#             "Sales SL" : sales_kpis.sale_SL,
+#             "Service ACC" : service_kpis.service_ACC,
+#             "Service SL" : service_kpis.service_SL,
+#             "Conversion CB" : cb_conversion
+#             }
         
 
     except Exception as e:
