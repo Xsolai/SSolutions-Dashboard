@@ -43,6 +43,13 @@ const avgSLA = emailData.reduce((acc, curr) => acc + curr.sla, 0) / emailData.le
 const avgVolume = Math.round(emailData.reduce((acc, curr) => acc + curr.volume, 0) / emailData.length);
 const avgProcessingTime = Math.round(mailboxData.reduce((acc, curr) => acc + curr.processingTime, 0) / mailboxData.length);
 
+const getBarColor = (sla) => {
+  if (sla >= 95) return COLORS.chartColors[0];  // Primary Yellow
+  if (sla >= 85) return COLORS.chartColors[1];  // Dark Blue
+  return COLORS.primary;                        // Dark Blue
+};
+
+
 const AnimatedText = () => {
   const titleLines = ["Email", "Response", "Analytics"];
 
@@ -141,27 +148,54 @@ const EmailAnalysisDashboard = () => {
         ))}
       </div>
 
-      <ChartCard title="Daily Service Level Performance">
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={emailData}>
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: COLORS.gray }} />
-              <YAxis domain={[80, 100]} tick={{ fontSize: 12, fill: COLORS.gray }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36} iconType="circle" iconSize={12} />
-              <Bar dataKey="sla" name="Service Level" fill={COLORS.primary} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="volume" name="Volume" fill={COLORS.secondary} radius={[4, 4, 0, 0]} />
-              <Line 
-                type="monotone" 
-                dataKey={() => 95} 
-                stroke={COLORS.dark} 
-                strokeDasharray="3 3" 
-                name="Target (95%)" 
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartCard>
+{/* Charts with matched colors */}
+<ChartCard title="Daily Service Level Performance">
+  <div className="h-[400px] w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={emailData}>
+        <XAxis 
+          dataKey="date" 
+          tick={{ fontSize: 12, fill: COLORS.gray }}
+          axisLine={{ stroke: COLORS.lightGray }}
+        />
+        <YAxis 
+          tick={{ fontSize: 12, fill: COLORS.gray }}
+          domain={[80, 100]}
+          axisLine={{ stroke: COLORS.lightGray }}
+          label={{ 
+            value: 'Service Level (%)', 
+            angle: -90, 
+            position: 'insideLeft', 
+            fill: COLORS.gray
+          }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend 
+          wrapperStyle={{ 
+            paddingTop: '20px',
+            color: COLORS.dark
+          }}
+        />
+        <Bar dataKey="sla" name="24h Service Level">
+          {emailData.map((entry, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={getBarColor(entry.sla)}
+              fillOpacity={0.8}
+            />
+          ))}
+        </Bar>
+        <Line 
+          type="monotone" 
+          dataKey={() => 95} 
+          stroke={COLORS.chartColors[0]}  // Primary Yellow
+          strokeDasharray="3 3" 
+          name="Target (95%)"
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</ChartCard>
     </div>
   );
 

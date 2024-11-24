@@ -113,10 +113,13 @@ const Home = () => {
     <div className="min-h-screen bg-white text-black">
       <div className="py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <img src={logo.src} alt="Dashboard Logo" className='size-6 px-2 w-fit'/>
-          </div>
-
+        <div className="flex-shrink-0">
+    <img 
+      src={logo.src} 
+      alt="Dashboard Logo" 
+      className="w-auto h-6 px-2" 
+    />
+  </div>
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 rounded-lg bg-black text-[#FDCC00] hover:bg-gray-800"
