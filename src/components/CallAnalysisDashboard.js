@@ -1,8 +1,50 @@
-import React, { useState } from 'react';
+"use client";
+import React, { useState , useEffect} from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
+const SkeletonStatCard = () => (
+  <div className="bg-white p-4 rounded-lg border border-gray-100">
+    <div className="flex items-center justify-between mb-1">
+      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+      <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+    </div>
+    <div className="h-8 bg-gray-200 rounded w-2/3 mb-2"></div>
+    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+  </div>
+);
+
+const SkeletonChartCard = () => (
+  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100">
+    <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
+    <div className="h-60 bg-gray-200 rounded"></div>
+  </div>
+);
+
+const Loading = () => {
+  return (
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[...Array(5)].map((_, i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonChartCard key={i} />
+            ))}
+          </div>
+        </div>
+  );
+}
 
 const AnimatedText = () => {
   const titleLines = ["Call", "Center", "Analytics"];
@@ -68,135 +110,242 @@ const ChartCard = ({ title, children }) => (
   </div>
 );
 
+const COLORS = [
+  '#1a1a1a',    // Black
+  '#fdcc00',    // Yellow
+  '#2225C5',    // Blue
+  '#4a4a4a',    // Dark Gray
+  '#6c757d',    // Medium Gray
+  '#94a3b8',    // Light Blue Gray
+  '#e5e5e5',    // Light Gray
+  '#002B50',    // Dark Blue
+  '#FFD100',    // Bright Yellow
+  '#FF3131FF'     // Bright Blue
+];
+// Main component with hooks properly placed
 const CallAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [callsKPIs, setCallsKPIs] = useState(null);
+  const [callData, setCallData] = useState(null);
+  const [weekdayData, setWeekdayData] = useState(null);
+  const [callReasons, setCallReasons] = useState(null);
+  const [queueData, setQueueData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const dailyCallData = [
-    { date: "Mon", calls: 145, asr: 92.3, sla: 87.4, avgWaitTime: 14.2, maxWaitTime: 45, talkTime: 12.3, afterCallWork: 4.5, droppedCalls: 12, aht: 16.8 },
-    { date: "Tue", calls: 232, asr: 88.7, sla: 85.2, avgWaitTime: 16.5, maxWaitTime: 52, talkTime: 14.1, afterCallWork: 5.2, droppedCalls: 23, aht: 19.3 },
-    { date: "Wed", calls: 186, asr: 90.5, sla: 89.1, avgWaitTime: 13.8, maxWaitTime: 41, talkTime: 11.9, afterCallWork: 3.8, droppedCalls: 18, aht: 15.7 },
-    { date: "Thu", calls: 264, asr: 91.2, sla: 92.3, avgWaitTime: 12.9, maxWaitTime: 38, talkTime: 13.4, afterCallWork: 4.3, droppedCalls: 21, aht: 17.7 },
-    { date: "Fri", calls: 198, asr: 89.8, sla: 88.7, avgWaitTime: 15.1, maxWaitTime: 47, talkTime: 12.8, afterCallWork: 4.9, droppedCalls: 16, aht: 17.7 },
-    { date: "Sat", calls: 134, asr: 93.4, sla: 91.5, avgWaitTime: 11.7, maxWaitTime: 32, talkTime: 10.6, afterCallWork: 3.2, droppedCalls: 8, aht: 13.8 },
-    { date: "Sun", calls: 98, asr: 94.1, sla: 93.2, avgWaitTime: 10.4, maxWaitTime: 27, talkTime: 9.2, afterCallWork: 2.7, droppedCalls: 5, aht: 11.9 }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [
+          kpisResponse, 
+          callDataResponse, 
+          weekdayResponse, 
+          reasonsResponse,
+          queueResponse
+        ] = await Promise.all([
+          axios.get('http://localhost:8000/calls_kpis'),
+          axios.get('http://localhost:8000/call_data'),
+          axios.get('http://localhost:8000/calls_kpis_weekdays'),
+          axios.get('http://localhost:8000/call_reasons_breakdowns'),
+          axios.get('http://localhost:8000/call_by_queue')
+        ]);
 
-  const callQueueData = [
-    { queue: "Urlaubsguru DE", calls: 1250, aht: 18.2 },
-    { queue: "GURU FTI", calls: 932, aht: 17.6 },
-    { queue: "Partner Verkauf", calls: 743, aht: 16.9 },
-    { queue: "Vertrieb", calls: 634, aht: 15.8 },
-    { queue: "Service", calls: 521, aht: 14.3 },
-    { queue: "Backoffice", calls: 412, aht: 13.2 }
-  ];
+        setCallsKPIs(kpisResponse.data);
+        setCallData(callDataResponse.data);
+        setWeekdayData(weekdayResponse.data);
+        setCallReasons(reasonsResponse.data);
+        setQueueData(queueResponse.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setLoading(false);
+      }
+    };
 
-  const callReasonData = [
-    { reason: "CB SALES", value: 340 },
-    { reason: "WRONG CALL", value: 210 },
-    { reason: "GURU SALES", value: 178 },
-    { reason: "GURU SERVICE", value: 132 },
-    { reason: "OTHER", value: 94 }
-  ];
-
-  const COLORS = [
-    '#1a1a1a',    // Black
-    '#fdcc00',    // Yellow
-    '#2225C5',    // Blue
-    '#4a4a4a',    // Dark Gray
-    '#6c757d',    // Medium Gray
-    '#94a3b8',    // Light Blue Gray
-    '#e5e5e5',    // Light Gray
-    '#002B50',    // Dark Blue
-    '#FFD100',    // Bright Yellow
-    '#4299e1'     // Bright Blue
-  ];
+    fetchData();
+    // const interval = setInterval(fetchData, 30000);
+    // return () => clearInterval(interval);
+  }, []);
   
 
-  const overviewStats = [
-    { title: "Total Calls", value: "1,257", icon: Phone, change: "+12.5%", description: "from last week" },
-    { title: "Answer Success Rate", value: "91.4%", icon: CheckCircle, change: "+0.8%", description: "from last week" },
-    { title: "Service Level", value: "89.6%", icon: Clock, change: "-0.4%", description: "from last week" },
-    { title: "Dropped Calls", value: "103", icon: CreditCard, change: "-5.2%", description: "from last week" },
-    { title: "Avg. Wait Time", value: "13.5 sec", icon: Clock, change: "-1.2 sec", description: "from last week" },
-    { title: "Max Wait Time", value: "52.0 sec", icon: Clock, change: "-4 sec", description: "from last week" },
-    { title: "Avg. Talk Time", value: "12.0 min", icon: Clipboard, change: "-0.3 min", description: "from last week" },
-    { title: "After-Call Work", value: "4.1 min", icon: Clipboard, change: "+0.1 min", description: "from last week" }
-  ];
+  const renderOverviewTab = () => {
+    if (!callsKPIs || !weekdayData) return <div><Loading/></div>;
 
-  const OverviewTab = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {overviewStats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
+    const overviewStats = [
+      { 
+        title: "Total Calls", 
+        value: callsKPIs.total_calls.toLocaleString(), 
+        icon: Phone 
+      },
+      { 
+        title: "Answer Success Rate", 
+        value: `${callsKPIs.asr}%`, 
+        icon: CheckCircle 
+      },
+      { 
+        title: "Service Level", 
+        value: `${callsKPIs.SLA}%`, 
+        icon: Clock 
+      },
+      { 
+        title: "Dropped Calls", 
+        value: callsKPIs['Dropped calls'], 
+        icon: CreditCard 
+      },
+      { 
+        title: "Avg. Wait Time", 
+        value: `${callsKPIs['avg wait time'].toFixed(1)} sec`, 
+        icon: Clock 
+      },
+      { 
+        title: "Max Wait Time", 
+        value: `${callsKPIs['max. wait time'].toFixed(1)} sec`, 
+        icon: Clock 
+      },
+      { 
+        title: "Avg. Handling Time", 
+        value: `${callsKPIs['avg handling time'].toFixed(1)} min`, 
+        icon: Clipboard 
+      },
+      { 
+        title: "After-Call Work", 
+        value: `${callsKPIs['After call work time'].toFixed(1)} min`, 
+        icon: Clipboard 
+      }
+    ];
+
+    const formattedWeekdayData = weekdayData.map(day => ({
+      date: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.weekday],
+      calls: day.total_calls,
+      asr: day.asr,
+      sla: day.sla_percent,
+      avgWaitTime: day.avg_wait_time_sec,
+      maxWaitTime: day.max_wait_time_sec,
+      avgHandleTime: day.avg_handling_time,
+      droppedCalls: day.dropped_calls
+    }));
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {overviewStats.map((stat, index) => (
+            <StatCard key={index} {...stat} />
+          ))}
+        </div>
+
+        <ChartCard title="Daily Call Volume">
+          <div className="relative flex-1 w-full h-80 min-h-[400px] overflow-hidden">
+            <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
+              <div className="min-w-[800px] h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={formattedWeekdayData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+                  >
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="calls" name="Total Calls" fill={COLORS[2]} maxBarSize={50} />
+                    <Bar dataKey="asr" name="ASR %" fill={COLORS[0]} maxBarSize={50} />
+                    <Bar dataKey="sla" name="SLA %" fill={COLORS[1]} maxBarSize={50} />
+                    <Bar dataKey="avgWaitTime" name="Avg Wait Time" fill={COLORS[7]} maxBarSize={50} />
+                    <Bar dataKey="maxWaitTime" name="Max Wait Time" fill={COLORS[4]} maxBarSize={50} />
+                    <Bar dataKey="avgHandleTime" name="Avg Handle Time" fill={COLORS[8]} maxBarSize={50} />
+                    <Bar dataKey="droppedCalls" name="Dropped Calls" fill={COLORS[6]} maxBarSize={50} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </ChartCard>
       </div>
+    );
+  };
 
-{/* Daily Calls Chart */}
-<ChartCard title="Daily Call Volume">
-  <div className="relative flex-1 w-full h-80 min-h-[400px] overflow-hidden">
-    <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
-      <div className="min-w-[800px] h-full"> {/* Minimum width to prevent squishing */}
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={dailyCallData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-            <XAxis 
-              dataKey="date" 
-              tick={{ fontSize: 12, fill: COLORS[3] }}
-              height={50}
-              padding={{ left: 10, right: 10 }}
-            />
-            <YAxis 
-              tickCount={6} 
-              domain={[0, 'dataMax']} 
-              tick={{ fontSize: 12, fill: COLORS[3] }}
-              width={60}
-            />
-            <Tooltip 
-              wrapperStyle={{ zIndex: 10 }}
-              cursor={{ fill: 'transparent' }}
-            />
-            <Legend
-              verticalAlign="top"
-              height={36}
-              iconType="circle"
-              iconSize={12}
-              wrapperStyle={{
-                paddingBottom: '10px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            />
-            <Bar dataKey="calls" name="Calls" fill={COLORS[2]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="asr" name="ASR" fill={COLORS[0]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="sla" name="SLA" fill={COLORS[1]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="avgWaitTime" name="Avg. Wait Time" fill={COLORS[7]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="maxWaitTime" name="Max Wait Time" fill={COLORS[4]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="talkTime" name="Talk Time" fill={COLORS[9]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="afterCallWork" name="After-Call Work" fill={COLORS[5]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="aht" name="AHT" fill={COLORS[8]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-            <Bar dataKey="droppedCalls" name="Dropped Calls" fill={COLORS[6]} radius={[4, 4, 0, 0]} maxBarSize={50} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  </div>
-</ChartCard>
+  const renderPerformanceTab = () => {
+    if (!callReasons || !queueData) return <div><Loading/></div>;
 
+    // Transform call reasons data for pie chart
+    const callReasonChartData = [
+      { reason: "CB SALES", value: callReasons.cb_sales },
+      { reason: "GURU SALES", value: callReasons.guru_sales },
+      { reason: "GURU SERVICE", value: callReasons.gurur_service },
+      { reason: "WRONG CALLS", value: callReasons.wrong_calls },
+      { reason: "OTHER", value: callReasons.others }
+    ];
 
-    </div>
-  );
+    // Transform queue data for bar chart
+    const queueChartData = [
+      {
+        queue: "Urlaubsguru DE",
+        calls: queueData["Urlaubsguru DE Calls"],
+        aht: queueData["Urlaubsguru DE AHT"]
+      },
+      {
+        queue: "Urlaubsguru AT",
+        calls: queueData["Urlaubsguru AT Calls"],
+        aht: queueData["Urlaubsguru AT AHT"]
+      },
+      {
+        queue: "Guru ServiceDE",
+        calls: queueData["Guru ServiceDE Calls"],
+        aht: queueData["Guru ServiceDE AHT"]
+      },
+      {
+        queue: "Guru Service",
+        calls: queueData["Guru Service Calls"],
+        aht: queueData["Guru Service AHT"]
+      },
+      {
+        queue: "CB DE",
+        calls: queueData["Urlaubsguru CB DE Calls"],
+        aht: queueData["Urlaubsguru CB DE AHT"]
+      },
+      {
+        queue: "CB AT",
+        calls: queueData["Urlaubsguru CB AT Calls"],
+        aht: queueData["Urlaubsguru CB AT AHT"]
+      },
+      {
+        queue: "Service CH",
+        calls: queueData["Guru ServiceCH Calls"],
+        aht: queueData["Guru ServiceCH AHT"]
+      }
+    ];
 
-  const PerformanceTab = () => (
-    <div className="space-y-6">
-        {/* Call Reasons and Queue Charts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
-          {/* Call Reasons Breakdown */}
+    return (
+      <div className="space-y-6">
+                {/* Additional performance metrics if needed */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard 
+            title="Total Service Calls" 
+            value={(queueData["Guru Service Calls"] + queueData["Guru ServiceDE Calls"]).toLocaleString()} 
+            icon={Phone} 
+          />
+          <StatCard 
+            title="Total Sales Calls" 
+            value={(queueData["Urlaubsguru DE Calls"] + queueData["Urlaubsguru AT Calls"]).toLocaleString()} 
+            icon={Phone} 
+          />
+          <StatCard 
+            title="Average Service AHT" 
+            value={`${((queueData["Guru Service AHT"] + queueData["Guru ServiceDE AHT"]) / 2).toFixed(1)} min`} 
+            icon={Clock} 
+          />
+          <StatCard 
+            title="Average Sales AHT" 
+            value={`${((queueData["Urlaubsguru DE AHT"] + queueData["Urlaubsguru AT AHT"]) / 2).toFixed(1)} min`} 
+            icon={Clock} 
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ChartCard title="Call Reasons Breakdown">
             <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={callReasonData}
+                    data={callReasonChartData}
                     dataKey="value"
                     nameKey="reason"
                     cx="50%"
@@ -204,7 +353,7 @@ const CallAnalysisDashboard = () => {
                     outerRadius={120}
                     label
                   >
-                    {callReasonData.map((entry, index) => (
+                    {callReasonChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -215,30 +364,55 @@ const CallAnalysisDashboard = () => {
             </div>
           </ChartCard>
 
-          {/* Calls by Queue */}
           <ChartCard title="Calls by Queue">
             <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={callQueueData}>
-                  <XAxis dataKey="queue" tick={{ fontSize: 12, fill: COLORS[3] }} />
-                  <YAxis tickCount={6} domain={[0, 'dataMax']} tick={{ fontSize: 12, fill: COLORS[3] }} />
-                  <Tooltip />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    iconType="circle"
-                    iconSize={12}
+                <BarChart data={queueChartData}>
+                  <XAxis 
+                    dataKey="queue" 
+                    tick={{ fontSize: 12, fill: COLORS[3] }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
                   />
-                  <Bar dataKey="calls" name="Calls" fill={COLORS[2]} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="aht" name="AHT" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
+                  <YAxis 
+                    yAxisId="left"
+                    orientation="left"
+                    tick={{ fontSize: 12, fill: COLORS[3] }}
+                    label={{ value: 'Total Calls', angle: -90, position: 'insideLeft' }}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 12, fill: COLORS[3] }}
+                    label={{ value: 'AHT (min)', angle: 90, position: 'insideRight' }}
+                  />
+                  <Tooltip />
+                  <Legend />
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="calls" 
+                    name="Total Calls" 
+                    fill={COLORS[2]} 
+                    radius={[4, 4, 0, 0]} 
+                  />
+                  <Bar 
+                    yAxisId="right"
+                    dataKey="aht" 
+                    name="AHT (min)" 
+                    fill={COLORS[1]} 
+                    radius={[4, 4, 0, 0]} 
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
         </div>
 
-    </div>
-  );
+      </div>
+    );
+  };
+
 
   const tabs = [
     { id: "overview", name: "Overview" },
@@ -248,14 +422,11 @@ const CallAnalysisDashboard = () => {
   return (
     <div className="bg-gray-50 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        {/* Header */}
         <div className="mb-10 px-2 pt-4 sm:mb-6 flex justify-between items-center">
           <AnimatedText />
         </div>
 
-        {/* Tabs Navigation */}
         <div className="border-b border-gray-200 mb-6">
-          {/* Dropdown for Mobile */}
           <div className="sm:hidden">
             <select
               value={activeTab}
@@ -270,7 +441,6 @@ const CallAnalysisDashboard = () => {
             </select>
           </div>
 
-          {/* Tabs for Desktop */}
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -288,10 +458,9 @@ const CallAnalysisDashboard = () => {
           </div>
         </div>
 
-        {/* Tab Content */}
         <div className="py-4">
-          {activeTab === "overview" && <OverviewTab />}
-          {activeTab === "performance" && <PerformanceTab />}
+          {activeTab === "overview" && renderOverviewTab()}
+          {activeTab === "performance" && renderPerformanceTab()}
         </div>
       </div>
     </div>
@@ -299,3 +468,4 @@ const CallAnalysisDashboard = () => {
 };
 
 export default CallAnalysisDashboard;
+

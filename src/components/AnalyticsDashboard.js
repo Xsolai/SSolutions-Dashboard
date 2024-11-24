@@ -1,8 +1,50 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState , useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart } from 'recharts';
-import { Mail, PhoneCall, BookOpen, TrendingUp, Archive, Clock, CheckCircle, AlertCircle, Send, Users, Activity } from 'lucide-react';
+import { Mail, PhoneCall, Phone, TrendingUp, Archive, Clock, CheckCircle, AlertCircle, Send, Users, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from "axios";
+
+const SkeletonStatCard = () => (
+  <div className="bg-white p-4 rounded-lg border border-gray-100">
+    <div className="flex items-center justify-between mb-1">
+      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+      <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+    </div>
+    <div className="h-8 bg-gray-200 rounded w-2/3 mb-2"></div>
+    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+  </div>
+);
+
+const SkeletonChartCard = () => (
+  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100">
+    <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
+    <div className="h-60 bg-gray-200 rounded"></div>
+  </div>
+);
+
+const Loading = () => {
+  return (
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[...Array(5)].map((_, i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonChartCard key={i} />
+            ))}
+          </div>
+        </div>
+  );
+}
 
 // Color theme
 const colors = {
@@ -80,315 +122,356 @@ const ChartCard = ({ title, children }) => (
 );
 
 const AnalyticsDashboard = () => {
-  // Tab state
   const [activeTab, setActiveTab] = useState('email');
+  const [emailData, setEmailData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Data structures
-  const emailMetrics = {
-    received: 468,
-    answered: 357,
-    forwarded: 2,
-    archived: 634,
-    newSent: 258,
-    slGross: 8982.84,
-    processingTime: 28713,
-    bookingData: {
-      booked: 137,
-      notBooked: 204,
-      pending: 0,
-      op: 24,
-      rq: 6,
-      bookingRate: 66.03
-    }
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/email-data');
+        setEmailData(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching email data:', error);
+        setLoading(false);
+      }
+    };
 
-  const slGrossData = [
-    { time: '00:00', value: 8200 },
-    { time: '04:00', value: 8400 },
-    { time: '08:00', value: 8600 },
-    { time: '12:00', value: 8800 },
-    { time: '16:00', value: 8900 },
-    { time: '20:00', value: 8982.84 }
-  ];
+    fetchData();
+    // const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+    // return () => clearInterval(interval);
+  }, []);
 
-  const processingTimeData = [
-    { time: '00:00', seconds: 25000 },
-    { time: '04:00', seconds: 26000 },
-    { time: '08:00', seconds: 27000 },
-    { time: '12:00', seconds: 27500 },
-    { time: '16:00', seconds: 28000 },
-    { time: '20:00', seconds: 28713 }
-  ];
+ 
+  // Updated Email Analytics Tab with real data
+  const EmailTab = () => {
+    if (!emailData) return <div><Loading/></div>;
 
-  const salesServiceData = {
-    sales: {
-      handled: 43,
-      acc: 100,
-      sl: 88,
-      aht: 0,
-      waitingTime: 4560
-    },
-    service: {
-      handled: 43,
-      acc: 100,
-      sl: 63.14,
-      aht: 0,
-      waitingTime: 17820
-    }
-  };
+    const processingTimeInMinutes = Math.round(emailData['Total Processing Time (sec)'] / 60);
+    
+    // Transform processing time trend data
+    const processedTimeData = emailData['Processing Time Trend'].map(item => ({
+      time: item.interval_start,
+      seconds: item.total_processing_time_sec
+    }));
 
-  const conversionData = {
-    cb: {
-      handled: 15,
-      wrongCalls: 101,
-      bookings: 12,
-      turnover: 1539460.97,
-      conversion: 13.33
-    },
-    sales: {
-      handled: 68,
-      wrongCalls: 101,
-      bookings: 12,
-      volume: 68,
-      conversion: 59.58
-    }
-  };
 
-  // Email Analytics Tab
-  const EmailTab = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard
-          title="Emails Received"
-          value={emailMetrics.received}
-          icon={Mail}
-          change="+12%"
-          description="vs. yesterday"
-        />
-        <StatCard
-          title="Emails Answered"
-          value={emailMetrics.answered}
-          icon={Mail}
-          change="+8%"
-          description="vs. yesterday"
-        />
-        <StatCard
-          title="Emails Forwarded"
-          value={emailMetrics.forwarded}
-          icon={Send}
-          change="-5%"
-          description="vs. yesterday"
-        />
-        <StatCard
-          title="New Sent"
-          value={emailMetrics.newSent}
-          icon={Send}
-          change="+15%"
-          description="vs. yesterday"
-        />
-        <StatCard
-          title="Archived"
-          value={emailMetrics.archived}
-          icon={Archive}
-          change="+10%"
-          description="vs. yesterday"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-        <StatCard
-          title="SL Gross"
-          value={`€${emailMetrics.slGross.toLocaleString()}`}
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Processing Time"
-          value={`${Math.round(emailMetrics.processingTime / 60)}m`}
-          icon={Clock}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Email Processing Overview" >
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[
-                { name: 'Received', value: emailMetrics.received },
-                { name: 'Answered', value: emailMetrics.answered },
-                { name: 'Forwarded', value: emailMetrics.forwarded },
-                { name: 'Archived', value: emailMetrics.archived }
-              ]}>
-                <XAxis dataKey="name" stroke={colors.gray} />
-                <YAxis stroke={colors.gray} />
-                <Tooltip />
-                <Bar dataKey="value" fill={colors.primary} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="Processing Time Trend">
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={processingTimeData}>
-                <XAxis dataKey="time" stroke={colors.gray} />
-                <YAxis stroke={colors.gray} />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="seconds" 
-                  stroke={colors.primary} 
-                  strokeWidth={2}
-                  dot={{ fill: colors.primary }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-      </div>
-    </div>
-  );
-
-  // Sales & Service Analytics Tab
-  const SalesServiceTab = () => (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard
-          title="Sales Service Level"
-          value={`${salesServiceData.sales.sl}%`}
-          icon={TrendingUp}
-          change="+5%"
-          description="vs. target"
-        />
-        <StatCard
-          title="Service Level"
-          value={`${salesServiceData.service.sl}%`}
-          icon={TrendingUp}
-          change="-2%"
-          description="vs. target"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Service Level Comparison">
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={[
-                { name: 'Sales', sl: salesServiceData.sales.sl },
-                { name: 'Service', sl: salesServiceData.service.sl }
-              ]}>
-                <XAxis dataKey="name" stroke={colors.gray} />
-                <YAxis stroke={colors.gray} />
-                <Tooltip />
-                <Line type="monotone" dataKey="sl" stroke={colors.primary} strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="ACC Distribution">
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Sales ACC', value: salesServiceData.sales.acc },
-                    { name: 'Service ACC', value: salesServiceData.service.acc }
-                  ]}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  innerRadius={60}
-                >
-                  {[colors.primary, colors.dark].map((color, index) => (
-                    <Cell key={`cell-${index}`} fill={color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-      </div>
-
-      <ChartCard title="Service Level Trend">
-        <div className="h-60">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={slGrossData}>
-              <XAxis dataKey="time" stroke={colors.gray} />
-              <YAxis stroke={colors.gray} />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke={colors.primary} 
-                strokeWidth={2}
-                dot={{ fill: colors.primary }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <StatCard
+            title="Emails Received"
+            value={emailData['email recieved']}
+            icon={Mail}
+          />
+          <StatCard
+            title="Emails Answered"
+            value={emailData['email answered']}
+            icon={Mail}
+          />
+          <StatCard
+            title="Emails Forwarded"
+            value={emailData['email forwarded']}
+            icon={Send}
+          />
+          <StatCard
+            title="New Sent"
+            value={emailData['New Sent']}
+            icon={Send}
+          />
+          <StatCard
+            title="Archived"
+            value={emailData['email archived']}
+            icon={Archive}
+          />
         </div>
-      </ChartCard>
-    </div>
-  );
 
-  // Booking Analytics Tab
-  const BookingTab = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Bookings"
-          value={emailMetrics.bookingData.booked}
-          icon={Users}
-          change="+15%"
-          description="vs. last period"
-        />
-        <StatCard
-          title="Booking Rate"
-          value={`${emailMetrics.bookingData.bookingRate}%`}
-          icon={Activity}
-          change="+5%"
-          description="vs. target"
-        />
-        <StatCard
-          title="Pending Bookings"
-          value={emailMetrics.bookingData.pending}
-          icon={Clock}
-          change="0%"
-          description="no change"
-        />
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <StatCard
+            title="SL Gross"
+            value={`€${emailData['SL Gross'].toLocaleString()}`}
+            icon={TrendingUp}
+          />
+          <StatCard
+            title="Processing Time"
+            value={`${processingTimeInMinutes}m`}
+            icon={Clock}
+          />
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartCard title="Booking Status">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Email Processing Overview">
             <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
-                  { category: 'Booked', value: emailMetrics.bookingData.booked },
-                  { category: 'Not Booked', value: emailMetrics.bookingData.notBooked },
-                  { category: 'Pending', value: emailMetrics.bookingData.pending },
-                  { category: 'OP', value: emailMetrics.bookingData.op },
-                  { category: 'RQ', value: emailMetrics.bookingData.rq }
+                  { name: 'Received', value: emailData['email recieved'] },
+                  { name: 'Answered', value: emailData['email answered'] },
+                  { name: 'Forwarded', value: emailData['email forwarded'] },
+                  { name: 'Archived', value: emailData['email archived'] }
                 ]}>
-                  <XAxis dataKey="category" />
-                  <YAxis />
+                  <XAxis dataKey="name" stroke={colors.gray} />
+                  <YAxis stroke={colors.gray} />
                   <Tooltip />
-                  <Legend />
-                  <Bar dataKey="value" fill={colors.primary} name="Count" />
+                  <Bar dataKey="value" fill={colors.primary} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
 
+          <ChartCard title="Processing Time Trend">
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={processedTimeData}>
+                  <XAxis dataKey="time" stroke={colors.gray} />
+                  <YAxis 
+                    stroke={colors.gray}
+                    label={{ 
+                      value: 'Processing Time (seconds)', 
+                      angle: -90, 
+                      position: 'insideLeft' 
+                    }}
+                  />
+                  <Tooltip />
+                  <Line 
+                    type="monotone" 
+                    dataKey="seconds" 
+                    stroke={colors.primary} 
+                    strokeWidth={2}
+                    dot={{ fill: colors.primary }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+      </div>
+    );
+  };
+
+
+  const SalesServiceTab = () => {
+    const [callData, setCallData] = useState(null);
+    const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const response = await axios.get('http://localhost:8000/call_data');
+          setCallData(response.data);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching call data:', error);
+          setLoading(false);
+        }
+      };
+  
+      fetchData();
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }, []);
+  
+    if (loading || !callData) return <div><Loading/></div>;
+  
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <StatCard
+            title="Sales Calls Offered"
+            value={callData.sales_metrics.calls_offered}
+            icon={PhoneCall}
+          />
+          <StatCard
+            title="Sales Calls Handled"
+            value={callData.sales_metrics.calls_handled}
+            icon={Phone}
+          />
+          <StatCard
+            title="Sales ACC"
+            value={`${callData.sales_metrics.ACC}%`}
+            icon={CheckCircle}
+          />
+          <StatCard
+            title="Sales Service Level"
+            value={`${callData.sales_metrics.SL}%`}
+            icon={TrendingUp}
+          />
+        </div>
+  
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <StatCard
+            title="Service Calls Offered"
+            value={callData.service_metrics.calls_offered}
+            icon={PhoneCall}
+          />
+          <StatCard
+            title="Service Calls Handled"
+            value={callData.service_metrics.calls_handled}
+            icon={Phone}
+          />
+          <StatCard
+            title="Service ACC"
+            value={`${callData.service_metrics.ACC}%`}
+            icon={CheckCircle}
+          />
+          <StatCard
+            title="Service Level"
+            value={`${callData.service_metrics.SL}%`}
+            icon={TrendingUp}
+          />
+        </div>
+  
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Call Handling Times">
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  {
+                    name: 'Sales',
+                    AHT: callData.sales_metrics.AHT_sec,
+                    waitTime: callData.sales_metrics.longest_waiting_time_sec,
+                    talkTime: callData.sales_metrics.total_talk_time_sec
+                  },
+                  {
+                    name: 'Service',
+                    AHT: callData.service_metrics.AHT_sec,
+                    waitTime: callData.service_metrics.longest_waiting_time_sec,
+                    talkTime: callData.service_metrics.total_talk_time_sec
+                  }
+                ]}>
+                  <XAxis dataKey="name" stroke={colors.gray} />
+                  <YAxis stroke={colors.gray} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="AHT" name="AHT (sec)" fill={colors.primary} />
+                  <Bar dataKey="waitTime" name="Wait Time (sec)" fill={colors.success} />
+                  <Bar dataKey="talkTime" name="Talk Time (sec)" fill={colors.accent} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+  
+          <ChartCard title="Performance Metrics">
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  {
+                    name: 'Sales',
+                    ACC: callData.sales_metrics.ACC,
+                    SL: callData.sales_metrics.SL,
+                  },
+                  {
+                    name: 'Service',
+                    ACC: callData.service_metrics.ACC,
+                    SL: callData.service_metrics.SL,
+                  }
+                ]}>
+                  <XAxis dataKey="name" stroke={colors.gray} />
+                  <YAxis stroke={colors.gray} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="ACC" name="ACC %" fill={colors.primary} />
+                  <Bar dataKey="SL" name="Service Level %" fill={colors.success} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+  
+        <ChartCard title="Overall Metrics">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <StatCard
+              title="Average Handling Time"
+              value={`${(callData['average handling time']).toFixed(1)}s`}
+              icon={Clock}
+            />
+            <StatCard
+              title="Total Talk Time"
+              value={`${(callData['Total Talk Time']).toFixed(1)}s`}
+              icon={Clock}
+            />
+            <StatCard
+              title="Total Outbound Calls"
+              value={callData['Total outbound calls']}
+              icon={Phone}
+            />
+          </div>
+        </ChartCard>
+      </div>
+    );
+  };
+
+// Booking Analytics Tab
+const BookingTab = () => {
+  const [bookingData, setBookingData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/booking_data');
+        setBookingData(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching booking data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading || !bookingData) return <div><Loading/></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          title="Total Bookings"
+          value={bookingData['Booked']}
+          icon={Users}
+        />
+        <StatCard
+          title="SB Booking Rate"
+          value={`${bookingData['SB Booking Rate (%)']}%`}
+          icon={Activity}
+        />
+        <StatCard
+          title="Pending Bookings"
+          value={bookingData['Pending']}
+          icon={Clock}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChartCard title="Booking Status">
+          <div className="h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[
+                { category: 'Booked', value: bookingData['Booked'] },
+                { category: 'Not Booked', value: bookingData['Not Booked'] },
+                { category: 'Pending', value: bookingData['Pending'] },
+                { category: 'OP', value: bookingData['OP'] },
+                { category: 'RQ', value: bookingData['RQ'] }
+              ]}>
+                <XAxis dataKey="category" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill={colors.primary} name="Count" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
         <ChartCard title="OP/RQ Distribution">
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { name: 'OP', value: emailMetrics.bookingData.op },
-                { name: 'RQ', value: emailMetrics.bookingData.rq }
+                { name: 'OP', value: bookingData['OP'] },
+                { name: 'RQ', value: bookingData['RQ'] }
               ]}>
                 <XAxis dataKey="name" stroke={colors.gray} />
                 <YAxis stroke={colors.gray} />
@@ -401,24 +484,49 @@ const AnalyticsDashboard = () => {
       </div>
     </div>
   );
+};
 
-  // Conversion Analytics Tab
-  const ConversionTab = () => (
+// Conversion Analytics Tab
+const ConversionTab = () => {
+  const [conversionData, setConversionData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/conversion_CB');
+        setConversionData(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching conversion data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading || !conversionData) return <div><Loading/></div>;
+
+  return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="CB Conversion Rate"
-          value={`${conversionData.cb.conversion}%`}
+          value={`${conversionData.CB['CB Conversion']}%`}
           icon={TrendingUp}
-          change="+2.5%"
-          description="vs. last period"
         />
         <StatCard
           title="Sales Conversion Rate"
-          value={`${conversionData.sales.conversion}%`}
+          value={`${conversionData.Sales['Sales Conversion']}%`}
           icon={TrendingUp}
-          change="+8.3%"
-          description="vs. last period"
+        />
+        <StatCard
+          title="CB Turnover"
+          value={`€${conversionData.CB['Turnover'].toLocaleString()}`}
+          icon={Activity}
         />
       </div>
 
@@ -428,15 +536,15 @@ const AnalyticsDashboard = () => {
             <ComposedChart data={[
               { 
                 name: 'CB',
-                bookings: conversionData.cb.bookings,
-                wrongCalls: conversionData.cb.wrongCalls,
-                conversion: conversionData.cb.conversion
+                bookings: conversionData.CB['Bookings CB'],
+                wrongCalls: conversionData.CB['Wrong calls'],
+                conversion: conversionData.CB['CB Conversion']
               },
               { 
                 name: 'Sales',
-                bookings: conversionData.sales.bookings,
-                wrongCalls: conversionData.sales.wrongCalls,
-                conversion: conversionData.sales.conversion
+                bookings: conversionData.Sales['Bookings Sales'],
+                wrongCalls: conversionData.Sales['Wrong calls'],
+                conversion: conversionData.Sales['Sales Conversion']
               }
             ]}>
               <XAxis dataKey="name" stroke={colors.gray} />
@@ -444,12 +552,13 @@ const AnalyticsDashboard = () => {
               <YAxis yAxisId="right" orientation="right" stroke={colors.gray} />
               <Tooltip />
               <Legend />
-              <Bar yAxisId="left" dataKey="bookings" fill={colors.success} radius={[4, 4, 0, 0]} />
-              <Bar yAxisId="left" dataKey="wrongCalls" fill={colors.danger} radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="left" dataKey="bookings" fill={colors.success} name="Bookings" radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="left" dataKey="wrongCalls" fill={colors.danger} name="Wrong Calls" radius={[4, 4, 0, 0]} />
               <Line 
                 yAxisId="right" 
                 type="monotone" 
                 dataKey="conversion" 
+                name="Conversion Rate"
                 stroke={colors.accent}
                 strokeWidth={2}
                 dot={{ fill: colors.accent }}
@@ -458,8 +567,56 @@ const AnalyticsDashboard = () => {
           </ResponsiveContainer>
         </div>
       </ChartCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChartCard title="CB Performance">
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[{
+                name: 'CB Metrics',
+                handled: conversionData.CB['CB calls handled'],
+                wrong: conversionData.CB['Wrong calls'],
+                bookings: conversionData.CB['Bookings CB']
+              }]}>
+                <XAxis dataKey="name" stroke={colors.gray} />
+                <YAxis stroke={colors.gray} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="handled" name="Handled Calls" fill={colors.primary} />
+                <Bar dataKey="wrong" name="Wrong Calls" fill={colors.danger} />
+                <Bar dataKey="bookings" name="Bookings" fill={colors.success} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Sales Performance">
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[{
+                name: 'Sales Metrics',
+                handled: conversionData.Sales['Sales handles'],
+                wrong: conversionData.Sales['Wrong calls'],
+                bookings: conversionData.Sales['Bookings Sales'],
+                volume: conversionData.Sales['Sales volume']
+              }]}>
+                <XAxis dataKey="name" stroke={colors.gray} />
+                <YAxis stroke={colors.gray} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="handled" name="Handled" fill={colors.primary} />
+                <Bar dataKey="wrong" name="Wrong Calls" fill={colors.danger} />
+                <Bar dataKey="bookings" name="Bookings" fill={colors.success} />
+                <Bar dataKey="volume" name="Volume" fill={colors.accent} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
     </div>
   );
+};
+
 
   const tabs = [
     { id: "email", name: "Email Analytics" },

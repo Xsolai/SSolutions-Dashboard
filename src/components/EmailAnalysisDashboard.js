@@ -1,8 +1,50 @@
-import React, { useState } from 'react';
+"use client";
+import React, { useState , useEffect} from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, Cell } from 'recharts';
 import { Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
+const SkeletonStatCard = () => (
+  <div className="bg-white p-4 rounded-lg border border-gray-100">
+    <div className="flex items-center justify-between mb-1">
+      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+      <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+    </div>
+    <div className="h-8 bg-gray-200 rounded w-2/3 mb-2"></div>
+    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+  </div>
+);
+
+const SkeletonChartCard = () => (
+  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100">
+    <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
+    <div className="h-60 bg-gray-200 rounded"></div>
+  </div>
+);
+
+const Loading = () => {
+  return (
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[...Array(5)].map((_, i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonChartCard key={i} />
+            ))}
+          </div>
+        </div>
+  );
+}
 // Color theme for consistency
 const COLORS = {
   primary: '#002B50',    // Main Yellow
@@ -20,32 +62,11 @@ const COLORS = {
   ]
 };
 
-// Sample data
-const emailData = [
-  { date: '2024-03-01', sla: 96.5, volume: 245 },
-  { date: '2024-03-02', sla: 94.2, volume: 212 },
-  { date: '2024-03-03', sla: 97.8, volume: 198 },
-  { date: '2024-03-04', sla: 93.1, volume: 256 },
-  { date: '2024-03-05', sla: 91.4, volume: 278 },
-  { date: '2024-03-06', sla: 95.9, volume: 234 },
-  { date: '2024-03-07', sla: 98.2, volume: 198 }
-];
 
-const mailboxData = [
-  { name: 'Support', sla: 96.5, processingTime: 12, replies: 156, forwards: 23 },
-  { name: 'Sales', sla: 94.2, processingTime: 8, replies: 98, forwards: 45 },
-  { name: 'Billing', sla: 97.8, processingTime: 15, replies: 78, forwards: 12 },
-  { name: 'Partners', sla: 93.1, processingTime: 18, replies: 67, forwards: 34 }
-];
-
-// Calculate averages
-const avgSLA = emailData.reduce((acc, curr) => acc + curr.sla, 0) / emailData.length;
-const avgVolume = Math.round(emailData.reduce((acc, curr) => acc + curr.volume, 0) / emailData.length);
-const avgProcessingTime = Math.round(mailboxData.reduce((acc, curr) => acc + curr.processingTime, 0) / mailboxData.length);
 
 const getBarColor = (sla) => {
-  if (sla >= 95) return COLORS.chartColors[0];  // Primary Yellow
-  if (sla >= 85) return COLORS.chartColors[1];  // Dark Blue
+  if (sla <= 1000) return COLORS.chartColors[1];  // Primary Yellow
+  if (sla >= 1000) return COLORS.chartColors[0];  // Dark Blue
   return COLORS.primary;                        // Dark Blue
 };
 
@@ -132,141 +153,202 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const EmailAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [emailData, setEmailData] = useState(null);
+  const [overviewData, setOverviewData] = useState(null);
+  const [performanceData, setPerformanceData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const overviewStats = [
-    { title: "24h Service Level", value: `${avgSLA.toFixed(1)}%`, icon: CheckCircle, change: `${(avgSLA - 94.5).toFixed(1)}%`, description: "vs. target (95%)" },
-    { title: "Daily Volume", value: avgVolume, icon: Inbox, change: "+12.5%", description: "vs. last week" },
-    { title: "Processing Time", value: `${avgProcessingTime} min`, icon: Timer, change: "-2.3 min", description: "vs. last week" },
-    { title: "Response Rate", value: "92.8%", icon: Reply, change: "+3.2%", description: "vs. last week" }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [emailResponse, overviewResponse, performanceResponse] = await Promise.all([
+          axios.get('http://localhost:8000/email-data'),
+          axios.get('http://localhost:8000/email_overview'),
+          axios.get('http://localhost:8000/email_performance_metrics')
+        ]);
 
-  const OverviewTab = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {overviewStats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
-      </div>
+        setEmailData(emailResponse.data);
+        setOverviewData(overviewResponse.data);
+        setPerformanceData(performanceResponse.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setLoading(false);
+      }
+    };
 
-{/* Charts with matched colors */}
-<ChartCard title="Daily Service Level Performance">
-  <div className="h-[400px] w-full">
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={emailData}>
-        <XAxis 
-          dataKey="date" 
-          tick={{ fontSize: 12, fill: COLORS.gray }}
-          axisLine={{ stroke: COLORS.lightGray }}
-        />
-        <YAxis 
-          tick={{ fontSize: 12, fill: COLORS.gray }}
-          domain={[80, 100]}
-          axisLine={{ stroke: COLORS.lightGray }}
-          label={{ 
-            value: 'Service Level (%)', 
-            angle: -90, 
-            position: 'insideLeft', 
-            fill: COLORS.gray
-          }}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Legend 
-          wrapperStyle={{ 
-            paddingTop: '20px',
-            color: COLORS.dark
-          }}
-        />
-        <Bar dataKey="sla" name="24h Service Level">
-          {emailData.map((entry, index) => (
-            <Cell 
-              key={`cell-${index}`} 
-              fill={getBarColor(entry.sla)}
-              fillOpacity={0.8}
-            />
+    fetchData();
+    // const interval = setInterval(fetchData, 30000);
+    // return () => clearInterval(interval);
+  }, []);
+
+  const OverviewTab = () => {
+    if (!emailData || !overviewData) return <div><Loading/></div>;
+
+    const overviewStats = [
+      { 
+        title: "24h Service Level", 
+        value: `${emailData['SL Gross'].toFixed(1)}%`,
+        icon: CheckCircle
+      },
+      { 
+        title: "Total Emails", 
+        value: overviewData['total emails recieved'].toLocaleString(), 
+        icon: Inbox
+      },
+      { 
+        title: "Processing Time", 
+        value: `${(overviewData['Total Processing Time (sec)'] / 60).toFixed(1)}m`, 
+        icon: Timer
+      },
+      { 
+        title: "New Cases", 
+        value: overviewData['total new cases'].toLocaleString(), 
+        icon: Reply
+      }
+    ];
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {overviewStats.map((stat, index) => (
+            <StatCard key={index} {...stat} />
           ))}
-        </Bar>
-        <Line 
-          type="monotone" 
-          dataKey={() => 95} 
-          stroke={COLORS.chartColors[0]}  // Primary Yellow
-          strokeDasharray="3 3" 
-          name="Target (95%)"
-        />
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
-</ChartCard>
-    </div>
-  );
+        </div>
 
-  const PerformanceTab = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Processing Time by Mailbox">
-          <div className="h-60 w-full">
+        <ChartCard title="Daily Service Level Performance">
+          <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mailboxData}>
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: COLORS.gray }} />
+              <BarChart data={overviewData.daily_service_level_gross}>
+                <XAxis 
+                  dataKey="interval" 
+                  tick={{ fontSize: 12, fill: COLORS.gray }}
+                  axisLine={{ stroke: COLORS.lightGray }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: COLORS.gray }}
+                  domain={[0, 'auto']}
+                  axisLine={{ stroke: COLORS.lightGray }}
+                  label={{ 
+                    value: 'Service Level (%)', 
+                    angle: -90, 
+                    position: 'insideLeft', 
+                    fill: COLORS.gray
+                  }}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Bar 
+                  dataKey="service_level_gross" 
+                  name="Service Level"
+                  fill={COLORS.chartColors[0]}
+                >
+                  {overviewData.daily_service_level_gross.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={getBarColor(entry.service_level_gross)}
+                    />
+                  ))}
+                </Bar>
+                <Line 
+                  type="monotone" 
+                  dataKey={() => 95} 
+                  stroke={COLORS.chartColors[0]}
+                  strokeDasharray="3 3" 
+                  name="Target (95%)"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+    );
+  };
+
+  const PerformanceTab = () => {
+    if (!performanceData) return <div><Loading/></div>;
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="Processing Time by Mailbox">
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={performanceData.Processing_time_by_mailbox}>
+                  <XAxis dataKey="mailbox" tick={{ fontSize: 12, fill: COLORS.gray }} angle={-45} textAnchor="end" height={100} />
+                  <YAxis 
+                    tick={{ fontSize: 12, fill: COLORS.gray }}
+                    label={{ 
+                      value: 'Processing Time (sec)', 
+                      angle: -90, 
+                      position: 'insideLeft' 
+                    }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar 
+                    dataKey="processing_time_sec" 
+                    name="Processing Time" 
+                    fill={COLORS.chartColors[0]} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          <ChartCard title="Service Level by Mailbox">
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={performanceData.service_level_by_mailbox}>
+                  <XAxis dataKey="mailbox" tick={{ fontSize: 12, fill: COLORS.gray }} angle={-45} textAnchor="end" height={100} />
+                  <YAxis 
+                    domain={[0, 'auto']} 
+                    tick={{ fontSize: 12, fill: COLORS.gray }}
+                    label={{ 
+                      value: 'Service Level (%)', 
+                      angle: -90, 
+                      position: 'insideLeft' 
+                    }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar 
+                    dataKey="service_level_gross" 
+                    name="Service Level" 
+                    fill={COLORS.chartColors[1]} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+
+        <ChartCard title="Mailbox Response Metrics">
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={performanceData.respone_by_mailbox}>
+                <XAxis dataKey="mailbox" tick={{ fontSize: 12, fill: COLORS.gray }} angle={-45} textAnchor="end" height={100} />
                 <YAxis tick={{ fontSize: 12, fill: COLORS.gray }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend verticalAlign="top" height={36} iconType="circle" iconSize={12} />
+                <Legend />
                 <Bar 
-                  dataKey="processingTime" 
-                  name="Processing Time" 
-                  fill={COLORS.chartColors[0]} 
-                  radius={[4, 4, 0, 0]} 
+                  dataKey="sent" 
+                  name="Replies" 
+                  fill={COLORS.chartColors[2]} 
                 />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="Service Level by Mailbox">
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mailboxData}>
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: COLORS.gray }} />
-                <YAxis domain={[80, 100]} tick={{ fontSize: 12, fill: COLORS.gray }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend verticalAlign="top" height={36} iconType="circle" iconSize={12} />
                 <Bar 
-                  dataKey="sla" 
-                  name="Service Level" 
-                  fill={COLORS.chartColors[1]} 
-                  radius={[4, 4, 0, 0]} 
+                  dataKey="forwarded" 
+                  name="Forwards" 
+                  fill={COLORS.chartColors[3]} 
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
       </div>
+    );
+  };
 
-      <ChartCard title="Mailbox Response Metrics">
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={mailboxData}>
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: COLORS.gray }} />
-              <YAxis tick={{ fontSize: 12, fill: COLORS.gray }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36} iconType="circle" iconSize={12} />
-              <Bar 
-                dataKey="replies" 
-                name="Replies" 
-                fill={COLORS.chartColors[2]} 
-                radius={[4, 4, 0, 0]} 
-              />
-              <Bar 
-                dataKey="forwards" 
-                name="Forwards" 
-                fill={COLORS.chartColors[3]} 
-                radius={[4, 4, 0, 0]} 
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartCard>
-    </div>
-  );
 
   const tabs = [
     { id: "overview", name: "Overview" },

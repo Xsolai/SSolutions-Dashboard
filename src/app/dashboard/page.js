@@ -1,28 +1,53 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, History, X, Check, AlertTriangle, Clock, Menu } from 'lucide-react';
+import axios from 'axios';
+import { History, X, Check, AlertTriangle, Clock, Menu } from 'lucide-react';
 import CallAnalysisDashboard from "@/components/CallAnalysisDashboard";
 import EmailAnalysisDashboard from "@/components/EmailAnalysisDashboard";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import logo from "@/assets/images/logo.png";
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const HistorySidebar = ({ isOpen, onClose }) => {
-  const histories = [
-    { fileName: 'Sales_Call_2024.mp3', fetchTime: '2024-03-28 14:30', status: 'success' },
-    { fileName: 'Customer_Support.mp3', fetchTime: '2024-03-28 13:15', status: 'error' },
-    { fileName: 'Team_Meeting.mp3', fetchTime: '2024-03-28 12:00', status: 'success' },
-    { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
-    { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
-    { fileName: 'Client_Feedback.mp3', fetchTime: '2024-03-28 11:45', status: 'pending' },
-  ];
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/history');
+        setHistoryData(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching history:', error);
+        setLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchHistory();
+    }
+
+    // Optional: Set up polling for real-time updates
+    let interval;
+    if (isOpen) {
+      interval = setInterval(fetchHistory, 30000); // Update every 30 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOpen]);
 
   const getStatusIcon = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'success':
+      case 'completed':
         return <Check className="w-5 h-5 text-green-500" />;
       case 'error':
+      case 'failed':
         return <AlertTriangle className="w-5 h-5 text-red-500" />;
       case 'pending':
+      case 'processing':
         return <Clock className="w-5 h-5 text-yellow-500" />;
       default:
         return null;
@@ -55,25 +80,36 @@ const HistorySidebar = ({ isOpen, onClose }) => {
               </button>
             </div>
           </div>
+          
           <div className="flex-1 overflow-y-auto">
-            <div className="p-4 space-y-3">
-              {histories.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50 rounded-xl p-3.5 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group border border-gray-200"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-800 group-hover:text-black transition-colors">
-                      {item.fileName}
-                    </span>
-                    {getStatusIcon(item.status)}
+            {loading ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="text-gray-500">Loading history...</div>
+              </div>
+            ) : historyData.length === 0 ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="text-gray-500">No history available</div>
+              </div>
+            ) : (
+              <div className="p-4 space-y-3">
+                {historyData.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-gray-50 rounded-xl p-3.5 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group border border-gray-200"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-800 group-hover:text-black transition-colors">
+                        {item.filename}
+                      </span>
+                      {getStatusIcon(item.status)}
+                    </div>
+                    <div className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
+                      {item.processed_at}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
-                    {item.fetchTime}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -110,6 +146,7 @@ const Home = () => {
   ];
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-white text-black">
       <div className="py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
@@ -195,6 +232,7 @@ const Home = () => {
         onClose={() => setIsHistoryOpen(false)}
       />
     </div>
+    </ProtectedRoute>
   );
 };
 
