@@ -195,9 +195,9 @@ async def get_graphs_data(db: Session = Depends(get_db)):
 #             }
         
 
-    except Exception as e:
-        print(f"Error retrieving booking status metrics: {e}")
-        return None
+    # except Exception as e:
+    #     print(f"Error retrieving booking status metrics: {e}")
+    #     return None
     
 @router.get("/calls_kpis_weekdays")
 async def get_calls_weekdays(db: Session = Depends(get_db)):
