@@ -6,8 +6,8 @@ import os
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "sabasaeed410@gmail.com"
-SENDER_PASSWORD = "bzns rnnc yaic jjko"
+SENDER_EMAIL = os.getenv("SMTP_USERNAME")
+SENDER_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 def send_thank_you_email(recipient_email, subject, body):
     try:
