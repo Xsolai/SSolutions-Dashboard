@@ -8,6 +8,12 @@ from app.src.components.email_service import send_reset_password_email, send_reg
 from app.database.auth.hashing import Hash
 from typing import Dict
 import time , random
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from app.database.auth.jwt_handler import decode_jwt
+from app.database.models.models import User
+from app.database.db.db_connection import get_db
+from sqlalchemy.orm import Session
+
 
 router = APIRouter(
     prefix="/auth",
@@ -27,6 +33,37 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
+@router.post("/verify-token")
+async def verify_token(request: Request, db: Session = Depends(get_db)):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing or invalid",
+        )
+    
+    token = auth_header.split(" ")[1]
+    try:
+        # Decode the token
+        payload = decode_jwt(token)
+
+        # Fetch the user from the database
+        user = db.query(User).filter(User.id == payload["user_id"]).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        
+        # Token is valid
+        return {"isAuthenticated": True}
+    except Exception as e:
+        print(f"Token verification error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    
 
 @router.post("/forget-password/")
 async def forget_password(request: ForgetPasswordRequest, db: Session = Depends(get_db)):
@@ -41,8 +78,8 @@ async def forget_password(request: ForgetPasswordRequest, db: Session = Depends(
     reset_token = str(uuid4())
     reset_tokens[reset_token] = user.id  # Map token to user ID
 
-    # Construct reset link (adjust URL based on your frontend/backend setup)
-    reset_link = f"http://your-frontend-url.com/reset-password?token={reset_token}"
+    # Construct reset link with uid/token format
+    reset_link = f"http://localhost:3000/reset-password/{user.id}/{reset_token}"
 
     # Send the reset password email
     subject = "Reset Your Password"
@@ -58,34 +95,45 @@ async def forget_password(request: ForgetPasswordRequest, db: Session = Depends(
     return {"message": "Reset password link has been sent to your email."}
 
 
+
 @router.post("/reset-password/")
 async def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
     if data.token not in reset_tokens:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token"
         )
 
-    if data.new_password != data.confirm_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Passwords do not match"
-        )
-
     # Get the user ID associated with the token
-    user_id = reset_tokens.pop(data.token)  # Remove token after use
+    user_id = reset_tokens[data.token]  # Do not pop the token here
     user = db.query(models.User).filter(models.User.id == user_id).first()
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
+        )
+
+    if data.new_password != data.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match"
+        )
+
+    # Check if the new password matches the last password
+    if Hash.verify(user.password, data.new_password):  # Assuming `Hash.verify` compares the hash with the plain-text password
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be the same as the last password"
         )
 
     # Hash the new password and update it
     hashed_password = Hash.bcrypt(data.new_password)
     user.password = hashed_password
     db.commit()
+
+    # Remove the token only after successful reset
+    reset_tokens.pop(data.token, None)
 
     return {"message": "Password reset successfully. You can now log in with your new password."}
 
@@ -205,41 +253,43 @@ def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
         print(f"Error during user registration: {e}")
         raise HTTPException(status_code=500, detail="Failed to register user.")
 
-
 @router.post("/resend-otp")
-def resend_otp(email: EmailStr, db: Session = Depends(get_db)):
+def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
     """
-    Resends a new OTP to the user's email.
+    Resends an OTP for email verification during registration.
 
     Args:
-        email (EmailStr): The user's email address.
+        request (OTPVerificationRequest): Contains the email of the user.
         db (Session): Database session dependency.
 
     Returns:
-        JSON response indicating success or failure.
+        JSON response indicating OTP has been resent.
     """
-    stored_otp_data = otp_storage.get(email)
+    stored_otp_data = otp_storage.get(request.email)
 
-    # Check if the email exists in OTP storage
+    # Check if email exists in temporary storage
     if not stored_otp_data:
-        raise HTTPException(status_code=404, detail="No registration request found for this email.")
-
-    # Check if the user is already registered
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if user:
-        raise HTTPException(status_code=400, detail="User with this email is already registered.")
+        raise HTTPException(status_code=404, detail="No registration process found for this email.")
 
     # Generate a new OTP
-    new_otp = str(random.randint(100000, 999999))
-    expiry = time.time() + 300  # OTP valid for 5 minutes
-    otp_storage[email] = {**stored_otp_data, "otp": new_otp, "expiry": expiry}
+    otp = str(random.randint(100000, 999999))
+    expiry = time.time() + 300  # New OTP valid for 5 minutes
 
-    # Send the new OTP via email
+    # Update OTP storage
+    otp_storage[request.email]["otp"] = otp
+    otp_storage[request.email]["expiry"] = expiry
+
+    # Resend OTP via email
     try:
-        subject = "Your Resend OTP"
-        send_registration_otp(recipient_email=email, subject=subject, otp=new_otp)
+        subject = "Your Resent Registration OTP"
+        # Directly pass the required parameters
+        send_registration_otp(
+            recipient_email=request.email,
+            subject=subject,
+            otp=otp
+        )
     except Exception as e:
         print(f"Error sending email: {e}")
         raise HTTPException(status_code=500, detail="Failed to resend OTP.")
 
-    return {"message": "A new OTP has been sent to your email."}
+    return {"message": "OTP has been resent to your email. Please verify to complete registration."}
