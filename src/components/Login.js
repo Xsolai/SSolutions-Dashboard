@@ -32,7 +32,7 @@ const LoginForm = () => {
       formData.append('username', data.email); // Backend expects username field for email
       formData.append('password', data.password);
 
-      const response = await axios.post('http://localhost:8000/login', formData, {
+      const response = await axios.post('http://http://35.156.80.11:8080/login', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

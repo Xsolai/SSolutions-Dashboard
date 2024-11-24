@@ -15,7 +15,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/history');
+        const response = await axios.get('http://http://35.156.80.11:8080/history');
         setHistoryData(response.data);
         setLoading(false);
       } catch (error) {

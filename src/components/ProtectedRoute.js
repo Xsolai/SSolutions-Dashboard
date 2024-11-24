@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children }) => {
         }
 
         // Verify the token with the backend
-        const response = await fetch("http://localhost:8000/auth/verify-token", {
+        const response = await fetch("http://http://35.156.80.11:8080/auth/verify-token", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

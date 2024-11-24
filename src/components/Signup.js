@@ -42,7 +42,7 @@ const SignupForm = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/auth/register', {
+      const response = await axios.post('http://http://35.156.80.11:8080/auth/register', {
         username: data.username,
         email: data.email,
         password: data.password,

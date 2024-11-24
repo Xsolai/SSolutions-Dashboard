@@ -142,11 +142,11 @@ const CallAnalysisDashboard = () => {
           reasonsResponse,
           queueResponse
         ] = await Promise.all([
-          axios.get('http://localhost:8000/calls_kpis'),
-          axios.get('http://localhost:8000/call_data'),
-          axios.get('http://localhost:8000/calls_kpis_weekdays'),
-          axios.get('http://localhost:8000/call_reasons_breakdowns'),
-          axios.get('http://localhost:8000/call_by_queue')
+          axios.get('http://http://35.156.80.11:8080/calls_kpis'),
+          axios.get('http://http://35.156.80.11:8080/call_data'),
+          axios.get('http://http://35.156.80.11:8080/calls_kpis_weekdays'),
+          axios.get('http://http://35.156.80.11:8080/call_reasons_breakdowns'),
+          axios.get('http://http://35.156.80.11:8080/call_by_queue')
         ]);
 
         setCallsKPIs(kpisResponse.data);

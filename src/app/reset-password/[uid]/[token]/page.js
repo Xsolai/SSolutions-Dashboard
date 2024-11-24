@@ -53,7 +53,7 @@ const ResetPasswordFormPage = ({ params }) => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/auth/reset-password/', {
+      const response = await axios.post('http://http://35.156.80.11:8080/auth/reset-password/', {
         token: token,
         new_password: data.password,
         confirm_password: data.confirmPassword
