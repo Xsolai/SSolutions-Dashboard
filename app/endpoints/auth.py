@@ -204,3 +204,42 @@ def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error during user registration: {e}")
         raise HTTPException(status_code=500, detail="Failed to register user.")
+
+
+@router.post("/resend-otp")
+def resend_otp(email: EmailStr, db: Session = Depends(get_db)):
+    """
+    Resends a new OTP to the user's email.
+
+    Args:
+        email (EmailStr): The user's email address.
+        db (Session): Database session dependency.
+
+    Returns:
+        JSON response indicating success or failure.
+    """
+    stored_otp_data = otp_storage.get(email)
+
+    # Check if the email exists in OTP storage
+    if not stored_otp_data:
+        raise HTTPException(status_code=404, detail="No registration request found for this email.")
+
+    # Check if the user is already registered
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if user:
+        raise HTTPException(status_code=400, detail="User with this email is already registered.")
+
+    # Generate a new OTP
+    new_otp = str(random.randint(100000, 999999))
+    expiry = time.time() + 300  # OTP valid for 5 minutes
+    otp_storage[email] = {**stored_otp_data, "otp": new_otp, "expiry": expiry}
+
+    # Send the new OTP via email
+    try:
+        subject = "Your Resend OTP"
+        send_registration_otp(recipient_email=email, subject=subject, otp=new_otp)
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        raise HTTPException(status_code=500, detail="Failed to resend OTP.")
+
+    return {"message": "A new OTP has been sent to your email."}
