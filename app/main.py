@@ -3,7 +3,7 @@ import uvicorn
 from app.database.db.db_connection import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 from app.src.logger import logging
-from app.endpoints import email_metrics, call_metrics, booking_metrics, login, history
+from app.endpoints import email_metrics, call_metrics, booking_metrics, login, history, auth
 from app.src.components.scheduler import schedule_daily_task
 import warnings
 
@@ -41,6 +41,7 @@ app.include_router(call_metrics.router)
 app.include_router(booking_metrics.router)
 app.include_router(login.router)
 app.include_router(history.router)
+app.include_router(auth.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
