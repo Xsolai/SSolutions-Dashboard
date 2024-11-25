@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt  # Use jose's jwt
 from jwt.exceptions import InvalidTokenError
 from app.database.scehmas.schemas import TokenData
+import secrets
 
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7" # We'll update this in future
+# SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7" # We'll update this in future
+SECRET_KEY = secrets.token_hex(32)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 24 * 60
 
