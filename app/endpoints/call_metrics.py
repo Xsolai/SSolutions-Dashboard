@@ -60,8 +60,7 @@ def get_inbound_after_call(db: Session):
 
 
 @router.get("/calls_kpis")
-async def get_calls(db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_calls(db: Session = Depends(get_db)):
     """Endpoint to retrieve calls data from the database."""
     db = SessionLocal()
     calls = db.query(GuruDailyCallData).all()
@@ -90,8 +89,7 @@ async def get_calls(db: Session = Depends(get_db),
 
 
 @router.get("/call_data")
-async def get_graphs_data(db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_graphs_data(db: Session = Depends(get_db)):
     """Endpoint to retrieve graphs data from the database."""
     db = SessionLocal()
     avg_handling_time = db.query(
@@ -204,8 +202,7 @@ async def get_graphs_data(db: Session = Depends(get_db),
     #     return None
     
 @router.get("/calls_kpis_weekdays")
-async def get_calls_weekdays(db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_calls_weekdays(db: Session = Depends(get_db)):
     """Endpoint to retrieve weekdays-wise calls KPIs from the database."""
     # Query weekday-wise grouped data
     weekday_data = db.query(
@@ -244,8 +241,7 @@ async def get_calls_weekdays(db: Session = Depends(get_db),
 
 
 @router.get("/call_reasons_breakdowns")
-async def get_call_reasons_breakdowns(db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_call_reasons_breakdowns(db: Session = Depends(get_db)):
     """Endpoint to retrieve weekdays-wise calls KPIs from the database."""
     # Query weekday-wise grouped data
     guru_sales_data = db.query(
@@ -276,8 +272,7 @@ async def get_call_reasons_breakdowns(db: Session = Depends(get_db),
     
     
 @router.get("/call_by_queue")
-async def get_call_reasons_breakdowns(db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_call_reasons_breakdowns(db: Session = Depends(get_db)):
     """Endpoint to retrieve queue-wise calls KPIs from the database."""
     # Query total calls by queue
     guru_service_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(GuruDailyCallData.queue_name == "Guru_ServiceAT").scalar() or 0

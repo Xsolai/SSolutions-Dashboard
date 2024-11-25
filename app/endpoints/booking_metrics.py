@@ -10,8 +10,7 @@ from app.database.auth import oauth2
 router = APIRouter()
 
 @router.get("/booking_data")
-async def get_booking_data(time_input: float = 6*60, db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_booking_data(time_input: float = 6*60, db: Session = Depends(get_db)):
     """Endpoint to retrieve graphs data from the database."""
     booked = "OK"
     not_booked = "XX"
@@ -52,8 +51,7 @@ async def get_booking_data(time_input: float = 6*60, db: Session = Depends(get_d
 
 
 @router.get("/conversion_CB")
-async def get_conversion_data(db: Session = Depends(get_db), 
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+async def get_conversion_data(db: Session = Depends(get_db)):
     """Endpoint to retrieve graphs data from the database."""
     db = SessionLocal()    
     try:
