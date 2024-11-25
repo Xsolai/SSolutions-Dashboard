@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children }) => {
 
         if (!response.ok) {
           localStorage.removeItem("access_token");
-          router.push("/login");
+          router.push("/");
           return;
         }
 
@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children }) => {
         setIsAuthenticated(data.isAuthenticated);
       } catch (error) {
         console.error("Authentication error:", error);
-        router.push("/login");
+        router.push("/");
       } finally {
         setIsLoading(false);
       }
