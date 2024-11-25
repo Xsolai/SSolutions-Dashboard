@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children }) => {
       try {
         const token = localStorage.getItem("access_token");
         if (!token) {
-          router.push("/");
+          router.push("/"); // Redirect to home if no token
           return;
         }
 
@@ -26,18 +26,27 @@ const ProtectedRoute = ({ children }) => {
         });
 
         if (!response.ok) {
+          // Log response for debugging
+          console.error("Response error: ", response.status, await response.text());
           localStorage.removeItem("access_token");
-          router.push("/");
+          router.push("/"); // Redirect if token is not valid
           return;
         }
 
         const data = await response.json();
-        setIsAuthenticated(data.isAuthenticated);
+
+        if (data.isAuthenticated) {
+          setIsAuthenticated(true); // Token valid, user authenticated
+        } else {
+          localStorage.removeItem("access_token"); // Invalid token, clear it
+          router.push("/"); // Redirect if authentication fails
+        }
       } catch (error) {
-        console.error("Authentication error:", error);
-        router.push("/");
+        console.error("Authentication error:", error); // Log the error for debugging
+        localStorage.removeItem("access_token");
+        router.push("/"); // Redirect on error
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Finish loading state
       }
     };
 
@@ -52,7 +61,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : null;
+  return isAuthenticated ? children : null; // If authenticated, render children
 };
 
 export default ProtectedRoute;
