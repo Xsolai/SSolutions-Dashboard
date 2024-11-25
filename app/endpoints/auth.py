@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from uuid import uuid4
@@ -33,8 +33,13 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
+
 @router.post("/verify-token")
 async def verify_token(request: Request, db: Session = Depends(get_db)):
+    """
+    Endpoint to verify the JWT token passed in the Authorization header.
+    """
+    # Extract Authorization header
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(
@@ -42,12 +47,14 @@ async def verify_token(request: Request, db: Session = Depends(get_db)):
             detail="Token missing or invalid",
         )
     
-    token = auth_header.split(" ")[1]
+    # Extract the token
+    token = auth_header.split(" ")[1]  # "Bearer <token>"
+    
     try:
-        # Decode the token
+        # Decode and validate the token
         payload = decode_jwt(token)
 
-        # Fetch the user from the database
+        # Fetch user from the database using the decoded user_id
         user = db.query(User).filter(User.id == payload["user_id"]).first()
         if not user:
             raise HTTPException(
@@ -55,15 +62,15 @@ async def verify_token(request: Request, db: Session = Depends(get_db)):
                 detail="User not found",
             )
         
-        # Token is valid
+        # If user exists, token is valid
         return {"isAuthenticated": True}
+
     except Exception as e:
         print(f"Token verification error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
-    
 
 @router.post("/forget-password/")
 async def forget_password(request: ForgetPasswordRequest, db: Session = Depends(get_db)):
