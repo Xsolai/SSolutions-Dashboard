@@ -5,6 +5,8 @@ from app.database.db.db_connection import  get_db
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from collections import defaultdict
+from app.database.scehmas import schemas
+from app.database.auth import oauth2
 
 
 router = APIRouter()
@@ -27,7 +29,8 @@ def time_to_seconds(time_str):
 
 
 @router.get("/email-data")
-async def get_graphs_data(db: Session = Depends(get_db)):
+async def get_graphs_data(db: Session = Depends(get_db), 
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
     email_recieved = db.query(
         func.sum(
@@ -99,7 +102,8 @@ async def get_graphs_data(db: Session = Depends(get_db)):
 
 
 @router.get("/email_overview")
-async def get_daily_SL(db: Session = Depends(get_db)):
+async def get_daily_SL(db: Session = Depends(get_db), 
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     service_level_gross = db.query(
         func.sum(
@@ -146,7 +150,8 @@ async def get_daily_SL(db: Session = Depends(get_db)):
 
 
 @router.get("/email_performance_metrics")
-async def get_mailbox_SL(db: Session = Depends(get_db)):
+async def get_mailbox_SL(db: Session = Depends(get_db), 
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     
     # Query the latest 6 intervals (dates) and service level gross

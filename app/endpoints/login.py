@@ -104,7 +104,7 @@ async def login(request: OAuth2PasswordRequestForm = Depends(), db: Session = De
 #         )
  
     
-@router.put("/update-profile", response_model=schemas.ShowUser, status_code=status.HTTP_200_OK, tags=['users'])
+@router.put("/update-profile", response_model=schemas.ShowUser, status_code=status.HTTP_200_OK, tags=['users'] )
 async def update_profile(
     request: schemas.UpdateUser, 
     db: Session = Depends(get_db), 
