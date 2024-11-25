@@ -10,9 +10,11 @@ from typing import Dict
 import time , random
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.database.auth.jwt_handler import decode_jwt
+from app.database.auth.token import verify_token
 from app.database.models.models import User
 from app.database.db.db_connection import get_db
 from sqlalchemy.orm import Session
+from jose import JWTError
 
 
 router = APIRouter(
@@ -34,43 +36,76 @@ class ResetPasswordRequest(BaseModel):
     confirm_password: str
 
 
+# @router.post("/verify-token")
+# async def verify_token(request: Request, db: Session = Depends(get_db)):
+#     """
+#     Endpoint to verify the JWT token passed in the Authorization header.
+#     """
+#     # Extract Authorization header
+#     auth_header = request.headers.get("Authorization")
+#     if not auth_header or not auth_header.startswith("Bearer "):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Token missing or invalid",
+#         )
+    
+#     # Extract the token
+#     token = auth_header.split(" ")[1]  # "Bearer <token>"
+    
+#     try:
+#         # Decode and validate the token
+#         payload = decode_jwt(token)
+
+#         # Fetch user from the database using the decoded user_id
+#         user = db.query(User).filter(User.id == payload["user_id"]).first()
+#         if not user:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail="User not found",
+#             )
+        
+#         # If user exists, token is valid
+#         return {"isAuthenticated": True}
+
+#     except Exception as e:
+#         print(f"Token verification error: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid or expired token",
+#         )
+
 @router.post("/verify-token")
-async def verify_token(request: Request, db: Session = Depends(get_db)):
-    """
-    Endpoint to verify the JWT token passed in the Authorization header.
-    """
-    # Extract Authorization header
+async def verify_token_endpoint(request: Request, token: str = None):
     auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
+    # print(f"Authorization Header: {auth_header}")
+
+    # Use the token from the query parameter if Authorization header is missing
+    if not auth_header and not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token missing or invalid",
         )
     
-    # Extract the token
-    token = auth_header.split(" ")[1]  # "Bearer <token>"
-    
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        # print(f"Extracted Token: {token}")
+
+    # Proceed to verify the token
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
-        # Decode and validate the token
-        payload = decode_jwt(token)
+        token_data = verify_token(token, credentials_exception)
+        return {"isAuthenticated": True, "email": token_data.email}
+    except HTTPException as e:
+        raise e
+    except JWTError:
+        raise credentials_exception
 
-        # Fetch user from the database using the decoded user_id
-        user = db.query(User).filter(User.id == payload["user_id"]).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-        
-        # If user exists, token is valid
-        return {"isAuthenticated": True}
 
-    except Exception as e:
-        print(f"Token verification error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
 
 @router.post("/forget-password/")
 async def forget_password(request: ForgetPasswordRequest, db: Session = Depends(get_db)):
