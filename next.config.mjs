@@ -4,7 +4,7 @@ const nextConfig = {
       return [
         {
           source: '/api/:path*',
-          destination: 'http://http://35.156.80.11:8080/:path*', // Proxy to Backend
+          destination: 'http://https://app.saincube.com/app2/:path*', // Proxy to Backend
         },
       ]
     }

@@ -162,9 +162,9 @@ const EmailAnalysisDashboard = () => {
     const fetchData = async () => {
       try {
         const [emailResponse, overviewResponse, performanceResponse] = await Promise.all([
-          axios.get('http://http://35.156.80.11:8080/email-data'),
-          axios.get('http://http://35.156.80.11:8080/email_overview'),
-          axios.get('http://http://35.156.80.11:8080/email_performance_metrics')
+          axios.get('http://https://app.saincube.com/app2/email-data'),
+          axios.get('http://https://app.saincube.com/app2/email_overview'),
+          axios.get('http://https://app.saincube.com/app2/email_performance_metrics')
         ]);
 
         setEmailData(emailResponse.data);

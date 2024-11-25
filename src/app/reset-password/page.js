@@ -19,7 +19,7 @@ const ResetPasswordPage = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('http://http://35.156.80.11:8080/auth/forget-password/', {
+      const response = await axios.post('http://https://app.saincube.com/app2/auth/forget-password/', {
         email: data.email
       });
 

@@ -103,7 +103,7 @@ const OTPVerificationPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://http://35.156.80.11:8080/auth/verify-otp', {
+      const response = await axios.post('http://https://app.saincube.com/app2/auth/verify-otp', {
         email: userEmail,
         otp: otp.join(''),
       });
@@ -133,7 +133,7 @@ const OTPVerificationPage = () => {
         // Show loading state for better UX
         toast.loading('Sending new code...');
     
-        const response = await axios.post('http://http://35.156.80.11:8080/auth/resend-otp', {
+        const response = await axios.post('http://https://app.saincube.com/app2/auth/resend-otp', {
           email: userEmail,
           otp: '000000' // Sending a dummy OTP since the schema requires it
         }, {
