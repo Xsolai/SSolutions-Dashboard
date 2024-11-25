@@ -129,7 +129,7 @@ const AnalyticsDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://https://app.saincube.com/app2/email-data');
+        const response = await axios.get('https://app.saincube.com/app2/email-data');
         setEmailData(response.data);
         setLoading(false);
       } catch (error) {
@@ -257,7 +257,7 @@ const AnalyticsDashboard = () => {
     useEffect(() => {
       const fetchData = async () => {
         try {
-          const response = await axios.get('http://https://app.saincube.com/app2/call_data');
+          const response = await axios.get('https://app.saincube.com/app2/call_data');
           setCallData(response.data);
           setLoading(false);
         } catch (error) {
@@ -409,7 +409,7 @@ const BookingTab = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://https://app.saincube.com/app2/booking_data');
+        const response = await axios.get('https://app.saincube.com/app2/booking_data');
         setBookingData(response.data);
         setLoading(false);
       } catch (error) {
@@ -494,7 +494,7 @@ const ConversionTab = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://https://app.saincube.com/app2/conversion_CB');
+        const response = await axios.get('https://app.saincube.com/app2/conversion_CB');
         setConversionData(response.data);
         setLoading(false);
       } catch (error) {

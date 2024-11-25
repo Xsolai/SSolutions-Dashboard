@@ -53,7 +53,7 @@ const ResetPasswordFormPage = ({ params }) => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://https://app.saincube.com/app2/auth/reset-password/', {
+      const response = await axios.post('https://app.saincube.com/app2/auth/reset-password/', {
         token: token,
         new_password: data.password,
         confirm_password: data.confirmPassword

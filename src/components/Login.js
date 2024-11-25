@@ -32,7 +32,7 @@ const LoginForm = () => {
       formData.append('username', data.email); // Backend expects username field for email
       formData.append('password', data.password);
 
-      const response = await axios.post('http://https://app.saincube.com/app2/login', formData, {
+      const response = await axios.post('https://app.saincube.com/app2/login', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

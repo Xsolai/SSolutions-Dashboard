@@ -42,7 +42,7 @@ const SignupForm = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('http://https://app.saincube.com/app2/auth/register', {
+      const response = await axios.post('https://app.saincube.com/app2/auth/register', {
         username: data.username,
         email: data.email,
         password: data.password,
