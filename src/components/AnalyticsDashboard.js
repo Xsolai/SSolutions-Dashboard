@@ -129,7 +129,13 @@ const AnalyticsDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('https://app.saincube.com/app2/email-data');
+        const access_token = localStorage.getItem('access_token');
+        
+        const response = await axios.get('https://app.saincube.com/app2/email-data', {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        });        
         setEmailData(response.data);
         setLoading(false);
       } catch (error) {
@@ -257,7 +263,12 @@ const AnalyticsDashboard = () => {
     useEffect(() => {
       const fetchData = async () => {
         try {
-          const response = await axios.get('https://app.saincube.com/app2/call_data');
+          const access_token = localStorage.getItem('access_token');
+          const response = await axios.get('https://app.saincube.com/app2/call_data', {
+            headers: {
+              'Authorization': `Bearer ${access_token}`
+            }
+          });        
           setCallData(response.data);
           setLoading(false);
         } catch (error) {
@@ -409,7 +420,12 @@ const BookingTab = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('https://app.saincube.com/app2/booking_data');
+        const access_token = localStorage.getItem('access_token');
+        const response = await axios.get('https://app.saincube.com/app2/booking_data', {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        });       
         setBookingData(response.data);
         setLoading(false);
       } catch (error) {
@@ -494,7 +510,12 @@ const ConversionTab = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('https://app.saincube.com/app2/conversion_CB');
+        const access_token = localStorage.getItem('access_token');
+        const response = await axios.get('https://app.saincube.com/app2/conversion_CB', {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        });        
         setConversionData(response.data);
         setLoading(false);
       } catch (error) {

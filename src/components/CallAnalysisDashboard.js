@@ -135,6 +135,14 @@ const CallAnalysisDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const access_token = localStorage.getItem('access_token');
+        
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        };
+
         const [
           kpisResponse, 
           callDataResponse, 
@@ -142,11 +150,11 @@ const CallAnalysisDashboard = () => {
           reasonsResponse,
           queueResponse
         ] = await Promise.all([
-          axios.get('https://app.saincube.com/app2/calls_kpis'),
-          axios.get('https://app.saincube.com/app2/call_data'),
-          axios.get('https://app.saincube.com/app2/calls_kpis_weekdays'),
-          axios.get('https://app.saincube.com/app2/call_reasons_breakdowns'),
-          axios.get('https://app.saincube.com/app2/call_by_queue')
+          axios.get('https://app.saincube.com/app2/calls_kpis', config),
+          axios.get('https://app.saincube.com/app2/call_data', config),
+          axios.get('https://app.saincube.com/app2/calls_kpis_weekdays', config),
+          axios.get('https://app.saincube.com/app2/call_reasons_breakdowns', config),
+          axios.get('https://app.saincube.com/app2/call_by_queue', config)
         ]);
 
         setCallsKPIs(kpisResponse.data);

@@ -161,11 +161,19 @@ const EmailAnalysisDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const access_token = localStorage.getItem('access_token');
+        
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        };
+    
         const [emailResponse, overviewResponse, performanceResponse] = await Promise.all([
-          axios.get('https://app.saincube.com/app2/email-data'),
-          axios.get('https://app.saincube.com/app2/email_overview'),
-          axios.get('https://app.saincube.com/app2/email_performance_metrics')
-        ]);
+          axios.get('https://app.saincube.com/app2/email-data', config),
+          axios.get('https://app.saincube.com/app2/email_overview', config),
+          axios.get('https://app.saincube.com/app2/email_performance_metrics', config)
+        ]);    
 
         setEmailData(emailResponse.data);
         setOverviewData(overviewResponse.data);
