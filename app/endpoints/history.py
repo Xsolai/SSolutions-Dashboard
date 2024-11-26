@@ -8,7 +8,7 @@ from app.database.auth import oauth2
 router = APIRouter()
 
 @router.get("/history")
-async def get_history(db: Session = Depends(get_db)):
+async def get_history(db: Session = Depends(get_db), current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Retrieve the file processing history."""
     history = db.query(FileProcessingHistory).order_by(FileProcessingHistory.processed_at.desc()).all()
 
