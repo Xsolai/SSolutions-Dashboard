@@ -11,7 +11,7 @@ import re
 import logging
 
 router = APIRouter(
-    tags=['users']
+    tags=['Auth']
 )
 
 def is_valid_email(email: str) -> bool:
@@ -104,7 +104,7 @@ async def login(request: OAuth2PasswordRequestForm = Depends(), db: Session = De
 #         )
  
     
-@router.put("/update-profile", response_model=schemas.ShowUser, status_code=status.HTTP_200_OK, tags=['users'] )
+@router.put("/update-profile", response_model=schemas.ShowUser, status_code=status.HTTP_200_OK )
 async def update_profile(
     request: schemas.UpdateUser, 
     db: Session = Depends(get_db), 

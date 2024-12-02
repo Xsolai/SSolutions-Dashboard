@@ -18,6 +18,9 @@ def sanitize_filename(filename):
 def download_attachments():
     # Create a directory to save today's Excel attachments
     today_date = datetime.now().strftime('%d-%b-%Y')  # Format: DD-Mon-YYYY
+    print("Today date: ", today_date)
+    # input_date = "23-Nov-2024"
+    # today_date = datetime.strftime(input_date, "%d-%b-%Y")
     attachments_dir = f'attachments/{today_date}'
     os.makedirs(attachments_dir, exist_ok=True)
 

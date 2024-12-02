@@ -1,26 +1,28 @@
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason, GuruDailyCallData, 
                                         WorkflowReportGuru, WorkflowReportGuruKF, 
-                                        QueueStatistics, BookingData)
+                                        QueueStatistics, BookingData, SoftBookingKF)
 from app.src.logger import logging
+from datetime import datetime
 
 
-def populate_guru_call_reason(data, db: Session):
+def populate_guru_call_reason(data, db: Session, date):
     """Populate GuruCallReason table."""
     try:
         for _, row in data.iterrows():
             if row.iloc[0] == "Summe":
                 continue 
             db_record = GuruCallReason(
-                date=row['Agent'],
-                total_calls=row['Gesamt [#]'],
-                cb_sales=row['CB SALES [#]'],
-                cb_wrong_call=row['CB WRONG CALL [#]'],
-                guru_cb_booking=row['GURU CB BUCHUNG AUF GURU [#]'],
-                guru_sales=row['GURU SALES [#]'],
-                guru_service=row['Guru SERVICE [#]'],
-                guru_wrong=row['GURU WRONG [#]'],
-                other_guru=row['SONSTIGES GURU [#]']
+                date=date,
+                agent=row.get('Agent', ''),
+                total_calls=row.get('Gesamt [#]', 0),
+                cb_sales=row.get('CB SALES [#]', 0),
+                cb_wrong_call=row.get('CB WRONG CALL [#]',0),
+                guru_cb_booking=row.get('GURU CB BUCHUNG AUF GURU [#]',0),
+                guru_sales=row.get('GURU SALES [#]',0),
+                guru_service=row.get('Guru SERVICE [#]',0),
+                guru_wrong=row.get('GURU WRONG [#]',0),
+                other_guru=row.get('SONSTIGES GURU [#]', 0)
             )
             db.add(db_record)
         db.commit()
@@ -31,15 +33,16 @@ def populate_guru_call_reason(data, db: Session):
         logging.error(f"Error populating GuruCallReason table: {e}")
         print(f"Exception occurred while populating GuruCallReason table: {e}")
 
-def populate_guru_daily(data, db: Session, day):
+def populate_guru_daily(data, db: Session, day, date):
     """Populate GuruDailyCallData table."""
     try:
         for _, row in data.iterrows():
-            if row.iloc[0] == "Summe":
-                continue 
+            if any("Summe" in str(value) for value in row):
+                continue
 
             # Use .get() to access each column, and provide a default if missing
             db_record = GuruDailyCallData(
+                date=date,
                 weekday = day,
                 queue_name=row.get('Warteschleife', ''),
                 total_calls=row.get('Anrufe', 0),
@@ -79,17 +82,17 @@ def populate_workflow_report(data, db: Session):
                 continue
             
             db_record = WorkflowReportGuruKF(
-                interval=row['Intervall'],
-                mailbox=row['Mailbox'],
-                received=row['Empfangen [#]'],
-                new_cases=row['Neue Vorgänge [#]'],
-                sent=row['Gesendet [#]'],
-                archived=row['Archiviert [#]'],
-                trashed=row['Papierkorb [#]'],
-                dwell_time_net=row['Verweilzeit-Netto [∅ hh:mm:ss]'],
-                processing_time=row['Bearbeitungszeit [∅ Min.]'],
-                service_level_gross=row['ServiceLevel-Brutto [%]'],
-                service_level_gross_reply=row['ServiceLevel-Brutto: Antwort [%]']
+                interval=row.get('Intervall', ""),
+                mailbox=row.get('Mailbox', ""),
+                received=row.get('Empfangen [#]', 0),
+                new_cases=row.get('Neue Vorgänge [#]', 0),
+                sent=row.get('Gesendet [#]', 0),
+                archived=row.get('Archiviert [#]', 0),
+                trashed=row.get('Papierkorb [#]', 0),
+                dwell_time_net=row.get('Verweilzeit-Netto [∅ hh:mm:ss]', ""),
+                processing_time=row.get('Bearbeitungszeit [∅ Min.]', ""),
+                service_level_gross=row.get('ServiceLevel-Brutto [%]', 0.0),
+                service_level_gross_reply=row.get('ServiceLevel-Brutto: Antwort [%]', 0.0)
             )
             db.add(db_record)
         db.commit()
@@ -136,7 +139,7 @@ def populate_email_table(data, db: Session):
         logging.error(f"Error populating email data: {e}")
         print(f"Exception occurred while populating email data: {e}")
 
-def populate_queue_statistics(data, db: Session):
+def populate_queue_statistics(data, db: Session, date):
     """Populate the QueueStatistics table with data from the DataFrame."""
     try:
         print("Data in queue: ", data.head())
@@ -146,6 +149,7 @@ def populate_queue_statistics(data, db: Session):
             
             # Populate the QueueStatistics record, using .get() to avoid KeyError if column is missing
             db_record = QueueStatistics(
+                date=date,
                 queue_name=row.get('Warteschleife', ''),
                 calls=row.get('Anrufe', 0),
                 offered=row.get('Angeboten', 0),
@@ -176,8 +180,8 @@ def populate_queue_statistics(data, db: Session):
                 transfer_in=row.get('Weiterleitung (in)', 0),
                 transfer_out=row.get('Weiterleitung (out)', 0)
             )
-            print(db_record)
-            print("AHT utbound:", row.get('avg AHT Outbound', 0))
+            # print(db_record)
+            # print("AHT utbound:", row.get('avg AHT Outbound', 0))
             db.add(db_record)
         
         db.commit()
@@ -214,3 +218,35 @@ def populate_booking_data(data, db: Session):
         db.rollback()  # Rollback the transaction in case of an error
         logging.error(f"Error populating BookingData table: {e}")
         print(f"Exception occurred while populating BookingData table: {e}")
+        
+        
+def populate_soft_booking_data(data, db: Session):
+    """
+    Populate the OrderDetails table with data from the DataFrame.
+    """
+    try:
+        for _, row in data.iterrows():
+            if 'service_creation_time' in row and isinstance(row['service_creation_time'], str):
+                row['service_creation_time'] = datetime.strptime(row['service_creation_time'], '%d.%m.%Y %H:%M:%S')
+
+            db_record = SoftBookingKF(
+                booking_number=row.get('Auftrag Auftragsnummer (Auftrag)', ''),
+                lt_code=row.get('CRS (Standard) LT-Code', ''),
+                original_status=row.get('CRS (Standard) original Status', ''),
+                status=row.get('CRS (Standard) Status', ''),
+                service_element_price=row.get('Leistung Element Preis', 0.0),
+                service_creation_time=row.get('Leistung Anlagezeit', None),
+                service_original_amount=row.get('Leistung Originalbetrag', 0.0)
+            )
+
+            db.add(db_record)
+
+        db.commit()
+        logging.info("SoftBookingKF data successfully populated into the database.")
+        print("SoftBookingKF data successfully populated into the database.")
+
+    except Exception as e:
+        # Rollback the session in case of an error
+        db.rollback()
+        logging.error(f"Error populating SoftBookingKF table: {e}")
+        print(f"Exception occurred while populating SoftBookingKF table: {e}")

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date
 from datetime import datetime
 from app.database.db.db_connection import Base
 
@@ -10,6 +10,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     role = Column(String, default="user")  # Default role is 'user'
     password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     def __init__(self, username, email, password, role="user"):
         self.username = username
@@ -22,7 +23,8 @@ class User(Base):
 class GuruCallReason(Base):
     __tablename__ = 'guru_call_reason'
     id = Column(Integer, primary_key=True, index=True)
-    date = Column(String)
+    date = Column(Date)
+    agent = Column(String)
     total_calls = Column(Integer) 
     cb_sales = Column(Integer)
     cb_wrong_call = Column(Integer)
@@ -35,6 +37,7 @@ class GuruCallReason(Base):
 class GuruDailyCallData(Base):
     __tablename__ = "guru_daily"
     id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date)
     weekday = Column(String)
     queue_name = Column(String, index=True)
     total_calls = Column(Integer)
@@ -58,7 +61,7 @@ class WorkflowReportGuruKF(Base):
     __tablename__ = 'workflow_report_gurukf'
     
     id = Column(Integer, primary_key=True, index=True)
-    interval = Column(String(255))  # Time period during which the data was recorded
+    interval = Column(String)  # Time period during which the data was recorded
     mailbox = Column(String(255))  # Specific mailbox or category of received emails
     received = Column(Integer)  # Number of emails received
     new_cases = Column(Integer)  # Number of new cases initiated
@@ -74,28 +77,29 @@ class WorkflowReportGuru(Base):
     __tablename__ = 'guru_email'
     
     id = Column(Integer, primary_key=True, index=True)
-    mailbox = Column(String(255), nullable=False)  # Specific mailbox or category of received emails
-    interval = Column(String(255), nullable=False)  # Time period during which the data was recorded
-    received = Column(Integer, nullable=False, default=0)  # Number of emails received
-    new_cases = Column(Integer, nullable=False, default=0)  # Number of new cases initiated
-    sent = Column(Integer, nullable=False, default=0)  # Number of emails sent
-    sent_reply = Column(Integer, nullable=False, default=0)  # Number of replies sent to received emails
-    sent_forwarded = Column(Integer, nullable=False, default=0)  # Number of emails forwarded
-    sent_new_message = Column(Integer, nullable=False, default=0)  # Number of new outgoing messages
-    sent_follow_up = Column(Integer, nullable=False, default=0)  # Number of follow-up inquiries sent
-    sent_interim_reply = Column(Integer, nullable=False, default=0)  # Number of interim replies sent
-    archived = Column(Integer, nullable=False, default=0)  # Number of cases archived
-    trashed = Column(Integer, nullable=False, default=0)  # Number of cases deleted or moved to trash
-    dwell_time_net = Column(String, nullable=False, default="00:00:00")  # Average dwell time of a case
-    processing_time = Column(String, nullable=False, default="00:00:00")  # Average processing time of a case
-    service_level_gross = Column(Float, nullable=False, default=0.0)  # Percentage of cases processed within service level
-    service_level_gross_reply = Column(Float, nullable=False, default=0.0)  # Service level for sent replies
+    mailbox = Column(String(255))  # Specific mailbox or category of received emails
+    interval = Column(String)  # Time period during which the data was recorded
+    received = Column(Integer, default=0)  # Number of emails received
+    new_cases = Column(Integer, default=0)  # Number of new cases initiated
+    sent = Column(Integer, default=0)  # Number of emails sent
+    sent_reply = Column(Integer, default=0)  # Number of replies sent to received emails
+    sent_forwarded = Column(Integer, default=0)  # Number of emails forwarded
+    sent_new_message = Column(Integer, default=0)  # Number of new outgoing messages
+    sent_follow_up = Column(Integer, default=0)  # Number of follow-up inquiries sent
+    sent_interim_reply = Column(Integer, default=0)  # Number of interim replies sent
+    archived = Column(Integer, default=0)  # Number of cases archived
+    trashed = Column(Integer, default=0)  # Number of cases deleted or moved to trash
+    dwell_time_net = Column(String, default="00:00:00")  # Average dwell time of a case
+    processing_time = Column(String, default="00:00:00")  # Average processing time of a case
+    service_level_gross = Column(Float, default=0.0)  # Percentage of cases processed within service level
+    service_level_gross_reply = Column(Float, default=0.0)  # Service level for sent replies
     
     
 class QueueStatistics(Base):
     __tablename__ = 'queue_statistics'
     
     id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date)
     queue_name = Column(String(255), nullable=False)  # Warteschleife or queue name
     
     # General call statistics
@@ -148,8 +152,20 @@ class BookingData(Base):
     performance_element_price = Column(Float, nullable=True)  # Leistung Element Preis
     order_mediator = Column(String(255), nullable=True)  # Auftrag Vermittler (Auftrag)
     external_system = Column(String(255), nullable=True)  # CRS (Standard Externes System)
-    order_creation_date = Column(String, nullable=True)  # Auftrag Anlagedatum (Auftrag)
+    order_creation_date = Column(Date, nullable=True)  # Auftrag Anlagedatum (Auftrag) date
     crs_original_booking_number = Column(String(255), nullable=True)  # CRS (Standard) original Buchungsnummer
+    
+class SoftBookingKF(Base):
+    __tablename__ = "soft_booking_kf"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_number = Column(String, nullable=False)  # Booking number (unique identifier)
+    lt_code = Column(String, nullable=True)  # CRS (Standard) LT-Code
+    original_status = Column(String, nullable=True)  # CRS (Standard) original Status
+    status = Column(String, nullable=True)  # CRS (Standard) Status
+    service_element_price = Column(Float, nullable=True)  # Leistung Element Preis
+    service_creation_time = Column(DateTime, nullable=True)  # Leistung Anlagezeit
+    service_original_amount = Column(Float, nullable=True)  # Leistung Originalbetrag
     
     
 class FileProcessingHistory(Base):

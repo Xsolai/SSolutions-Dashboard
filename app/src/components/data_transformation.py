@@ -21,6 +21,7 @@ def clean_and_convert_data(data):
     """Clean and convert data types of DataFrame columns."""
     try:
         # Define column conversions and default values
+        logging.info(f"Available columns in DataFrame: {data.columns.tolist()}")
         column_conversions = {
             # Existing columns for GuruCallReason, GuruDaily, WorkflowReportGuru
             'Gesamt [#]': ('int', 0),
@@ -47,7 +48,6 @@ def clean_and_convert_data(data):
             'Outbound angenommen': ('int', 0),
             'sum Outbound Gesprächszeit Agent': ('float', 0.0),
             'sum Nachbearbeitung Outbound': ('float', 0.0),
-            'Intervall': ('str', ''),
             'Mailbox': ('str', ''),
             'Empfangen [#]': ('int', 0), 
             'Neue Vorgänge [#]': ('int', 0),
@@ -102,15 +102,26 @@ def clean_and_convert_data(data):
             'CRS (Standard Externes System)': ('str', ''),
             'Auftrag Anlagedatum (Auftrag)': ('str', ''),
             'CRS (Standard) original Buchungsnummer': ('str', ''),
+            #Soft Booking table columns
+            'Auftrag Auftragsnummer (Auftrag)': ('str', ''),
+            'CRS (Standard) LT-Code': ('str', ''),
+            'CRS (Standard) original Status': ('str', ''),
+            'CRS (Standard) Status': ('str', ''), 
+            'Leistung Element Preis': ('float', 0.0),
+            'Leistung Originalbetrag': ('float', 0.0),  
         }
 
         # Replace non-numeric values like '-' with NaN, then fill NaN values and convert types
         for column, (dtype, default_value) in column_conversions.items():
             if column in data.columns:
                 if dtype == 'int':
-                    data[column] = pd.to_numeric(data[column], errors='coerce').fillna(default_value).astype(int)
+                    data[column] = pd.to_numeric(data[column], errors='coerce').fillna(0.0).astype(int)
                 elif dtype == 'float':
-                    data[column] = pd.to_numeric(data[column], errors='coerce').fillna(default_value).astype(float)
+                    data[column] = pd.to_numeric(data[column], errors='coerce').fillna(0).astype(float)
+                elif column in ["Auftrag Anlagedatum (Auftrag)"]:
+                    data[column] = pd.to_datetime(data[column], errors='coerce', dayfirst=True).dt.date
+                elif column in ["Verweilzeit-Netto [∅ hh:mm:ss]", "Bearbeitungszeit [∅ Min.]"]:
+                    data[column] = data[column].fillna("00:00:00").astype(str)
                 else:
                     # Default to string
                     data[column] = data[column].fillna(default_value).astype(str)
@@ -118,10 +129,10 @@ def clean_and_convert_data(data):
         logging.info("Converted columns dtypes.")
         return data
 
+
     except Exception as e:
         logging.error(f"Error cleaning and converting data: {e}")
         return None
-
 
 
 
@@ -131,10 +142,15 @@ def load_excel_data(file_path, skiprows=None):
             print(f"File {file_path} does not exist.")
             return None
 
-        # Load data from Excel with specified engine
-        data = pd.read_excel(file_path, skiprows=skiprows)
+        if file_path.endswith('.csv'):
+            print("Reading csv", file_path)
+            data = pd.read_csv(file_path, skiprows=skiprows, sep=";")
+            print("Columns: \n", data.columns)
+        else:
+            print("Reading excel", file_path)
+            data = pd.read_excel(file_path, skiprows=skiprows)
         
-        print("Data loaded successfully.")
+        # print("Data loaded successfully.")
         data.columns = data.columns.str.strip()
 
         # Clean column names
@@ -146,8 +162,9 @@ def load_excel_data(file_path, skiprows=None):
         data = clean_and_convert_data(data)
 
         if data is not None:
-            print("Cleaned Data Columns:", data.columns)
-            print("Data info: ", data.info())
+            # print("Cleaned Data Columns:", data.columns)
+            # print("Data info: ", data.info())
+            print("Data: \n", data)
         
             return data
 
@@ -168,21 +185,29 @@ def load_csv_data(file_path):
         df = data.iloc[:, :-1]
         
         print("Data loaded successfully.")
-        print("CSV\n", df)
-        print("DF Info \n", df.info())
+        # print("CSV\n", df)
+        # print("DF Info \n", df.info())
         df.columns = df.columns.str.strip()
-
 
         # Clean and convert data types using the new function
         if "Leistung Element Preis" in df.columns:
             df["Leistung Element Preis"] = df["Leistung Element Preis"].str.replace(",", "").str.strip()
-            data["Leistung Element Preis"] = pd.to_numeric(data["Leistung Element Preis"], errors='coerce')
-        
+            df["Leistung Element Preis"] = pd.to_numeric(df["Leistung Element Preis"], errors='coerce')
+            df["Leistung Element Preis"] = df["Leistung Element Preis"].apply(
+                lambda x: x / 100 if x > 1000 else x
+            )
+            
+        if "Leistung Anlagezeit" in df.columns:
+            # print(pd.to_datetime(data["Leistung Anlagezeit"], errors='coerce', dayfirst=True).dt.date)
+            df["Leistung Anlagezeit"] = pd.to_datetime(df["Leistung Anlagezeit"], errors='coerce', dayfirst=True)
+            
+        print(df.info())
         
         df = clean_and_convert_data(df)
 
         if df is not None:
             print("Cleaned Data Columns:", df.columns)
+            print(df.info())
         
         return df
 
