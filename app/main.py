@@ -3,7 +3,7 @@ import uvicorn
 from app.database.db.db_connection import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 from app.src.logger import logging
-from app.endpoints import email_metrics, call_metrics, booking_metrics, login, history, auth
+from app.endpoints import email_metrics, call_metrics, booking_metrics, login, history, auth, tasks
 from app.src.components.scheduler import schedule_daily_task
 import warnings
 
@@ -25,7 +25,7 @@ app.add_middleware(
 async def startup_event():
     # Schedule the data import task to run daily at a fixed time
     # This will run the task every day at 13:00 (1:00 PM) Pakistani time
-    schedule_daily_task(17, 26)  # Set your desired hour and minute here
+    schedule_daily_task(11, 14)  # Set your desired hour and minute here
 
 # Create tables in database
 Base.metadata.create_all(bind=engine)
@@ -36,10 +36,10 @@ async def root():
     return {"message": "Welcome to the AI powered Dashboard Backend"}
 
 # app.include_router(data_import.router)
+app.include_router(tasks.router)
 app.include_router(call_metrics.router)
 app.include_router(email_metrics.router)
 app.include_router(booking_metrics.router)
-# app.include_router(tasks.router)
 app.include_router(login.router)
 app.include_router(history.router)
 app.include_router(auth.router)

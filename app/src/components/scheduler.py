@@ -41,13 +41,9 @@ def run_task():
     
     # Today's date for file processing
     TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-    # TODAY_DATE = "28-Nov-2024"
-    # TODAY_DATE = datetime.strptime(TODAY_DATE, '%d-%b-%Y')
-    # YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    # YESTERDAY_DATE = datetime.strptime(YESTERDAY_DATE, '%Y-%m-%d')
+    # TODAY_DATE = "02-Dec-2024"
     YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
     print("yesterday date: ", YESTERDAY_DATE)
-    # TODAY_DATE = "23-Nov-2024"
     weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
     print("weekday: ", weeday_name)
     all_files = os.listdir(os.path.join(os.getcwd(), "attachments", TODAY_DATE))

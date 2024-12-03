@@ -192,10 +192,11 @@ def load_csv_data(file_path):
         # Clean and convert data types using the new function
         if "Leistung Element Preis" in df.columns:
             df["Leistung Element Preis"] = df["Leistung Element Preis"].str.replace(",", "").str.strip()
+            df["Leistung Element Preis"] = df["Leistung Element Preis"].str.replace(".", "").str.strip()
             df["Leistung Element Preis"] = pd.to_numeric(df["Leistung Element Preis"], errors='coerce')
-            df["Leistung Element Preis"] = df["Leistung Element Preis"].apply(
-                lambda x: x / 100 if x > 1000 else x
-            )
+            # df["Leistung Element Preis"] = df["Leistung Element Preis"].apply(
+            #     lambda x: x / 100 if x > 1000 else x
+            # )
             
         if "Leistung Anlagezeit" in df.columns:
             # print(pd.to_datetime(data["Leistung Anlagezeit"], errors='coerce', dayfirst=True).dt.date)

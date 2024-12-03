@@ -50,7 +50,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
             end_date_str = end_date.strftime("%Y-%m-%d")
             total_bookings = db.query(func.count(BookingData.crs_original_status)).filter(BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
             booked_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == booked, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
-            not_booked_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status != not_booked, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
+            not_booked_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == not_booked, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
             pending_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == pending, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
             op_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == op, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
             rq_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == rq, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
@@ -67,7 +67,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
         return {
             "Total Bookings": total_bookings,
             "Booked": booked_count,
-            "Not Booked": not_booked_count,
+            "Cancelled count": not_booked_count,
             "Pending": pending_count,
             "OP": op_count,
             "RQ": rq_count,

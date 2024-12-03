@@ -19,16 +19,6 @@ def add_file_record(db: Session, filename: str, status: str):
         print(f"Error adding file record: {e}")
         
 
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-# def hash_password(password: str) -> str:
-#     return pwd_context.hash(password)
-
-
-# def verify_password(plain_password: str, hashed_password: str) -> bool:
-#     return pwd_context.verify(plain_password, hashed_password)
-
 # def get_date_range(filter_type: str):
 #     """Utility to calculate date ranges based on filter type."""
 #     today = datetime.now().date()
@@ -51,6 +41,7 @@ def add_file_record(db: Session, filename: str, status: str):
 #     else:
 #         raise ValueError("Invalid filter type")
 #     return start_date, end_date
+
 def get_date_range(filter_type: str):
     """Utility to calculate date ranges based on filter type."""
     today = datetime.now().date()
@@ -59,12 +50,12 @@ def get_date_range(filter_type: str):
         start_date = None
         end_date = None
     elif filter_type == "yesterday":
-        start_date = (datetime.now() - timedelta(days=7)).date()
+        start_date = (datetime.now() - timedelta(days=2)).date()
         # end_date = today
-        end_date = (datetime.now() - timedelta(days=6)).date()
+        end_date = (datetime.now() - timedelta(days=1)).date()
     elif filter_type == "last_week":
-        start_date = (datetime.now().date() - timedelta(days=today.weekday() + 14))
-        end_date = (datetime.now().date() - timedelta(days=today.weekday() + 7))
+        start_date = (datetime.now().date() - timedelta(days=today.weekday() + 7))
+        end_date = (datetime.now().date() - timedelta(days=today.weekday() + 1))
     elif filter_type == "last_month":
         first_day_of_current_month = today.replace(day=1)
         start_date = (first_day_of_current_month - timedelta(days=1)).replace(day=1)
