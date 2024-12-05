@@ -24,7 +24,8 @@ def format_revenue(num):
 @router.get("/tasks_kpis")
 async def get_tasks_kpis(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve booking data from the database."""
     start_date, end_date = get_date_range(filter_type)
     
@@ -82,7 +83,8 @@ async def get_tasks_kpis(
 @router.get("/tasks_overview")
 async def get_tasks_overview(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve calls data from the database."""
     start_date, end_date = get_date_range(filter_type)
     
@@ -150,7 +152,8 @@ async def get_tasks_overview(
 @router.get("/tasks_performance")
 async def get_tasks_performance(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve calls data from the database."""
     start_date, end_date = get_date_range(filter_type)
     

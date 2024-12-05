@@ -43,228 +43,15 @@ def time_to_seconds(time_str):
         print(f"Error converting time '{time_str}': {e}")
         return 0
 
-@router.get("/anaytics_email_data")
-async def get_anaytics_email_data(
-    filter_type: str = Query("all", description="Filter by date range: yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)
-):
-    """Endpoint to retrieve graphs data from the database with date filtering."""
-    # Get date range based on filter_type
-    start_date, end_date = get_date_range(filter_type)
-    
-    # Retrieve data from database
-    if start_date is None:
-        # Filter data based on the interval (date) column
-        email_recieved = db.query(
-            func.sum(WorkflowReportGuru.received)
-        ).scalar() or 0
-
-        email_answered = db.query(
-            func.sum(WorkflowReportGuru.sent_reply)
-        ).scalar() or 0
-
-        email_forwarded = db.query(
-            func.sum(WorkflowReportGuru.sent_forwarded)
-        ).scalar() or 0
-
-        email_archieved = db.query(
-            func.sum(WorkflowReportGuru.archived)
-        ).scalar() or 0
-
-        service_level_gross = db.query(
-            func.avg(WorkflowReportGuru.service_level_gross)
-        ).scalar() or 0
-
-        new_sent = db.query(
-            func.sum(WorkflowReportGuru.sent_new_message)
-        ).scalar() or 0
-
-        processing_times = db.query(WorkflowReportGuru.processing_time).all()
-        
-
-    else:
-        # Convert date strings to datetime for filtering
-        start_date_str = start_date.strftime("%d.%m.%Y")
-        end_date_str = end_date.strftime("%d.%m.%Y")
-        # Filter data based on the interval (date) column
-        email_recieved = db.query(
-            func.sum(WorkflowReportGuru.received)
-        ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).scalar() or 0
-
-        email_answered = db.query(
-            func.sum(WorkflowReportGuru.sent_reply)
-        ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).scalar() or 0
-
-        email_forwarded = db.query(
-            func.sum(WorkflowReportGuru.sent_forwarded)
-        ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).scalar() or 0
-
-        email_archieved = db.query(
-            func.sum(WorkflowReportGuru.archived)
-        ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).scalar() or 0
-
-        service_level_gross = db.query(
-            func.avg(WorkflowReportGuru.service_level_gross)
-        ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).scalar() or 0
-
-        new_sent = db.query(
-            func.sum(WorkflowReportGuru.sent_new_message)
-        ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).scalar() or 0
-
-        processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-        ).all()
-    # Clean the data to extract values from tuples
-    processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
-    
-    total_processing_time_seconds = 0
-    interval_data = defaultdict(float)
-
-    for pt in processing_times:
-        # print("Original Time:", pt)  # Debug print
-        seconds = time_to_seconds(pt)
-        # print("Converted Seconds:", seconds)  # Debug print
-        total_processing_time_seconds += seconds
-        interval = (seconds // 600) * 10
-        interval_data[interval] += seconds
-        # print("Interval Data:", dict(interval_data))  # Debug print
-
-    processing_time_trend = [
-        {"interval_start": f"{interval}m", "total_processing_time_sec": total}
-        for interval, total in sorted(interval_data.items())
-    ]
-    # calculating for counts 
-    interval_count_data = defaultdict(int)  # Default value is int for counting occurrences
-
-    for pt in processing_times:
-        seconds = time_to_seconds(pt)
-        if seconds > 0:  # Exclude 0.0 values
-            interval_count = (seconds // 600) * 10  # Group into 10-minute intervals
-            interval_count_data[interval_count] += 1  # Increment the count for this interval
-
-    processing_count_trend = [
-        {"interval_start": f"{interval}m", "count": count}
-        for interval, count in sorted(interval_count_data.items())
-    ]
-    return {
-        "email recieved": email_recieved,
-        "email answered": email_answered,
-        "email forwarded": email_forwarded,
-        "email archived": email_archieved,
-        "SL Gross": round(service_level_gross, 2),
-        "New Sent": new_sent,
-        "Total Processing Time (sec)": round(total_processing_time_seconds, 2),
-        "Processing Time Trend in seconds": processing_time_trend,
-        "Processing Count Trend": processing_count_trend
-    }
-    
-@router.get("/anaytics_email_data_sub_kpis")
-async def get_anaytics_email_data_sub_kpis(
-    filter_type: str = Query("all", description="Filter by date range: yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)
-):
-    """Endpoint to retrieve graphs data from the database with date filtering."""
-    start_date, end_date = get_date_range("yesterday")
-    prev_start_date, prev_end_date = get_date_range("last_week")
-    total_processing_time_seconds = 0
-    prev_total_processing_time_seconds = 0
-    start_date_str, end_date_str = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
-    prev_start_date_str, prev_end_date_str = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
-    # Filter data based on the interval (date) column
-    email_recieved = db.query(
-        func.sum(WorkflowReportGuru.received)
-    ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-    ).scalar() or 0
-
-    email_answered = db.query(
-        func.sum(WorkflowReportGuru.sent_reply)
-    ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-    ).scalar() or 0
-
-    email_forwarded = db.query(
-        func.sum(WorkflowReportGuru.sent_forwarded)
-    ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-    ).scalar() or 0
-
-    email_archieved = db.query(
-        func.sum(WorkflowReportGuru.archived)
-    ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-    ).scalar() or 0
-
-    new_sent = db.query(
-        func.sum(WorkflowReportGuru.sent_new_message)
-    ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
-    ).scalar() or 0
-    
-    # Previous values to calculate the change
-    prev_email_recieved = db.query(
-        func.sum(WorkflowReportGuru.received)
-    ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
-    ).scalar() or 0
-
-    prev_email_answered = db.query(
-        func.sum(WorkflowReportGuru.sent_reply)
-    ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
-    ).scalar() or 0
-
-    prev_email_forwarded = db.query(
-        func.sum(WorkflowReportGuru.sent_forwarded)
-    ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
-    ).scalar() or 0
-
-    prev_email_archieved = db.query(
-        func.sum(WorkflowReportGuru.archived)
-    ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
-    ).scalar() or 0
-
-    prev_new_sent = db.query(
-        func.sum(WorkflowReportGuru.sent_new_message)
-    ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
-    ).scalar() or 0
-        
-    return {
-        "email recieved": email_recieved,
-        "email recieved change": calculate_percentage_change(email_answered, prev_email_recieved),
-        "email answered": email_answered,
-        "email answered change": calculate_percentage_change(email_answered, prev_email_answered),
-        "email forwarded": email_forwarded,
-        "email forwarded change": calculate_percentage_change(email_forwarded, prev_email_forwarded),
-        "email archived": email_archieved,
-        "email archived change": calculate_percentage_change(email_archieved, prev_email_archieved),
-        "New Sent": new_sent,
-        "New Sent change": calculate_percentage_change(new_sent, prev_new_sent),
-    }
-
 
 @router.get("/email_overview")
 async def get_email_overview(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     start_date, end_date = get_date_range(filter_type)
-    total_processing_time_seconds = 0
+    total_processing_time_seconds = 1
     if start_date is None:
         service_level_gross = db.query(
             func.avg(
@@ -365,12 +152,13 @@ async def get_email_overview(
 @router.get("/email_overview_sub_kpis")
 async def get_email_overview_sub_kpis(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     start_date, end_date = get_date_range("yesterday")
     prev_start_date, prev_end_date = get_date_range("last_week")
-    total_processing_time_seconds = 0
-    prev_total_processing_time_seconds = 0
+    total_processing_time_seconds = 1
+    prev_total_processing_time_seconds = 1
     start_date_str, end_date_str = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
     prev_start_date_str, prev_end_date_str = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Normal Kpis
@@ -453,7 +241,8 @@ async def get_email_overview_sub_kpis(
 
 @router.get("/email_performance_metrics")
 async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     start_date, end_date = get_date_range(filter_type=filter_type)
     if start_date is None:

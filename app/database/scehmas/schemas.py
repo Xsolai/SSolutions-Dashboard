@@ -1,12 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 
 class User(BaseModel):
     name: str
-    email: str
-    role: str
+    email: EmailStr
     password1: str
     password2: str
     
@@ -47,3 +46,11 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: str
+    
+class RolePermissionSchema(BaseModel):
+    role: str
+    permissions: Dict[str, bool]  # Example: {"GET:/api/resource": True, "POST:/api/resource": False}
+
+class UpdateRolePermission(BaseModel):
+    role: str
+    permissions: Dict[str, bool]

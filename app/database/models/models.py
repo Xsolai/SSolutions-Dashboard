@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date, JSON
 from datetime import datetime
 from app.database.db.db_connection import Base
 
@@ -175,3 +175,11 @@ class FileProcessingHistory(Base):
     filename = Column(String(255), nullable=False)  # Name of the file
     status = Column(String(50), nullable=False)  # Status of the processing (e.g., 'Success', 'Failed')
     processed_at = Column(DateTime, default=datetime.utcnow)  # Timestamp when the file was processed
+
+
+class RolePermission(Base):
+    __tablename__ = 'role_permissions'
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String, unique=True, nullable=False)  # Role name
+    permissions = Column(JSON, default={})  # API permissions for the role

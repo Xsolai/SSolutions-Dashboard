@@ -24,6 +24,8 @@ router = APIRouter(
 
 # Temporary in-memory storage for reset tokens
 reset_tokens: Dict[str, int] = {}
+EMPLOYEE_DOMAIN = "@solasolution.com"
+CUSTOMER_DOMAINS = ["@customer.com", "@business.com"]
 
 
 class ForgetPasswordRequest(BaseModel):
@@ -35,44 +37,6 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
-
-# @router.post("/verify-token")
-# async def verify_token(request: Request, db: Session = Depends(get_db)):
-#     """
-#     Endpoint to verify the JWT token passed in the Authorization header.
-#     """
-#     # Extract Authorization header
-#     auth_header = request.headers.get("Authorization")
-#     if not auth_header or not auth_header.startswith("Bearer "):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Token missing or invalid",
-#         )
-    
-#     # Extract the token
-#     token = auth_header.split(" ")[1]  # "Bearer <token>"
-    
-#     try:
-#         # Decode and validate the token
-#         payload = decode_jwt(token)
-
-#         # Fetch user from the database using the decoded user_id
-#         user = db.query(User).filter(User.id == payload["user_id"]).first()
-#         if not user:
-#             raise HTTPException(
-#                 status_code=status.HTTP_404_NOT_FOUND,
-#                 detail="User not found",
-#             )
-        
-#         # If user exists, token is valid
-#         return {"isAuthenticated": True}
-
-#     except Exception as e:
-#         print(f"Token verification error: {e}")
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid or expired token",
-#         )
 
 @router.post("/verify-token")
 async def verify_token_endpoint(request: Request, token: str = None):
@@ -187,7 +151,6 @@ class RegistrationRequest(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: str  # Options: 'customer', 'employee'
 
 class OTPVerificationRequest(BaseModel):
     email: EmailStr
@@ -197,18 +160,16 @@ class OTPVerificationRequest(BaseModel):
 @router.post("/register")
 def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     """
-    Handles user registration by sending an OTP after receiving form data.
-    Temporarily stores the form data and OTP until verification.
-
-    Args:
-        request (RegistrationRequest): Contains user details including username, email, password, and role.
-        db (Session): Database session dependency.
-
-    Returns:
-        JSON response indicating OTP has been sent.
+    Handles user registration by determining the role based on the email domain, sending OTP,
+    and temporarily storing user details for verification.
     """
-    if request.role not in ["customer", "employee"]:
-        raise HTTPException(status_code=400, detail="Invalid role selected.")
+    # Determine the role based on the email domain
+    if request.email.endswith(EMPLOYEE_DOMAIN):
+        role = "employee"
+    elif any(request.email.endswith(domain) for domain in CUSTOMER_DOMAINS):
+        role = "customer"
+    else:
+        raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
 
     # Check if user already exists
     user = db.query(models.User).filter(
@@ -219,6 +180,7 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
 
     # Generate OTP and store user details temporarily
     otp = str(random.randint(100000, 999999))
+    print(otp)
     expiry = time.time() + 300  # OTP valid for 5 minutes
     otp_storage[request.email] = {
         "otp": otp,
@@ -227,7 +189,7 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
             "username": request.username,
             "email": request.email,
             "password": request.password,  # Store hashed password securely later
-            "role": request.role,
+            "role": role,  # Automatically assigned role
         },
     }
 
@@ -242,47 +204,87 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     return {"message": "OTP sent to your email. Please verify to complete registration."}
 
 
+# @router.post("/verify-otp")
+# def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
+#     """
+#     Verifies the OTP and completes the registration process.
+
+#     Args:
+#         request (OTPVerificationRequest): Contains the email and OTP.
+#         db (Session): Database session dependency.
+
+#     Returns:
+#         JSON response indicating success or failure.
+#     """
+#     stored_otp_data = otp_storage.get(request.email)
+
+#     # Validate OTP existence
+#     if not stored_otp_data:
+#         raise HTTPException(status_code=404, detail="No OTP found for this email.")
+
+#     # Check OTP expiration
+#     if time.time() > stored_otp_data["expiry"]:
+#         otp_storage.pop(request.email, None)  # Clean up expired OTP
+#         raise HTTPException(status_code=400, detail="OTP expired.")
+
+#     # Check OTP correctness
+#     if stored_otp_data["otp"] != request.otp:
+#         otp_storage.pop(request.email, None)  # Clean up invalid OTP
+#         raise HTTPException(status_code=400, detail="Invalid OTP.")
+
+#     # Retrieve user details from temporary storage
+#     user_data = stored_otp_data["data"]
+
+#     # Hash the password (ensure secure storage)
+#     hashed_password = Hash.bcrypt(user_data["password"])
+
+#     # Register the user
+#     try:
+#         new_user = models.User(
+#             username=user_data["username"],
+#             email=user_data["email"],
+#             password=hashed_password,
+#             role=user_data["role"],
+#         )
+#         db.add(new_user)
+#         db.commit()
+
+#         # Remove OTP after successful verification
+#         otp_storage.pop(request.email, None)
+
+#         return {"message": "Registration successful!"}
+#     except Exception as e:
+#         print(f"Error during user registration: {e}")
+#         raise HTTPException(status_code=500, detail="Failed to register user.")
+
 @router.post("/verify-otp")
 def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
     """
-    Verifies the OTP and completes the registration process.
-
-    Args:
-        request (OTPVerificationRequest): Contains the email and OTP.
-        db (Session): Database session dependency.
-
-    Returns:
-        JSON response indicating success or failure.
+    Verifies the OTP and completes the registration process by using the role assigned in the backend.
     """
     stored_otp_data = otp_storage.get(request.email)
 
-    # Validate OTP existence
     if not stored_otp_data:
         raise HTTPException(status_code=404, detail="No OTP found for this email.")
 
-    # Check OTP expiration
     if time.time() > stored_otp_data["expiry"]:
         otp_storage.pop(request.email, None)  # Clean up expired OTP
         raise HTTPException(status_code=400, detail="OTP expired.")
 
-    # Check OTP correctness
     if stored_otp_data["otp"] != request.otp:
         otp_storage.pop(request.email, None)  # Clean up invalid OTP
         raise HTTPException(status_code=400, detail="Invalid OTP.")
 
-    # Retrieve user details from temporary storage
     user_data = stored_otp_data["data"]
 
-    # Hash the password (ensure secure storage)
     hashed_password = Hash.bcrypt(user_data["password"])
 
-    # Register the user
     try:
         new_user = models.User(
             username=user_data["username"],
             email=user_data["email"],
             password=hashed_password,
-            role=user_data["role"],
+            role=user_data["role"],  # Role assigned during registration
         )
         db.add(new_user)
         db.commit()
@@ -294,6 +296,7 @@ def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error during user registration: {e}")
         raise HTTPException(status_code=500, detail="Failed to register user.")
+
 
 @router.post("/resend-otp")
 def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
