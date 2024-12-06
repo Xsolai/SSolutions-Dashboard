@@ -37,7 +37,7 @@ def run_task():
     print(f"Running task at: {datetime.now(pk_timezone).strftime('%Y-%m-%d %H:%M:%S')}")
     
     # Download attachments
-    # download_attachments()
+    download_attachments()
     
     # Today's date for file processing
     TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
