@@ -73,7 +73,7 @@ def populate_guru_daily(data, db: Session, day, date):
 
     
     
-def populate_workflow_report(data, db: Session):
+def populate_workflow_report(data, db: Session, date):
     """Populate WorkflowReportGuruKF table, skipping rows where any column contains 'Summe'."""
     try:
         for _, row in data.iterrows():
@@ -82,6 +82,7 @@ def populate_workflow_report(data, db: Session):
                 continue
             
             db_record = WorkflowReportGuruKF(
+                date=date,
                 interval=row.get('Intervall', ""),
                 mailbox=row.get('Mailbox', ""),
                 received=row.get('Empfangen [#]', 0),
@@ -104,7 +105,7 @@ def populate_workflow_report(data, db: Session):
         print(f"Exception occurred while populating WorkflowReportGuruKF table data: {e}")
     
 
-def populate_email_table(data, db: Session):
+def populate_email_table(data, db: Session, date):
     """Populate the WorkflowReportGuru table with data from the DataFrame."""
     try:
         for _, row in data.iterrows():
@@ -114,6 +115,7 @@ def populate_email_table(data, db: Session):
             
             db_record = WorkflowReportGuru(
                 mailbox=row['Mailbox'],
+                date = date,
                 interval=row['Intervall'],
                 received=row['Empfangen [#]'],
                 new_cases=row['Neue Vorgänge [#]'],

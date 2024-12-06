@@ -14,33 +14,33 @@ router = APIRouter(
     tags=["Email APIS"]
 )
 
-def time_to_seconds(time_str):
+def time_to_seconds(time):
     """Convert time in various formats to seconds."""
     try:
-        if isinstance(time_str, tuple):
+        if isinstance(time, tuple):
             pass
         
-        if '.' in time_str[0]:
-            print("float ", time_str[0])
-            return (float(time_str[0])*60)
-        print("Time str", time_str[0], time_str)
+        if '.' in time[0]:
+            print("float ", time[0])
+            return (float(time[0])*60)
+        print("Time str", time[0], time)
 
         # Handle time formats
-        if ':' in time_str[0]:
-            if len(time_str[0].split(':')) == 2:
+        if ':' in time[0]:
+            if len(time[0].split(':')) == 2:
                 # Format: 'mm:ss'
-                dt = datetime.strptime(time_str[0], "%M:%S")
+                dt = datetime.strptime(time[0], "%M:%S")
                 # print("minutes and seconds: ", timedelta(minutes=dt.minute, seconds=dt.second).total_seconds())
                 return timedelta(minutes=dt.minute, seconds=dt.second).total_seconds()
-            elif len(time_str[0].split(':')) == 3:
+            elif len(time[0].split(':')) == 3:
                 # Format: 'hh:mm:ss'
-                dt = datetime.strptime(time_str[0], "%H:%M:%S")
+                dt = datetime.strptime(time[0], "%H:%M:%S")
                 # print("hour, minutes and seconds: ", timedelta(minutes=dt.minute, seconds=dt.second).total_seconds())
                 return timedelta(hours=dt.hour, minutes=dt.minute, seconds=dt.second).total_seconds()
         
         return 0  # Return 0 if format is unrecognized
     except Exception as e:
-        print(f"Error converting time '{time_str}': {e}")
+        print(f"Error converting time '{time}': {e}")
         return 0
 
 
@@ -93,18 +93,16 @@ async def get_email_overview(
             for row in service_level_gross_data
         ]
     else:
-        start_date_str = start_date.strftime("%d.%m.%Y")
-        end_date_str = end_date.strftime("%d.%m.%Y")
         service_level_gross = db.query(
             func.avg(
                 WorkflowReportGuru.service_level_gross
             )
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
         
         processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).all()
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
@@ -116,7 +114,7 @@ async def get_email_overview(
                 WorkflowReportGuru.received
             )
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
         
         new_cases = db.query(
@@ -124,7 +122,7 @@ async def get_email_overview(
                 WorkflowReportGuru.new_cases
             )
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
@@ -132,7 +130,7 @@ async def get_email_overview(
             WorkflowReportGuru.interval.label("interval"),
             func.avg(WorkflowReportGuru.service_level_gross).label("service_level_gross")
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).group_by(WorkflowReportGuru.interval).order_by(WorkflowReportGuru.interval.desc()).all()
 
         # Format the service level gross data
@@ -142,7 +140,7 @@ async def get_email_overview(
         ]
     
     return {
-        "Total Processing Time (sec)": total_processing_time_seconds,
+        "Total Processing Time (sec)": total_processing_time_seconds if total_processing_time_seconds>1 else 0,
         "total emails recieved": total_emails,
         "total new cases": new_cases,
         "service_level_gross": round(service_level_gross, 2),
@@ -159,19 +157,19 @@ async def get_email_overview_sub_kpis(
     prev_start_date, prev_end_date = get_date_range("last_week")
     total_processing_time_seconds = 1
     prev_total_processing_time_seconds = 1
-    start_date_str, end_date_str = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
-    prev_start_date_str, prev_end_date_str = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
+    # start_date, end_date = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
+    # prev_start_date, prev_end_date = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Normal Kpis
     service_level_gross = db.query(
         func.avg(
             WorkflowReportGuru.service_level_gross
         )
     ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuru.date.between(start_date, end_date)
     ).scalar() or 0
     
     processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuru.date.between(start_date, end_date)
     ).all()
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     for pt in processing_times:
@@ -183,7 +181,7 @@ async def get_email_overview_sub_kpis(
             WorkflowReportGuru.received
         )
     ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuru.date.between(start_date, end_date)
     ).scalar() or 0
     
     new_cases = db.query(
@@ -191,7 +189,7 @@ async def get_email_overview_sub_kpis(
             WorkflowReportGuru.new_cases
         )
     ).filter(
-        WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuru.date.between(start_date, end_date)
     ).scalar() or 0
     
     # Previous Kpis to calculate the change
@@ -200,11 +198,11 @@ async def get_email_overview_sub_kpis(
             WorkflowReportGuru.service_level_gross
         )
     ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     prev_processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
     ).all()
     prev_processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in prev_processing_times]
     for pt in prev_processing_times:
@@ -216,7 +214,7 @@ async def get_email_overview_sub_kpis(
             WorkflowReportGuru.received
         )
     ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     prev_new_cases = db.query(
@@ -224,7 +222,7 @@ async def get_email_overview_sub_kpis(
             WorkflowReportGuru.new_cases
         )
     ).filter(
-        WorkflowReportGuru.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     return {
@@ -293,14 +291,11 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         for row in replies_data
         ]
     else:
-        start_date_str = start_date.strftime("%d.%m.%Y")
-        end_date_str = end_date.strftime("%d.%m.%Y")
-        
         service_level_gross_data = db.query(
             WorkflowReportGuru.mailbox.label("mailbox"),
             func.sum(WorkflowReportGuru.service_level_gross).label("service_level_gross")
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).group_by(WorkflowReportGuru.mailbox).order_by(WorkflowReportGuru.service_level_gross.desc()).all()
 
         # Format the service level gross data
@@ -313,7 +308,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
             WorkflowReportGuru.mailbox.label("mailbox"),
             WorkflowReportGuru.processing_time.label("processing_time")  # Fetch raw time strings
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).all()
         
         # Process data to calculate total processing time for each mailbox
@@ -342,7 +337,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
             func.sum(WorkflowReportGuru.sent_reply).label("sent"),
             func.sum(WorkflowReportGuru.sent_forwarded).label("forwarded")
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).group_by(WorkflowReportGuru.mailbox).order_by(WorkflowReportGuru.sent_reply.desc()).all()
 
         replies = [

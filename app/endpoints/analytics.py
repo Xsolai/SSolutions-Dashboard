@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database.models.models import WorkflowReportGuru, QueueStatistics, GuruDailyCallData, GuruCallReason, BookingData, SoftBookingKF
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from collections import defaultdict
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
@@ -84,48 +84,45 @@ async def get_anaytics_email_data(
         
 
     else:
-        # Convert date strings to datetime for filtering
-        start_date_str = start_date.strftime("%d.%m.%Y")
-        end_date_str = end_date.strftime("%d.%m.%Y")
         # Filter data based on the interval (date) column
         email_recieved = db.query(
             func.sum(WorkflowReportGuru.received)
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
 
         email_answered = db.query(
             func.sum(WorkflowReportGuru.sent_reply)
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
 
         email_forwarded = db.query(
             func.sum(WorkflowReportGuru.sent_forwarded)
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
 
         email_archieved = db.query(
             func.sum(WorkflowReportGuru.archived)
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
 
         service_level_gross = db.query(
             func.avg(WorkflowReportGuru.service_level_gross)
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
 
         new_sent = db.query(
             func.sum(WorkflowReportGuru.sent_new_message)
         ).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).scalar() or 0
 
         processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-            WorkflowReportGuru.interval.between(start_date_str, end_date_str)
+            WorkflowReportGuru.date.between(start_date, end_date)
         ).all()
     # Clean the data to extract values from tuples
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
@@ -166,7 +163,7 @@ async def get_anaytics_email_data(
         "email archived": email_archieved,
         "SL Gross": round(service_level_gross, 2),
         "New Sent": new_sent,
-        "Total Processing Time (sec)": round(total_processing_time_seconds, 2),
+        "Total Processing Time (sec)": round(total_processing_time_seconds, 2) if total_processing_time_seconds>1 else 0,
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
@@ -316,7 +313,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             )
         ).filter(
             GuruDailyCallData.date.between(start_date, end_date)
-        ).scalar()*60 or 0
+        ).scalar() or 0
         
         total_talk_time = db.query(
             func.sum(
@@ -324,7 +321,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             )
         ).filter(
             GuruDailyCallData.date.between(start_date, end_date)
-        ).scalar()*60 or 0
+        ).scalar() or 0
         
         total_outbound_calls = db.query(
             func.sum(
@@ -332,7 +329,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             )
         ).filter(
             GuruDailyCallData.date.between(start_date, end_date)
-        ).scalar()*60 or 0
+        ).scalar() or 0
         
         # Query for Sale Calls
         sale_metrics = db.query(
@@ -375,8 +372,8 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             "longest_waiting_time_sec": service_metrics.service_longest_waiting_time_sec or 0,
             "total_talk_time_sec": round(service_metrics.service_total_talk_time_sec or 0, 2)
         },
-        "average handling time": round(avg_handling_time,2),
-        "Total Talk Time": round(total_talk_time, 2),
+        "average handling time": round(avg_handling_time*60 if avg_handling_time else 0,2),
+        "Total Talk Time": round(total_talk_time*60 if total_talk_time else 0, 2),
         "Total outbound calls": total_outbound_calls
         }
 
@@ -418,8 +415,9 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
                 func.count(BookingData.crs_original_status)
             ).scalar() or 0
         else:
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            end_date_str = end_date.strftime("%Y-%m-%d")
+            # start_date_str = start_date.strftime("%Y-%m-%d")
+            # end_date_str = end_date.strftime("%Y-%m-%d")
+            print(start_date, end_date)
             total_bookings = db.query(func.count(BookingData.crs_original_status)).filter(BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
             booked_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == booked, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
             not_booked_count = db.query(func.count(BookingData.crs_status)).filter(BookingData.crs_status == not_booked, BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
@@ -433,7 +431,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
             sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_not_booked * 100) if total_sb_booked_and_not_booked > 0 else 0
             sb_input = db.query(
                 func.count(BookingData.crs_original_status)
-            ).filter(BookingData.order_creation_date.between(start_date_str, end_date_str)).scalar() or 0
+            ).filter(BookingData.order_creation_date.between(start_date, end_date)).scalar() or 0
         
         # Return metrics as a dictionary
         return {
@@ -546,7 +544,7 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
             ).scalar() or 0
             bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
             GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 0
+            ).scalar() or 1
             turnover_cb = round(db.query(func.sum(BookingData.performance_element_price)).filter(
             BookingData.order_creation_date.between(start_date_str, end_date_str)
             ).scalar() or 0,2)
@@ -569,14 +567,14 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
                 "CB":{
                 "CB calls handled": calls_cb_handled,
                 "Wrong calls": wrong_calls,
-                "Bookings CB": bookings_cb,
+                "Bookings CB": bookings_cb if bookings_cb>1 else 0,
                 "Turnover": turnover_cb,
                 "CB Conversion": cb_conversion
                 },
                 "Sales":{
                 "Sales handles": calls_sales_handled,
                 "Wrong calls": sales_wrong_calls,
-                "Bookings Sales": bookings_cb,
+                "Bookings Sales": bookings_cb if bookings_cb>1 else 0,
                 "Sales volume": sales_volume,
                 "Sales Conversion": sales_conversion
                 }

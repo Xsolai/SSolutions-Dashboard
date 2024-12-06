@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr
 from uuid import uuid4
 from app.database.db.db_connection import get_db
 from app.database.models import models
-from app.src.components.email_service import send_reset_password_email, send_registration_otp
+from app.src.components.email_service import send_email_to_admin, send_reset_password_email, send_registration_otp
 from app.database.auth.hashing import Hash
 from typing import Dict
 import time , random
@@ -164,13 +164,13 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     and temporarily storing user details for verification.
     """
     # Determine the role based on the email domain
-    if request.email.endswith(EMPLOYEE_DOMAIN):
-        role = "employee"
-    elif any(request.email.endswith(domain) for domain in CUSTOMER_DOMAINS):
-        role = "customer"
-    else:
-        raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
-
+    # if request.email.endswith(EMPLOYEE_DOMAIN):
+    #     role = "employee"
+    # elif any(request.email.endswith(domain) for domain in CUSTOMER_DOMAINS):
+    #     role = "customer"
+    # else:
+    #     raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+    role = "employee"
     # Check if user already exists
     user = db.query(models.User).filter(
         (models.User.email == request.email) | (models.User.username == request.username)
@@ -291,6 +291,9 @@ def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
 
         # Remove OTP after successful verification
         otp_storage.pop(request.email, None)
+        print("Sending email to admin for registration.")
+        send_email_to_admin(new_user)
+        print("Email sent successfully.")
 
         return {"message": "Registration successful!"}
     except Exception as e:

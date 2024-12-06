@@ -34,7 +34,7 @@ app.add_middleware(
 async def startup_event():
     # Schedule the data import task to run daily at a fixed time
     # This will run the task every day at 13:00 (1:00 PM) Pakistani time
-    schedule_daily_task(16, 52)  # Set your desired hour and minute here
+    schedule_daily_task(17, 9)  # Set your desired hour and minute here
 
 # Create tables in database
 Base.metadata.create_all(bind=engine)

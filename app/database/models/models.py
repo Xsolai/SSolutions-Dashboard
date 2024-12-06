@@ -9,6 +9,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     role = Column(String, default="user")  # Default role is 'user'
+    status = Column(String, default="pending")
     password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -61,6 +62,7 @@ class WorkflowReportGuruKF(Base):
     __tablename__ = 'workflow_report_gurukf'
     
     id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date)
     interval = Column(String)  # Time period during which the data was recorded
     mailbox = Column(String(255))  # Specific mailbox or category of received emails
     received = Column(Integer)  # Number of emails received
@@ -77,6 +79,7 @@ class WorkflowReportGuru(Base):
     __tablename__ = 'guru_email'
     
     id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date)
     mailbox = Column(String(255))  # Specific mailbox or category of received emails
     interval = Column(String)  # Time period during which the data was recorded
     received = Column(Integer, default=0)  # Number of emails received

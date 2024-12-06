@@ -37,11 +37,11 @@ def run_task():
     print(f"Running task at: {datetime.now(pk_timezone).strftime('%Y-%m-%d %H:%M:%S')}")
     
     # Download attachments
-    download_attachments()
+    # download_attachments()
     
     # Today's date for file processing
     TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-    # TODAY_DATE = "02-Dec-2024"
+    # TODAY_DATE = "06-Dec-2024"
     YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
     print("yesterday date: ", YESTERDAY_DATE)
     weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
@@ -127,9 +127,9 @@ def run_task():
                 elif file_type == "5vFlug":
                     populate_queue_statistics(data, db, date=YESTERDAY_DATE)
                 elif file_type == "email_KF":
-                    populate_workflow_report(data, db)
+                    populate_workflow_report(data, db, date=YESTERDAY_DATE)
                 elif file_type == "email":
-                    populate_email_table(data, db)
+                    populate_email_table(data, db, date=YESTERDAY_DATE)
                 elif file_type == "booking_data":
                     populate_booking_data(data, db)
                 elif file_type == "soft_booking_data":
