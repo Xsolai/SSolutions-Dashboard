@@ -79,22 +79,91 @@ async def get_tasks_kpis(
         "Booking Rate": booking_rate
     }
     
+# @router.get("/tasks_overview")
+# async def get_tasks_overview(
+#     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+#     db: Session = Depends(get_db)):
+#     """Endpoint to retrieve calls data from the database."""
+#     start_date, end_date = get_date_range(filter_type)
+    
+#     if start_date is None:
+#         status_by_cat_data = db.query(
+#             BookingData.crs_status.label("categories"),
+#             func.count(BookingData.crs_status).label("count"),
+#         ).group_by(BookingData.crs_status).all()
+#         status_by_date_data = db.query(
+#             func.strftime('%Y-%m', BookingData.order_creation_date).label('month'),
+#             func.count(BookingData.crs_status).label("count"),
+#         ).group_by(func.strftime('%Y-%m', BookingData.order_creation_date)).all()
+#         status_by_day_data = db.query(
+#             func.strftime('%w', BookingData.order_creation_date).label('weekday'),
+#             func.count(BookingData.id).label("count"),
+#         ).group_by(func.strftime('%w', BookingData.order_creation_date)).all()
+#     else:
+#         start_date_str = start_date.strftime("%Y-%m-%d")
+#         end_date_str = end_date.strftime("%Y-%m-%d")
+#         status_by_cat_data = db.query(
+#             BookingData.crs_status.label("categories"),
+#             func.count(BookingData.crs_status).label("count"),
+#         ).filter(
+#             BookingData.order_creation_date.between(start_date_str, end_date_str)
+#         ).group_by(BookingData.crs_status).all()
+        
+#         status_by_date_data = db.query(
+#             func.strftime('%Y-%m', BookingData.order_creation_date).label('month'),
+#             func.count(BookingData.crs_status).label("count"),
+#         ).filter(
+#             BookingData.order_creation_date.between(start_date_str, end_date_str)
+#         ).group_by(func.strftime('%Y-%m', BookingData.order_creation_date)).all()
+        
+#         status_by_day_data = db.query(
+#             func.strftime('%w', BookingData.order_creation_date).label('weekday'),
+#             func.count(BookingData.id).label("count"),
+#         ).filter(
+#             BookingData.order_creation_date.between(start_date_str, end_date_str)
+#         ).group_by(func.strftime('%w', BookingData.order_creation_date)).all()
+    
+    
+    
+#     weekday_map = {
+#     '0': 'Sunday',
+#     '1': 'Monday',
+#     '2': 'Tuesday',
+#     '3': 'Wednesday',
+#     '4': 'Thursday',
+#     '5': 'Friday',
+#     '6': 'Saturday'
+#     }
+
+#     # Convert the result into a readable format
+#     status_by_weekday = [
+#         {"weekday": weekday_map[row.weekday], "count": row.count}
+#         for row in status_by_day_data
+#     ]
+#     return {
+#         "status by categories": status_by_cat_data,
+#         "status by date": status_by_date_data,
+#         "status by weekday": status_by_weekday
+#     }
 @router.get("/tasks_overview")
 async def get_tasks_overview(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+):
     """Endpoint to retrieve calls data from the database."""
     start_date, end_date = get_date_range(filter_type)
-    
+
     if start_date is None:
         status_by_cat_data = db.query(
             BookingData.crs_status.label("categories"),
             func.count(BookingData.crs_status).label("count"),
         ).group_by(BookingData.crs_status).all()
+
         status_by_date_data = db.query(
             func.strftime('%Y-%m', BookingData.order_creation_date).label('month'),
             func.count(BookingData.crs_status).label("count"),
         ).group_by(func.strftime('%Y-%m', BookingData.order_creation_date)).all()
+
         status_by_day_data = db.query(
             func.strftime('%w', BookingData.order_creation_date).label('weekday'),
             func.count(BookingData.id).label("count"),
@@ -108,42 +177,45 @@ async def get_tasks_overview(
         ).filter(
             BookingData.order_creation_date.between(start_date_str, end_date_str)
         ).group_by(BookingData.crs_status).all()
-        
+
         status_by_date_data = db.query(
             func.strftime('%Y-%m', BookingData.order_creation_date).label('month'),
             func.count(BookingData.crs_status).label("count"),
         ).filter(
             BookingData.order_creation_date.between(start_date_str, end_date_str)
         ).group_by(func.strftime('%Y-%m', BookingData.order_creation_date)).all()
-        
+
         status_by_day_data = db.query(
             func.strftime('%w', BookingData.order_creation_date).label('weekday'),
             func.count(BookingData.id).label("count"),
         ).filter(
             BookingData.order_creation_date.between(start_date_str, end_date_str)
         ).group_by(func.strftime('%w', BookingData.order_creation_date)).all()
-    
-    
-    
+
+    # Convert query results to a list of dictionaries
+    status_by_cat_data = [{"categories": row.categories, "count": row.count} for row in status_by_cat_data]
+    status_by_date_data = [{"month": row.month, "count": row.count} for row in status_by_date_data]
+
     weekday_map = {
-    '0': 'Sunday',
-    '1': 'Monday',
-    '2': 'Tuesday',
-    '3': 'Wednesday',
-    '4': 'Thursday',
-    '5': 'Friday',
-    '6': 'Saturday'
+        '0': 'Sunday',
+        '1': 'Monday',
+        '2': 'Tuesday',
+        '3': 'Wednesday',
+        '4': 'Thursday',
+        '5': 'Friday',
+        '6': 'Saturday'
     }
 
-    # Convert the result into a readable format
+    # Convert weekday data to readable format
     status_by_weekday = [
         {"weekday": weekday_map[row.weekday], "count": row.count}
         for row in status_by_day_data
     ]
+
     return {
         "status by categories": status_by_cat_data,
         "status by date": status_by_date_data,
-        "status by weekday": status_by_weekday
+        "status by weekday": status_by_weekday,
     }
     
     
