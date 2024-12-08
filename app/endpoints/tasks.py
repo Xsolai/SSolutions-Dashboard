@@ -24,8 +24,7 @@ def format_revenue(num):
 @router.get("/tasks_kpis")
 async def get_tasks_kpis(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+    db: Session = Depends(get_db)):
     """Endpoint to retrieve booking data from the database."""
     start_date, end_date = get_date_range(filter_type)
     
@@ -54,7 +53,7 @@ async def get_tasks_kpis(
         ).scalar() or 0
         
         total_soft_bookings = db.query(func.count(SoftBookingKF.booking_number)).filter(
-            SoftBookingKF.order_creation_date.between(start_date_str, end_date_str)
+            SoftBookingKF.service_creation_time.between(start_date_str, end_date_str)
         ).scalar() or 0
         
         avg_price = db.query(func.avg(BookingData.performance_element_price)).filter(
@@ -66,7 +65,7 @@ async def get_tasks_kpis(
         ).scalar() or 0
         
         avg_sf_price = db.query(func.avg(SoftBookingKF.service_element_price)).filter(
-            SoftBookingKF.order_creation_date.between(start_date_str, end_date_str)
+            SoftBookingKF.service_creation_time.between(start_date_str, end_date_str)
         ).scalar() or 0
 
     # Calculate Booking Rate
@@ -74,17 +73,16 @@ async def get_tasks_kpis(
     
     return {
         "Total bookings": total_bookings + total_soft_bookings,
-        "Average Booking price": avg_price,
+        "Average Booking price": round(avg_price,2),
         "Total booking revenue": format_revenue(total_booking_revenue),
-        "Average Soft Booking price": avg_sf_price,
+        "Average Soft Booking price": round(avg_sf_price, 2),
         "Booking Rate": booking_rate
     }
     
 @router.get("/tasks_overview")
 async def get_tasks_overview(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+    db: Session = Depends(get_db)):
     """Endpoint to retrieve calls data from the database."""
     start_date, end_date = get_date_range(filter_type)
     
@@ -152,8 +150,7 @@ async def get_tasks_overview(
 @router.get("/tasks_performance")
 async def get_tasks_performance(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(oauth2.get_current_user)):
+    db: Session = Depends(get_db)):
     """Endpoint to retrieve calls data from the database."""
     start_date, end_date = get_date_range(filter_type)
     
