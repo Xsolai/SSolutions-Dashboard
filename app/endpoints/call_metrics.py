@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason, GuruDailyCallData, 
-                                        QueueStatistics)
+                                        QueueStatistics, Permission, User)
 from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func
 from app.database.scehmas import schemas
@@ -88,6 +88,25 @@ async def get_calls(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve calls data from the database."""
+    
+    # Check permissions
+    # await check_permission("call_overview_api", current_user["id"], db)
+    
+    user = db.query(User).filter(User.email == current_user.get("email")).first()
+    
+    # Check permissions from user_permissions table
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).all()
+    
+    # Assuming the UserPermissions table has 'restricted_filters' field for this example
+    restricted_filters = {perm.filter_type: perm.value for perm in user_permissions}
+    print(restricted_filters)
+    
+    # Check if user has any date range restrictions
+    if "date_range" in restricted_filters:
+        allowed_date_range = restricted_filters["date_range"]
+    else:
+        allowed_date_range = "all"  # Default to "all" if no restriction
+    
     start_date, end_date = get_date_range(filter_type)
     
     if start_date is None:
@@ -262,12 +281,12 @@ async def get_calls_sub_kpis(
         GuruDailyCallData.avg_handling_time
     )).filter(
         GuruDailyCallData.date.between(prev_start_date, prev_end_date)
-    ).scalar()
+    ).scalar() or 0
     prev_dropped_calls = db.query(func.sum(
         GuruDailyCallData.dropped_calls
     )).filter(
         GuruDailyCallData.date.between(prev_start_date, prev_end_date)
-    ).scalar()
+    ).scalar() or 0
     return {
         "total_calls": total_calls, 
         "total_calls_change": calculate_percentage_change(total_calls, prev_total_calls),
@@ -284,9 +303,9 @@ async def get_calls_sub_kpis(
         "After call work time": round(get_inbound_after_call(db, start_date=start_date, end_date=end_date), 2),
         "After call work time_change":calculate_percentage_change(get_inbound_after_call(db, start_date=start_date, end_date=end_date), get_inbound_after_call(db, start_date=prev_start_date, end_date=prev_end_date)),
         "avg handling time": round(avg_handling_time or 0, 2),
-        "avg_handling_time_change": calculate_percentage_change(avg_handling_time, prev_avg_handling_time),
+        "avg_handling_time_change": calculate_percentage_change(avg_handling_time or 0, prev_avg_handling_time or 1),
         "Dropped calls": int(dropped_calls or 0),
-        "Dropped calls_change": calculate_percentage_change(dropped_calls, prev_dropped_calls),
+        "Dropped calls_change": calculate_percentage_change(dropped_calls or 0, prev_dropped_calls or 1),
         }
     
 @router.get("/call_performance")
