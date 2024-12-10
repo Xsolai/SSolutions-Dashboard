@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.database.models.models import RolePermission, User
-from app.database.scehmas.schemas import UpdateRolePermission
+from app.database.models.models import RolePermission, User, Permission
+from app.database.models import models
+from app.database.scehmas.schemas import UpdateRolePermission, User
+from app.database.scehmas import schemas
 from app.database.db.db_connection import get_db
 from app.src.components.email_service import send_email_to_user
+from app.database.auth import oauth2
+from app.src.logger import logging
 
 router = APIRouter(
     tags = ["Admin"]
@@ -50,3 +54,86 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db)):
     db.commit()
     send_email_to_user(status=user.status, email=user.email)
     return {"message": "User rejected and removed from the system."}
+
+
+@router.post("/assign-permission")
+def assign_permission(
+    user_id: str,
+    call_overview_api: bool = False,
+    call_performance_api: bool = False,
+    call_sub_kpis_api: bool = False,
+    email_overview_api: bool = False,
+    email_performance_api: bool = False,
+    email_sub_kpis_api: bool = False,
+    task_overview_api: bool = False,
+    task_performance_api: bool = False,
+    task_sub_kpis_api: bool = False,
+    analytics_email_api: bool = False,
+    analytics_email_subkpis_api: bool = False,
+    analytics_sales_service_api: bool = False,
+    analytics_booking_api: bool = False,
+    analytics_booking_subkpis_api: bool = False,
+    analytics_conversion_api: bool = False,
+    date_filter: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)
+):
+    try:
+        # Check if the user exists
+        user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
+        # Check if the current user is an admin
+        if user.role != "admin":
+            raise HTTPException(status_code=403, detail="Only admins can assign permissions.")
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Check if the user already has permissions
+        permission = db.query(Permission).filter(Permission.user_id == user_id).first()
+        if permission:
+            # Update existing permissions
+            permission.call_overview_api = call_overview_api
+            permission.call_performance_api = call_performance_api
+            permission.call_sub_kpis_api = call_sub_kpis_api
+            permission.email_overview_api = email_overview_api
+            permission.email_performance_api = email_performance_api
+            permission.email_sub_kpis_api = email_sub_kpis_api
+            permission.task_overview_api = task_overview_api
+            permission.task_performance_api = task_performance_api
+            permission.task_sub_kpis_api = task_sub_kpis_api
+            permission.analytics_email_api = analytics_email_api
+            permission.analytics_email_subkpis_api = analytics_email_subkpis_api
+            permission.analytics_sales_service_api = analytics_sales_service_api
+            permission.analytics_booking_api = analytics_booking_api
+            permission.analytics_booking_subkpis_api = analytics_booking_subkpis_api
+            permission.analytics_conversion_api = analytics_conversion_api
+            permission.date_filter = date_filter
+        else:
+            # Create new permission record
+            permission = Permission(
+                user_id=user_id,
+                call_overview_api=call_overview_api,
+                call_performance_api=call_performance_api,
+                call_sub_kpis_api = call_sub_kpis_api,
+                email_overview_api = email_overview_api,
+                email_performance_api = email_performance_api,
+                email_sub_kpis_api = email_sub_kpis_api,
+                task_overview_api = task_overview_api,
+                task_performance_api = task_performance_api,
+                task_sub_kpis_api = task_sub_kpis_api,
+                analytics_email_api = analytics_email_api,
+                analytics_email_subkpis_api = analytics_email_subkpis_api,
+                analytics_sales_service_api = analytics_sales_service_api,
+                analytics_booking_api = analytics_booking_api,
+                analytics_booking_subkpis_api = analytics_booking_subkpis_api,
+                analytics_conversion_api = analytics_conversion_api,
+                date_filter = date_filter
+            )
+            db.add(permission)
+        
+        db.commit()
+        return {"message": "Permissions assigned successfully."}
+    except Exception as e:
+        db.rollback()  # Rollback the transaction in case of an error
+        logging.error(f"Error assigning permissiioss: {e}")
+        print(f"Error assigning permissiioss: {e}")

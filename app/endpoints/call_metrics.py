@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason, GuruDailyCallData, 
                                         QueueStatistics, Permission, User)
@@ -89,23 +89,29 @@ async def get_calls(
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve calls data from the database."""
     
-    # Check permissions
-    # await check_permission("call_overview_api", current_user["id"], db)
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
     
-    user = db.query(User).filter(User.email == current_user.get("email")).first()
-    
-    # Check permissions from user_permissions table
-    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).all()
-    
-    # Assuming the UserPermissions table has 'restricted_filters' field for this example
-    restricted_filters = {perm.filter_type: perm.value for perm in user_permissions}
-    print(restricted_filters)
-    
-    # Check if user has any date range restrictions
-    if "date_range" in restricted_filters:
-        allowed_date_range = restricted_filters["date_range"]
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
     else:
-        allowed_date_range = "all"  # Default to "all" if no restriction
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+
     
     start_date, end_date = get_date_range(filter_type)
     
@@ -314,6 +320,30 @@ async def get_call_performance(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve queue-wise calls KPIs from the database with date filtering."""
+    
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+
     # Get date range based on filter_type
     start_date, end_date = get_date_range(filter_type)
 
@@ -551,7 +581,7 @@ async def get_call_performance(
         ).scalar() or 0
 
     return {
-        "Call Reasins Breakdown": {
+        "Call Reasons Breakdown": {
             "cb_sales": cb_sales,
             "guru_sales": guru_sales_data,
             "guru_service": guru_service,

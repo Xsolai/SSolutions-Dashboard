@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import WorkflowReportGuru
+from app.database.models.models import WorkflowReportGuru, User, Permission
 from app.database.db.db_connection import  get_db
 from datetime import datetime, timedelta
 from sqlalchemy import func
@@ -50,6 +50,29 @@ async def get_email_overview(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+
     start_date, end_date = get_date_range(filter_type)
     total_processing_time_seconds = 1
     if start_date is None:
@@ -237,11 +260,35 @@ async def get_email_overview_sub_kpis(
     }
 
 
-@router.get("/email_performance_metrics")
+@router.get("/email_performance")
 async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
+    
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+    
     start_date, end_date = get_date_range(filter_type=filter_type)
     if start_date is None:
         # Query the latest 6 intervals (dates) and service level gross

@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date, JSON
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date, JSON, Boolean, ForeignKey
 from datetime import datetime
 from app.database.db.db_connection import Base
+from sqlalchemy.orm import relationship
 
 class User(Base):
     __tablename__ = 'users'
@@ -12,6 +13,7 @@ class User(Base):
     status = Column(String, default="pending")
     password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    permissions = relationship("Permission", back_populates="user")
     
     def __init__(self, username, email, password, role="user"):
         self.username = username
@@ -186,3 +188,29 @@ class RolePermission(Base):
     id = Column(Integer, primary_key=True, index=True)
     role = Column(String, unique=True, nullable=False)  # Role name
     permissions = Column(JSON, default={})  # API permissions for the role
+    
+    
+class Permission(Base):
+    __tablename__ = "permissions"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    call_overview_api = Column(Boolean, default=False, nullable=False)
+    call_performance_api = Column(Boolean, default=False, nullable=False)
+    call_sub_kpis_api = Column(Boolean, default=False, nullable=False)
+    email_overview_api = Column(Boolean, default=False, nullable=False)
+    email_performance_api = Column(Boolean, default=False, nullable=False)
+    email_sub_kpis_api = Column(Boolean, default=False, nullable=False)
+    task_overview_api = Column(Boolean, default=False, nullable=False)
+    task_performance_api = Column(Boolean, default=False, nullable=False)
+    task_sub_kpis_api = Column(Boolean, default=False, nullable=False)
+    analytics_email_api = Column(Boolean, default=False, nullable=False)
+    analytics_email_subkpis_api = Column(Boolean, default=False, nullable=False)
+    analytics_sales_service_api = Column(Boolean, default=False, nullable=False)
+    analytics_booking_api = Column(Boolean, default=False, nullable=False)
+    analytics_booking_subkpis_api = Column(Boolean, default=False, nullable=False)
+    analytics_conversion_api = Column(Boolean, default=False, nullable=False)
+    date_filter = Column(String, nullable=True)
+    
+    user = relationship("User", back_populates="permissions")
+    

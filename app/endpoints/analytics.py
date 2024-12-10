@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import WorkflowReportGuru, QueueStatistics, GuruDailyCallData, GuruCallReason, BookingData, SoftBookingKF
+from app.database.models.models import WorkflowReportGuru, QueueStatistics, GuruDailyCallData, GuruCallReason, BookingData, User, Permission
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta
 from sqlalchemy import func, cast, Date
@@ -44,12 +44,36 @@ def time_to_seconds(time_str):
         return 0
 
 
-@router.get("/anaytics_email_data")
+@router.get("/anaytics_email")
 async def get_anaytics_email_data(
     filter_type: str = Query("all", description="Filter by date range: yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
+    
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+    
     # Get date range based on filter_type
     start_date, end_date = get_date_range(filter_type)
     
@@ -168,7 +192,7 @@ async def get_anaytics_email_data(
         "Processing Count Trend": processing_count_trend
     }
     
-@router.get("/anaytics_email_data_sub_kpis")
+@router.get("/anaytics_email_subkpis")
 async def get_anaytics_email_data_sub_kpis(
     filter_type: str = Query("all", description="Filter by date range: yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
@@ -256,11 +280,35 @@ async def get_anaytics_email_data_sub_kpis(
     }
 
 
-@router.get("/anaytics_sales_and_service")
+@router.get("/analytics_sales_service")
 async def get_sales_and_service(filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
+    
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+    
     db = SessionLocal()
     start_date, end_date = get_date_range(filter_type)
     sale_queue_name = "5vorFlugSales"
@@ -378,13 +426,36 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
         }
 
 
-@router.get("/anaytics_booking_data")
+@router.get("/analytics_booking")
 async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user),
     # access_control: bool = Depends(role_based_access_control),
     ):
     """Endpoint to retrieve graphs data from the database."""
+    
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
     
     start_date, end_date = get_date_range(filter_type)
     # print(start_date)
@@ -458,7 +529,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
         print(f"Error retrieving booking status metrics: {e}")
         return None
 
-@router.get("/anaytics_booking_data_sub_kpis")
+@router.get("/analytics_booking_subkpis")
 async def get_booking_data_sub_kpis(db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
@@ -506,82 +577,101 @@ async def get_booking_data_sub_kpis(db: Session = Depends(get_db),
         return None
 
 
-@router.get("/anaytics_conversion_CB")
+@router.get("/analytics_conversion")
 async def get_conversion_data(filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
-    try:
-        db = SessionLocal()    
-        start_date, end_date = get_date_range(filter_type=filter_type)
-        if start_date is None:
-            calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
-            calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
-            wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
-            sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
-            calls = db.query(func.sum(GuruDailyCallData.total_calls)).scalar() or 0
-            bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
-            turnover_cb = round(db.query(func.sum(BookingData.performance_element_price)).scalar() or 0,2)
-            sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    print("Permission: ", user_permissions.date_filter)
+    
+    # Parse allowed filters from the permissions table
+    if user_permissions and user_permissions.date_filter:
+        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        # If `date_filter` is empty or no record exists, allow all filters
+        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+            }
+        )
+
+    db = SessionLocal()    
+    start_date, end_date = get_date_range(filter_type=filter_type)
+    if start_date is None:
+        calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
+        calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
+        wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
+        sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
+        calls = db.query(func.sum(GuruDailyCallData.total_calls)).scalar() or 0
+        bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
+        turnover_cb = round(db.query(func.sum(BookingData.performance_element_price)).scalar() or 0,2)
+        sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
+    
+    else:
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+        calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0
+        calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0
+        wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0
+        sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0
+        calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
+        GuruDailyCallData.date.between(start_date, end_date)
+        ).scalar() or 0
+        bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 1
+        turnover_cb = round(db.query(func.sum(BookingData.performance_element_price)).filter(
+        BookingData.order_creation_date.between(start_date_str, end_date_str)
+        ).scalar() or 0,2)
+        sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0
         
-        else:
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            end_date_str = end_date.strftime("%Y-%m-%d")
-            calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).filter(
-            GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 0
-            calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).filter(
-            GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 0
-            wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
-            GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 0
-            sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
-            GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 0
-            calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
-            ).scalar() or 0
-            bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
-            GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 1
-            turnover_cb = round(db.query(func.sum(BookingData.performance_element_price)).filter(
-            BookingData.order_creation_date.between(start_date_str, end_date_str)
-            ).scalar() or 0,2)
-            sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).filter(
-            GuruCallReason.date.between(start_date, end_date)
-            ).scalar() or 0
-            
-        cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb, 2)
-        sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb, 2)
-        
-        # Return metrics as a dictionary
-        return {
+    cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb, 2)
+    sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb, 2)
+    
+    # Return metrics as a dictionary
+    return {
+        "CB":{
+            "CB Conversion": cb_conversion
+            },
+        "Sales":{
+            "Sales Conversion": sales_conversion
+            },
+        "Conversion Performance":{
             "CB":{
-                "CB Conversion": cb_conversion
-                },
+            "CB calls handled": calls_cb_handled,
+            "Wrong calls": wrong_calls,
+            "Bookings CB": bookings_cb if bookings_cb>1 else 0,
+            "Turnover": turnover_cb,
+            "CB Conversion": cb_conversion
+            },
             "Sales":{
-                "Sales Conversion": sales_conversion
-                },
-            "Conversion Performance":{
-                "CB":{
-                "CB calls handled": calls_cb_handled,
-                "Wrong calls": wrong_calls,
-                "Bookings CB": bookings_cb if bookings_cb>1 else 0,
-                "Turnover": turnover_cb,
-                "CB Conversion": cb_conversion
-                },
-                "Sales":{
-                "Sales handles": calls_sales_handled,
-                "Wrong calls": sales_wrong_calls,
-                "Bookings Sales": bookings_cb if bookings_cb>1 else 0,
-                "Sales volume": sales_volume,
-                "Sales Conversion": sales_conversion
-                }
+            "Sales handles": calls_sales_handled,
+            "Wrong calls": sales_wrong_calls,
+            "Bookings Sales": bookings_cb if bookings_cb>1 else 0,
+            "Sales volume": sales_volume,
+            "Sales Conversion": sales_conversion
             }
-            
-            }
-    except Exception as e:
-        print(f"Error retrieving booking status metrics: {e}")
-        return None
+        }
+        
+        }
 
