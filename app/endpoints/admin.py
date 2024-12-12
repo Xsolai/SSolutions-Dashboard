@@ -134,6 +134,24 @@ def assign_permission(
         db.commit()
         return {"message": "Permissions assigned successfully."}
     except Exception as e:
-        db.rollback()  # Rollback the transaction in case of an error
+        db.rollback() 
         logging.error(f"Error assigning permissiioss: {e}")
         print(f"Error assigning permissiioss: {e}")
+        
+@router.get("/admin/users")
+def get_users(db: Session = Depends(get_db)):
+    try:
+        print("Executing")
+        users = db.query(models.User).all()
+        print([user.email for user in users])
+        if not users:
+            raise HTTPException(status_code=404, detail="No users found.")
+        return [{
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "status": user.status
+        } for user in users]
+    except Exception as e:
+        logging.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while fetching users.")
