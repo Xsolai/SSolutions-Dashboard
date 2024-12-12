@@ -147,6 +147,7 @@ def get_users(db: Session = Depends(get_db)):
         if not users:
             raise HTTPException(status_code=404, detail="No users found.")
         return [{
+            "user id": user.id,
             "username": user.username,
             "email": user.email,
             "role": user.role,
