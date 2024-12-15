@@ -34,7 +34,7 @@ def view_role_permissions(db: Session = Depends(get_db)):
 
 @router.get("/admin/approve/{user_id}")
 def approve_user_request(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id, User.status == "pending").first()
+    user = db.query(models.User).filter(models.User.id == user_id, models.User.status == "pending").first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found or already processed.")
     
@@ -45,7 +45,14 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db)):
 
 @router.get("/admin/reject/{user_id}")
 def approve_user_request(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id, User.status == "pending").first()
+    user = db.query(models.User).filter(models.User.id == user_id, models.User.status == "pending").first()
+    
+    # Check if the user exists
+    # user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
+    # Check if the current user is an admin
+    # if user.role != "admin":
+    #     raise HTTPException(status_code=403, detail="Only admins can assign permissions.")
+    
     if not user:
         raise HTTPException(status_code=404, detail="User not found or already processed.")
     
@@ -143,7 +150,7 @@ def get_users(db: Session = Depends(get_db)):
     try:
         print("Executing")
         users = db.query(models.User).all()
-        print([user.email for user in users])
+        # print([user.email for user in users])
         if not users:
             raise HTTPException(status_code=404, detail="No users found.")
         return [{
