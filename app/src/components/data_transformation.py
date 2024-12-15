@@ -1,6 +1,6 @@
 import pandas as pd
 from app.src.logger import logging
-import os 
+import os, re
 
 
 def normalize_column_names(data):
@@ -15,6 +15,21 @@ def normalize_column_names(data):
     )
     return data
 
+
+def extract_filename_part(file_name):
+    # Check if the filename contains "Workflow-Report"
+    if "Workflow-Report" in file_name:
+        # Extract text between "Workflow-Report" and "(ID_something)"
+        match = re.search(r"Workflow-Report-(.*?)(?:\(ID__\d+\))", file_name)
+        if match:
+            return match.group(1)  # Replace hyphens with underscores if needed
+    # If the filename starts with a number (e.g., 1075_daily_Guru_SB.csv)
+    elif re.match(r"^\d+_", file_name):
+        # Extract part after the number and underscore
+        match = re.search(r"\d+_(.*)", file_name)
+        if match:
+            return match.group(1).replace("-", "_").replace(".csv", "")  # Clean up file extension and replace hyphens with underscores
+    return file_name  # Return original file name if no match found
 
 
 def clean_and_convert_data(data):
@@ -37,10 +52,10 @@ def clean_and_convert_data(data):
             'Anrufe <= 5s': ('int', 0),
             'Aufgelegt vor Antwort': ('int', 0),
             'Schnell aufgelegt <= 5s': ('int', 0),
-            'avg Wartezeit': ('float', 0.0),
+            'av. Wartezeit': ('float', 0.0),
             'max. Wartezeit': ('float', 0.0),
             'sum Nachbearbeitung Inbound': ('float', 0.0),
-            'avg AHT Inbound': ('float', 0.0),
+            'av. AHT Inbound': ('float', 0.0),
             'sum Gesprächszeit': ('float', 0.0),
             'ASR': ('float', 0.0),
             'SLA20\\20': ('float', 0.0),
@@ -76,9 +91,9 @@ def clean_and_convert_data(data):
             'max. Wartezeit': ('float', 0.0),  # Max wait time in seconds
             'Wartezeit': ('float', 0.0),  # Total wait time in minutes
             'Wartezeit Aufleger': ('float', 0.0),  # Avg wait time for abandoned calls in seconds
-            'avg Gesprächszeit': ('float', 0.0),  # Average talk time in seconds
-            'avg Nachbearbeitung Inbound': ('float', 0.0),  # Avg after-call work inbound in seconds
-            'avg AHT Inbound': ('float', 0.0),  # Avg handling time inbound in seconds
+            'av. Gesprächszeit': ('float', 0.0),  # Average talk time in seconds
+            'av. Nachbearbeitung Inbound': ('float', 0.0),  # Avg after-call work inbound in seconds
+            'av. AHT Inbound': ('float', 0.0),  # Avg handling time inbound in seconds
             'max Gesprächszeit': ('float', 0.0),  # Max talk time in seconds
             'sum Gesprächszeit': ('float', 0.0),  # Total talk time in minutes
             'ASR': ('float', 0.0),  # ASR (%)
@@ -109,6 +124,12 @@ def clean_and_convert_data(data):
             'CRS (Standard) Status': ('str', ''), 
             'Leistung Element Preis': ('float', 0.0),
             'Leistung Originalbetrag': ('float', 0.0),  
+            #Tasks columns
+            # 'Notiz/Aufgabe erledigender Benutzer': ('str', ''),
+            # 'Notiz/Aufgabe fällig bis': ('datetime', None),
+            # 'Notiz/Aufgabe Zeit Änderung': ('datetime', None),
+            # 'Notiz/Aufgabe Aufgabentyp': ('str', ''),
+            # 'Notiz/Aufgabe Zeit Anlage': ('datetime', None),
         }
 
         # Replace non-numeric values like '-' with NaN, then fill NaN values and convert types
@@ -128,8 +149,6 @@ def clean_and_convert_data(data):
         
         logging.info("Converted columns dtypes.")
         return data
-
-
     except Exception as e:
         logging.error(f"Error cleaning and converting data: {e}")
         return None
@@ -151,11 +170,16 @@ def load_excel_data(file_path, skiprows=None):
             data = pd.read_excel(file_path, skiprows=skiprows)
         
         # print("Data loaded successfully.")
+        file_name = os.path.basename(file_path)  # Extract the filename from the file path
+        extracted_part = extract_filename_part(file_name)
+        print("file_name",file_name)
+        print("Exttracted file_name",extracted_part)
+        data['file_name'] = extracted_part.replace("_", " ")
         data.columns = data.columns.str.strip()
 
         # Clean column names
-        data.columns =  [col.replace("∑\xa0", "sum ") for col in data.columns ]
-        data.columns =  [col.replace("Ø\xa0", "avg ") for col in data.columns ]
+        # data.columns =  [col.replace("∑\xa0", "sum ") for col in data.columns ]
+        # data.columns =  [col.replace("Ø\xa0", "avg ") for col in data.columns ]
         data.columns = data.columns.str.strip()
 
         # Clean and convert data types using the new function
@@ -185,8 +209,11 @@ def load_csv_data(file_path):
         df = data.iloc[:, :-1]
         
         print("Data loaded successfully.")
-        # print("CSV\n", df)
-        # print("DF Info \n", df.info())
+        
+        file_name = os.path.basename(file_path)  # Extract the filename from the file path
+        extracted_part = extract_filename_part(file_name)
+        df['file_name'] = extracted_part.replace("_", " ")
+        
         df.columns = df.columns.str.strip()
 
         # Clean and convert data types using the new function
@@ -194,22 +221,37 @@ def load_csv_data(file_path):
             df["Leistung Element Preis"] = df["Leistung Element Preis"].str.replace(",", "").str.strip()
             df["Leistung Element Preis"] = df["Leistung Element Preis"].str.replace(".", "").str.strip()
             df["Leistung Element Preis"] = pd.to_numeric(df["Leistung Element Preis"], errors='coerce')
-            # df["Leistung Element Preis"] = df["Leistung Element Preis"].apply(
-            #     lambda x: x / 100 if x > 1000 else x
-            # )
-            
-        if "Leistung Anlagezeit" in df.columns:
-            # print(pd.to_datetime(data["Leistung Anlagezeit"], errors='coerce', dayfirst=True).dt.date)
-            df["Leistung Anlagezeit"] = pd.to_datetime(df["Leistung Anlagezeit"], errors='coerce', dayfirst=True)
-            
-        print(df.info())
+           
+        if "tot. Outbound Gesprächszeit Ziel" in df.columns:
+            df["tot. Outbound Gesprächszeit Ziel"] = df["tot. Outbound Gesprächszeit Ziel"].apply(lambda x: x.split(",")[1] if isinstance(x, str) else None)
+            df["tot. Outbound Gesprächszeit Ziel"] = df["tot. Outbound Gesprächszeit Ziel"].astype(float)
         
+        if "tot. Nachbearbeitung Outbound" in df.columns:
+            df["tot. Nachbearbeitung Outbound"] = df["tot. Nachbearbeitung Outbound"].apply(lambda x: x.split(",")[1] if isinstance(x, str) else None)
+            df["tot. Nachbearbeitung Outbound"] = df["tot. Nachbearbeitung Outbound"].astype(float)
+        
+        if "Leistung Anlagezeit" in df.columns:
+            df["Leistung Anlagezeit"] = pd.to_datetime(df["Leistung Anlagezeit"])
+            
+        if "Notiz/Aufgabe fällig bis" in df.columns:
+            df["Notiz/Aufgabe fällig bis"] = pd.to_datetime(df["Notiz/Aufgabe fällig bis"], dayfirst=True)
+        if "Notiz/Aufgabe Zeit Änderung" in df.columns:
+            df["Notiz/Aufgabe Zeit Änderung"] = pd.to_datetime(df["Notiz/Aufgabe Zeit Änderung"], dayfirst=True)
+        if "Notiz/Aufgabe Zeit Anlage" in df.columns:
+            df["Notiz/Aufgabe Zeit Anlage"] = pd.to_datetime(df["Notiz/Aufgabe Zeit Anlage"], dayfirst=True)
+        
+        
+        print(df.info())
+        print(df.head())
+    
         df = clean_and_convert_data(df)
 
         if df is not None:
             print("Cleaned Data Columns:", df.columns)
             print(df.info())
         
+        print("Returing the data \n\n")
+        print(df.head())
         return df
 
     except Exception as e:

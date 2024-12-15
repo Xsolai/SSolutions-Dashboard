@@ -5,7 +5,7 @@ import uvicorn
 from app.database.db.db_connection import engine, Base, get_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.src.logger import logging
-from app.endpoints import email_metrics, call_metrics, booking_metrics, login, history, auth, tasks, admin, analytics
+from app.endpoints import admin, analytics, auth, login, call_metrics, email_metrics, tasks, history
 from app.src.components.scheduler import schedule_daily_task
 import warnings
 from app.src.components.middlewares import RoleBasedAccessMiddleware
@@ -34,7 +34,7 @@ app.add_middleware(RoleBasedAccessMiddleware)
 async def startup_event():
     # Schedule the data import task to run daily at a fixed time
     # This will run the task every day at 13:00 (1:00 PM) Pakistani time
-    schedule_daily_task(17, 00)  # Set your desired hour and minute here
+    schedule_daily_task(19, 19)  # Set your desired hour and minute here
 
 # Create tables in database
 Base.metadata.create_all(bind=engine)

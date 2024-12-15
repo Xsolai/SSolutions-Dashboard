@@ -37,33 +37,34 @@ class GuruCallReason(Base):
     guru_wrong = Column(Integer)
     other_guru = Column(Integer) 
 
-class GuruDailyCallData(Base):
-    __tablename__ = "guru_daily"
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date)
-    weekday = Column(String)
-    queue_name = Column(String, index=True)
-    total_calls = Column(Integer)
-    answered_calls = Column(Integer)
-    calls_within_5s = Column(Integer)
-    dropped_calls = Column(Integer)  # Dropped calls before answer
-    quick_drops = Column(Integer)  # Quickly dropped calls within 5 seconds
-    avg_wait_time = Column(Float)
-    max_wait_time = Column(Float)
-    inbound_after_call = Column(Float)  # Total after-call work time inbound
-    avg_handling_time = Column(Float)
-    total_talk_time = Column(Float)
-    asr = Column(Float)  # Answer Success Rate
-    sla = Column(Float)  # SLA adherence
-    outbound_calls = Column(Integer)  # Total outbound calls
-    outbound_answered = Column(Integer)
-    outbound_talk_time = Column(Float)
-    outbound_after_call = Column(Float)  # Outbound after-call work time
+# class DailyCallData(Base):
+#     __tablename__ = "daily_call_data"
+#     id = Column(Integer, primary_key=True, index=True)
+#     date = Column(Date)
+#     weekday = Column(String)
+#     queue_name = Column(String, index=True)
+#     total_calls = Column(Integer)
+#     answered_calls = Column(Integer)
+#     calls_within_5s = Column(Integer)
+#     dropped_calls = Column(Integer)  # Dropped calls before answer
+#     quick_drops = Column(Integer)  # Quickly dropped calls within 5 seconds
+#     avg_wait_time = Column(Float)
+#     max_wait_time = Column(Float)
+#     inbound_after_call = Column(Float)  # Total after-call work time inbound
+#     avg_handling_time = Column(Float)
+#     total_talk_time = Column(Float)
+#     asr = Column(Float)  # Answer Success Rate
+#     sla = Column(Float)  # SLA adherence
+#     outbound_calls = Column(Integer)  # Total outbound calls
+#     outbound_answered = Column(Integer)
+#     outbound_talk_time = Column(Float)
+#     outbound_after_call = Column(Float)  # Outbound after-call work time
     
 class WorkflowReportGuruKF(Base):
     __tablename__ = 'workflow_report_gurukf'
     
     id = Column(Integer, primary_key=True, index=True)
+    customer = Column(String, nullable=True)
     date = Column(Date)
     interval = Column(String)  # Time period during which the data was recorded
     mailbox = Column(String(255))  # Specific mailbox or category of received emails
@@ -71,33 +72,33 @@ class WorkflowReportGuruKF(Base):
     new_cases = Column(Integer)  # Number of new cases initiated
     sent = Column(Integer)  # Number of emails sent
     archived = Column(Integer)  # Number of cases archived
-    trashed = Column(Integer)  # Number of cases moved to trash
+    # trashed = Column(Integer)  # Number of cases moved to trash
     dwell_time_net = Column(String)  # Average dwell time of a case
     processing_time = Column(String)  # Average processing time of a case
     service_level_gross = Column(Float)  # Service-level adherence percentage
     service_level_gross_reply = Column(Float)  # Service-level adherence for sent replies
     
-class WorkflowReportGuru(Base):
-    __tablename__ = 'guru_email'
+# class WorkflowReportGuru(Base):
+#     __tablename__ = 'guru_email'
     
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date)
-    mailbox = Column(String(255))  # Specific mailbox or category of received emails
-    interval = Column(String)  # Time period during which the data was recorded
-    received = Column(Integer, default=0)  # Number of emails received
-    new_cases = Column(Integer, default=0)  # Number of new cases initiated
-    sent = Column(Integer, default=0)  # Number of emails sent
-    sent_reply = Column(Integer, default=0)  # Number of replies sent to received emails
-    sent_forwarded = Column(Integer, default=0)  # Number of emails forwarded
-    sent_new_message = Column(Integer, default=0)  # Number of new outgoing messages
-    sent_follow_up = Column(Integer, default=0)  # Number of follow-up inquiries sent
-    sent_interim_reply = Column(Integer, default=0)  # Number of interim replies sent
-    archived = Column(Integer, default=0)  # Number of cases archived
-    trashed = Column(Integer, default=0)  # Number of cases deleted or moved to trash
-    dwell_time_net = Column(String, default="00:00:00")  # Average dwell time of a case
-    processing_time = Column(String, default="00:00:00")  # Average processing time of a case
-    service_level_gross = Column(Float, default=0.0)  # Percentage of cases processed within service level
-    service_level_gross_reply = Column(Float, default=0.0)  # Service level for sent replies
+#     id = Column(Integer, primary_key=True, index=True)
+#     date = Column(Date)
+#     mailbox = Column(String(255))  # Specific mailbox or category of received emails
+#     interval = Column(String)  # Time period during which the data was recorded
+#     received = Column(Integer, default=0)  # Number of emails received
+#     new_cases = Column(Integer, default=0)  # Number of new cases initiated
+#     sent = Column(Integer, default=0)  # Number of emails sent
+#     sent_reply = Column(Integer, default=0)  # Number of replies sent to received emails
+#     sent_forwarded = Column(Integer, default=0)  # Number of emails forwarded
+#     sent_new_message = Column(Integer, default=0)  # Number of new outgoing messages
+#     sent_follow_up = Column(Integer, default=0)  # Number of follow-up inquiries sent
+#     sent_interim_reply = Column(Integer, default=0)  # Number of interim replies sent
+#     archived = Column(Integer, default=0)  # Number of cases archived
+#     trashed = Column(Integer, default=0)  # Number of cases deleted or moved to trash
+#     dwell_time_net = Column(String, default="00:00:00")  # Average dwell time of a case
+#     processing_time = Column(String, default="00:00:00")  # Average processing time of a case
+#     service_level_gross = Column(Float, default=0.0)  # Percentage of cases processed within service level
+#     service_level_gross_reply = Column(Float, default=0.0)  # Service level for sent replies
     
     
 class QueueStatistics(Base):
@@ -105,6 +106,7 @@ class QueueStatistics(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     date = Column(Date)
+    weekday = Column(String)
     queue_name = Column(String(255), nullable=False)  # Warteschleife or queue name
     
     # General call statistics
@@ -112,58 +114,59 @@ class QueueStatistics(Base):
     offered = Column(Integer, nullable=False, default=0)  # Angeboten
     accepted = Column(Integer, nullable=False, default=0)  # Angenommen
     abandoned_before_answer = Column(Integer, nullable=False, default=0)  # Aufgelegt vor Antwort
-    max_wait_time_reached = Column(Integer, nullable=False, default=0)  # max. Wartezeit erreicht
-    max_wait_places_reached = Column(Integer, nullable=False, default=0)  # max. Warteplätze erreicht
+    # max_wait_time_reached = Column(Integer, nullable=False, default=0)  # max. Wartezeit erreicht
+    # max_wait_places_reached = Column(Integer, nullable=False, default=0)  # max. Warteplätze erreicht
     
     # Wait time statistics
     avg_wait_time = Column(Integer, nullable=False, default=0)  # Ø Wartezeit (in seconds)
     max_wait_time = Column(Integer, nullable=False, default=0)  # max. Wartezeit (in seconds)
-    total_wait_time = Column(Float, nullable=False, default=0.0)  # ∑ Wartezeit (in minutes)
-    avg_wait_time_abandoned = Column(Integer, nullable=False, default=0)  # Ø Wartezeit Aufleger (in seconds)
+    # total_wait_time = Column(Float, nullable=False, default=0.0)  # ∑ Wartezeit (in minutes)
+    # avg_wait_time_abandoned = Column(Integer, nullable=False, default=0)  # Ø Wartezeit Aufleger (in seconds)
     
-    # Conversation and handling times
-    avg_talk_time = Column(Integer, nullable=False, default=0)  # Ø Gesprächszeit (in seconds)
-    avg_after_call_work_inbound = Column(Integer, nullable=False, default=0)  # Ø Nachbearbeitung Inbound (in seconds)
+    # # Conversation and handling times
+    # avg_talk_time = Column(Integer, nullable=False, default=0)  # Ø Gesprächszeit (in seconds)
+    # avg_after_call_work_inbound = Column(Integer, nullable=False, default=0)  # Ø Nachbearbeitung Inbound (in seconds)
     avg_handling_time_inbound = Column(Integer, nullable=False, default=0)  # Ø AHT Inbound (in seconds)
     max_talk_time = Column(Integer, nullable=False, default=0)  # max Gesprächszeit (in seconds)
-    total_talk_time = Column(Float, nullable=False, default=0.0)  # ∑ Gesprächszeit (in minutes)
+    # total_talk_time = Column(Float, nullable=False, default=0.0)  # ∑ Gesprächszeit (in minutes)
     
     # Service level and ASR statistics
     asr = Column(Float, nullable=False, default=0.0)  # ASR (%)
-    asr20 = Column(Float, nullable=False, default=0.0)  # ASR20 (%)
+    # asr20 = Column(Float, nullable=False, default=0.0)  # ASR20 (%)
     sla_20_20 = Column(Float, nullable=False, default=0.0)  # SLA20\20 (%)
-    answered_20 = Column(Integer, nullable=False, default=0)  # Beantwortet20
-    abandoned_20 = Column(Integer, nullable=False, default=0)  # Aufleger20
+    # answered_20 = Column(Integer, nullable=False, default=0)  # Beantwortet20
+    # abandoned_20 = Column(Integer, nullable=False, default=0)  # Aufleger20
     
     # Outbound statistics
     outbound = Column(Integer, nullable=False, default=0)  # Outbound
     outbound_accepted = Column(Integer, nullable=False, default=0)  # Outbound angenommen
-    total_outbound_talk_time_agent = Column(Float, nullable=False, default=0.0)  # ∑ Outbound Gesprächszeit Agent (in minutes)
+    # total_outbound_talk_time_agent = Column(Float, nullable=False, default=0.0)  # ∑ Outbound Gesprächszeit Agent (in minutes)
     total_outbound_talk_time_destination = Column(Float, nullable=False, default=0.0)  # ∑ Outbound Gesprächszeit Ziel (in minutes)
     avg_after_call_work_outbound = Column(Integer, nullable=False, default=0)  # Ø Nachbearbeitung Outbound (in seconds)
-    avg_handling_time_outbound = Column(Integer, nullable=False, default=0)  # Ø AHT Outbound (in seconds)
+    # avg_handling_time_outbound = Column(Integer, nullable=False, default=0)  # Ø AHT Outbound (in seconds)
     
-    # Transfer statistics
-    transfer_in = Column(Integer, nullable=False, default=0)  # Weiterleitung (in)
-    transfer_out = Column(Integer, nullable=False, default=0)  # Weiterleitung (out)
+    # # Transfer statistics
+    # transfer_in = Column(Integer, nullable=False, default=0)  # Weiterleitung (in)
+    # transfer_out = Column(Integer, nullable=False, default=0)  # Weiterleitung (out)
     
     
-class BookingData(Base):
-    __tablename__ = 'booking_data'
+# class BookingData(Base):
+#     __tablename__ = 'booking_data'
     
-    id = Column(Integer, primary_key=True, index=True)
-    crs_original_status = Column(String(255), nullable=True)  # CRS (Standard) original Status
-    crs_status = Column(String(255), nullable=True)  # CRS (Standard) Status
-    performance_element_price = Column(Float, nullable=True)  # Leistung Element Preis
-    order_mediator = Column(String(255), nullable=True)  # Auftrag Vermittler (Auftrag)
-    external_system = Column(String(255), nullable=True)  # CRS (Standard Externes System)
-    order_creation_date = Column(Date, nullable=True)  # Auftrag Anlagedatum (Auftrag) date
-    crs_original_booking_number = Column(String(255), nullable=True)  # CRS (Standard) original Buchungsnummer
+#     id = Column(Integer, primary_key=True, index=True)
+#     crs_original_status = Column(String(255), nullable=True)  # CRS (Standard) original Status
+#     crs_status = Column(String(255), nullable=True)  # CRS (Standard) Status
+#     performance_element_price = Column(Float, nullable=True)  # Leistung Element Preis
+#     order_mediator = Column(String(255), nullable=True)  # Auftrag Vermittler (Auftrag)
+#     external_system = Column(String(255), nullable=True)  # CRS (Standard Externes System)
+#     order_creation_date = Column(Date, nullable=True)  # Auftrag Anlagedatum (Auftrag) date
+#     crs_original_booking_number = Column(String(255), nullable=True)  # CRS (Standard) original Buchungsnummer
     
 class SoftBookingKF(Base):
     __tablename__ = "soft_booking_kf"
 
     id = Column(Integer, primary_key=True, index=True)
+    customer = Column(String, nullable=True)
     booking_number = Column(String, nullable=False)  # Booking number (unique identifier)
     lt_code = Column(String, nullable=True)  # CRS (Standard) LT-Code
     original_status = Column(String, nullable=True)  # CRS (Standard) original Status
@@ -214,3 +217,14 @@ class Permission(Base):
     
     user = relationship("User", back_populates="permissions")
     
+class GuruTask(Base):
+    __tablename__ = 'guru_tasks'  # Define the table name
+
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    date = Column(Date)
+    order_number = Column(String, nullable=False)  # Auftrag Auftragsnummer (Auftrag)
+    assigned_user = Column(String)  # Notiz/Aufgabe erledigender Benutzer
+    due_date = Column(DateTime)  # Notiz/Aufgabe fällig bis
+    time_modified = Column(DateTime)  # Notiz/Aufgabe Zeit Änderung
+    task_type = Column(String)  # Notiz/Aufgabe Aufgabentyp
+    creation_time = Column(DateTime)  # Notiz/Aufgabe Zeit Anlage

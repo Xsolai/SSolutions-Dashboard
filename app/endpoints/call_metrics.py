@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import (GuruCallReason, GuruDailyCallData, 
-                                        QueueStatistics, Permission, User)
+from app.database.models.models import (GuruCallReason, QueueStatistics, Permission, User)
 from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func
 from app.database.scehmas import schemas
@@ -17,13 +16,13 @@ def get_sla_percentage(db: Session, start_date, end_date):
     """Endpoint to retrieve sla% per queue."""
     if start_date is None:
         sla_data = db.query(
-            func.avg(GuruDailyCallData.sla)
+            func.avg(QueueStatistics.sla_20_20)
         ).scalar() or 0
     else:
         sla_data = db.query(
-            func.avg(GuruDailyCallData.sla)
+            func.avg(QueueStatistics.sla_20_20)
         ).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
     return sla_data
 
@@ -32,12 +31,12 @@ def get_average_wait_time(db: Session, start_date, end_date):
     """Endpoint to retrieve average wait time for calls."""
     if start_date is None:
         avg_wait_time = db.query(func.avg(
-        GuruDailyCallData.avg_wait_time)).scalar() or 0
+        QueueStatistics.avg_wait_time)).scalar() or 0
     else:
         avg_wait_time = db.query(func.avg(
-            GuruDailyCallData.avg_wait_time
+            QueueStatistics.avg_wait_time
         )).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
     return avg_wait_time
 
@@ -45,10 +44,10 @@ def get_max_wait_time(db: Session, start_date, end_date):
     """Endpoint to retrieve max wait time for calls."""
     if start_date is None:
         
-        max_wait_time = db.query(func.max(GuruDailyCallData.max_wait_time)).scalar() or 0
+        max_wait_time = db.query(func.max(QueueStatistics.max_wait_time)).scalar() or 0
     else:
-        max_wait_time = db.query(func.max(GuruDailyCallData.max_wait_time)).filter(
-        GuruDailyCallData.date.between(start_date, end_date)
+        max_wait_time = db.query(func.max(QueueStatistics.max_wait_time)).filter(
+        QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
     return max_wait_time
 
@@ -57,13 +56,13 @@ def get_talk_time(db: Session, start_date, end_date):
     """Endpoint to retrieve average wait time for calls."""
     if start_date is None:
         avg_talk_time = db.query(func.avg(
-            GuruDailyCallData.total_talk_time
+            QueueStatistics.total_outbound_talk_time_destination
         )).scalar() or 0
     else:
         avg_talk_time = db.query(func.avg(
-            GuruDailyCallData.total_talk_time
+            QueueStatistics.total_outbound_talk_time_destination
         )).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
     return avg_talk_time
 
@@ -71,13 +70,13 @@ def get_inbound_after_call(db: Session, start_date, end_date):
     """Endpoint to retrieve average wait time for calls."""
     if start_date is None:
         after_call = db.query(func.sum(
-        GuruDailyCallData.inbound_after_call
+        QueueStatistics.avg_handling_time_inbound
         )).scalar() or 0
     else:
         after_call = db.query(func.sum(
-            GuruDailyCallData.inbound_after_call
+            QueueStatistics.avg_handling_time_inbound
         )).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
     return after_call
 
@@ -91,7 +90,7 @@ async def get_calls(
     
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    print("Permission: ", user_permissions.date_filter)
+    
     
     # Parse allowed filters from the permissions table
     if user_permissions and user_permissions.date_filter:
@@ -117,80 +116,80 @@ async def get_calls(
     
     if start_date is None:
         
-        calls = db.query(GuruDailyCallData).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
-        ).all()
-        total_calls = db.query(func.sum(GuruDailyCallData.total_calls)).scalar() or 0
-        total_answered_calls = db.query(func.sum(GuruDailyCallData.answered_calls)).scalar() or 0
+        # calls = db.query(QueueStatistics).filter(
+        #     QueueStatistics.date.between(start_date, end_date)
+        # ).all()
+        total_calls = db.query(func.sum(QueueStatistics.calls)).scalar() or 0
+        # total_answered_calls = db.query(func.sum(QueueStatistics.answered_calls)).scalar() or 0
         asr = db.query(
-            func.avg(GuruDailyCallData.asr)
+            func.avg(QueueStatistics.asr)
         ).scalar() or 0
         total_call_reasons = db.query(func.sum(GuruCallReason.total_calls)).scalar() or 0
         # asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
         avg_handling_time = db.query(func.avg(
-            GuruDailyCallData.avg_handling_time
+            QueueStatistics.avg_handling_time_inbound
         )).scalar()
         dropped_calls = db.query(func.sum(
-            GuruDailyCallData.dropped_calls
+            QueueStatistics.abandoned_before_answer
         )).scalar()
         
         
         # Graph
         weekday_data = db.query(
-        GuruDailyCallData.weekday.label("weekday"),  # Group by weekday
-        func.sum(GuruDailyCallData.total_calls).label("total_calls"),
-        func.sum(GuruDailyCallData.answered_calls).label("answered_calls"),
-        func.avg(GuruDailyCallData.avg_wait_time).label("avg_wait_time"),
-        func.max(GuruDailyCallData.max_wait_time).label("max_wait_time"),
-        func.avg(GuruDailyCallData.avg_handling_time).label("avg_handling_time"),
-        func.avg(GuruDailyCallData.sla).label("sla"),
-        func.sum(GuruDailyCallData.dropped_calls).label("dropped_calls")
+        QueueStatistics.weekday.label("weekday"),  # Group by weekday
+        func.sum(QueueStatistics.calls).label("total_calls"),
+        func.sum(QueueStatistics.accepted).label("answered_calls"),
+        func.avg(QueueStatistics.avg_wait_time).label("avg_wait_time"),
+        func.max(QueueStatistics.max_wait_time).label("max_wait_time"),
+        func.avg(QueueStatistics.avg_handling_time_inbound).label("avg_handling_time"),
+        func.avg(QueueStatistics.sla_20_20).label("sla"),
+        func.sum(QueueStatistics.abandoned_before_answer).label("dropped_calls")
         ).group_by(
-            GuruDailyCallData.weekday
+            QueueStatistics.weekday
         ).all()
     else:
-        calls = db.query(GuruDailyCallData).filter(
-        GuruDailyCallData.date.between(start_date, end_date)
-        ).all()
-        total_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+        # calls = db.query(QueueStatistics).filter(
+        # QueueStatistics.date.between(start_date, end_date)
+        # ).all()
+        total_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
-        total_answered_calls = db.query(func.sum(GuruDailyCallData.answered_calls)).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+        total_answered_calls = db.query(func.sum(QueueStatistics.accepted)).filter(
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         asr = db.query(
-            func.avg(GuruDailyCallData.asr)).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            func.avg(QueueStatistics.asr)).filter(
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         total_call_reasons = db.query(func.sum(GuruCallReason.total_calls)).filter(
-            GuruCallReason.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         # asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
         avg_handling_time = db.query(func.avg(
-            GuruDailyCallData.avg_handling_time
+            QueueStatistics.avg_handling_time_inbound
         )).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar()
         dropped_calls = db.query(func.sum(
-            GuruDailyCallData.dropped_calls
+            QueueStatistics.abandoned_before_answer
         )).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar()
         
         #Graph data
         weekday_data = db.query(
-            GuruDailyCallData.weekday.label("weekday"),  # Group by weekday
-            func.sum(GuruDailyCallData.total_calls).label("total_calls"),
-            func.sum(GuruDailyCallData.answered_calls).label("answered_calls"),
-            func.avg(GuruDailyCallData.avg_wait_time).label("avg_wait_time"),
-            func.max(GuruDailyCallData.max_wait_time).label("max_wait_time"),
-            func.avg(GuruDailyCallData.avg_handling_time).label("avg_handling_time"),
-            func.avg(GuruDailyCallData.sla).label("sla"),
-            func.sum(GuruDailyCallData.dropped_calls).label("dropped_calls")
-            ).filter(
-                GuruDailyCallData.date.between(start_date, end_date)  # Filter by date range
+        QueueStatistics.weekday.label("weekday"),  # Group by weekday
+            func.sum(QueueStatistics.calls).label("total_calls"),
+            func.sum(QueueStatistics.accepted).label("answered_calls"),
+            func.avg(QueueStatistics.avg_wait_time).label("avg_wait_time"),
+            func.max(QueueStatistics.max_wait_time).label("max_wait_time"),
+            func.avg(QueueStatistics.avg_handling_time_inbound).label("avg_handling_time"),
+            func.avg(QueueStatistics.sla_20_20).label("sla"),
+            func.sum(QueueStatistics.abandoned_before_answer).label("dropped_calls")
+        ).filter(
+                QueueStatistics.date.between(start_date, end_date)  # Filter by date range
             ).group_by(
-                GuruDailyCallData.weekday
+                QueueStatistics.weekday
             ).all()
             
     # Format the result
@@ -244,54 +243,54 @@ async def get_calls_sub_kpis(
     prev_start_date, prev_end_date = get_date_range("last_week")
     
     # Current KPIs
-    total_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.date.between(start_date, end_date)
+    total_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.date.between(start_date, end_date)
     ).scalar() or 0
-    total_answered_calls = db.query(func.sum(GuruDailyCallData.answered_calls)).filter(
-        GuruDailyCallData.date.between(start_date, end_date)
+    total_answered_calls = db.query(func.sum(QueueStatistics.accepted)).filter(
+        QueueStatistics.date.between(start_date, end_date)
     ).scalar() or 0
     asr = db.query(
-        func.avg(GuruDailyCallData.asr)).filter(
-        GuruDailyCallData.date.between(start_date, end_date)
+        func.avg(QueueStatistics.asr)).filter(
+        QueueStatistics.date.between(start_date, end_date)
     ).scalar() or 0
     total_call_reasons = db.query(func.sum(GuruCallReason.total_calls)).filter(
         GuruCallReason.date.between(start_date, end_date)
     ).scalar() or 0
     # asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
     avg_handling_time = db.query(func.avg(
-        GuruDailyCallData.avg_handling_time
+        QueueStatistics.avg_handling_time_inbound
     )).filter(
-        GuruDailyCallData.date.between(start_date, end_date)
+        QueueStatistics.date.between(start_date, end_date)
     ).scalar()
     dropped_calls = db.query(func.sum(
-        GuruDailyCallData.dropped_calls
+        QueueStatistics.abandoned_before_answer
     )).filter(
-        GuruDailyCallData.date.between(start_date, end_date)
+        QueueStatistics.date.between(start_date, end_date)
     ).scalar()
     
     # Previous Week KPIs
-    prev_total_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-        GuruDailyCallData.date.between(prev_start_date, prev_end_date)
+    prev_total_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+        QueueStatistics.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
-    prev_total_answered_calls = db.query(func.sum(GuruDailyCallData.answered_calls)).filter(
-        GuruDailyCallData.date.between(prev_start_date, prev_end_date)
+    prev_total_answered_calls = db.query(func.sum(QueueStatistics.accepted)).filter(
+        QueueStatistics.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     prev_asr = db.query(
-        func.avg(GuruDailyCallData.asr)).filter(
-        GuruDailyCallData.date.between(prev_start_date, prev_end_date)
+        func.avg(QueueStatistics.asr)).filter(
+        QueueStatistics.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     prev_total_call_reasons = db.query(func.sum(GuruCallReason.total_calls)).filter(
         GuruCallReason.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     prev_avg_handling_time = db.query(func.avg(
-        GuruDailyCallData.avg_handling_time
+        QueueStatistics.avg_handling_time_inbound
     )).filter(
-        GuruDailyCallData.date.between(prev_start_date, prev_end_date)
+        QueueStatistics.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     prev_dropped_calls = db.query(func.sum(
-        GuruDailyCallData.dropped_calls
+        QueueStatistics.abandoned_before_answer
     )).filter(
-        GuruDailyCallData.date.between(prev_start_date, prev_end_date)
+        QueueStatistics.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     return {
         "total_calls": total_calls, 
@@ -323,7 +322,7 @@ async def get_call_performance(
     
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    print("Permission: ", user_permissions.date_filter)
+    
     
     # Parse allowed filters from the permissions table
     if user_permissions and user_permissions.date_filter:
@@ -375,78 +374,78 @@ async def get_call_performance(
         ).scalar() or 0
         
         # Calls by queue
-        guru_service_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-        GuruDailyCallData.queue_name == "Guru_ServiceAT"
+        guru_service_at_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+        QueueStatistics.queue_name == "Guru_ServiceAT"
         ).scalar() or 0
 
-        guru_service_de_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE"
+        guru_service_de_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE"
         ).scalar() or 0
 
-        guru_service_decb_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE_CB"
+        guru_service_decb_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE_CB"
         ).scalar() or 0
         
-        guru_service_ch_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru Service_CH"
+        guru_service_ch_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru Service_CH"
         ).scalar() or 0
         
-        guru_serviceat_cb_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT_CB"
+        guru_serviceat_cb_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT_CB"
         ).scalar() or 0
 
-        urlaubsguru_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru AT"
+        urlaubsguru_at_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru AT"
         ).scalar() or 0
 
-        urlaubsguru_de_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru DE"
+        urlaubsguru_de_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru DE"
         ).scalar() or 0
 
-        urlaubsguru_cbat_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_AT"
+        urlaubsguru_cbat_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_AT"
         ).scalar() or 0
 
-        urlaubsguru_cbde_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_DE"
+        urlaubsguru_cbde_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_DE"
         ).scalar() or 0
 
 
         # Query average handling times by queue with date filtering
-        guru_service_at_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT"
+        guru_service_at_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT"
         ).scalar() or 0
 
-        guru_service_de_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE"
+        guru_service_de_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE"
         ).scalar() or 0
 
-        guru_service_decb_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE_CB"
+        guru_service_decb_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE_CB"
         ).scalar() or 0
 
-        urlaubsguru_at_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru AT"
+        urlaubsguru_at_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru AT"
         ).scalar() or 0
 
-        urlaubsguru_de_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru DE"
+        urlaubsguru_de_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru DE"
         ).scalar() or 0
 
-        urlaubsguru_cbat_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_AT"
+        urlaubsguru_cbat_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_AT"
         ).scalar() or 0
 
-        urlaubsguru_cbde_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_DE"
+        urlaubsguru_cbde_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_DE"
         ).scalar() or 0
 
-        guru_service_ch_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru Service_CH"
+        guru_service_ch_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru Service_CH"
         ).scalar() or 0
         
-        guru_serviceat_cb_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT_CB"
+        guru_serviceat_cb_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT_CB"
         ).scalar() or 0
 
     else:
@@ -488,96 +487,96 @@ async def get_call_performance(
         ).scalar() or 0
         
         # Calls by queue
-        guru_service_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_at_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        guru_service_de_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_de_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        guru_service_decb_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE_CB",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_decb_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE_CB",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         
-        guru_service_ch_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru Service_CH",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_ch_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru Service_CH",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         
-        guru_serviceat_cb_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT_CB",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_serviceat_cb_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT_CB",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_at_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru AT",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_at_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru AT",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_de_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru DE",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_de_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru DE",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_cbat_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_AT",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_cbat_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_AT",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_cbde_calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_DE",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_cbde_calls = db.query(func.sum(QueueStatistics.calls)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_DE",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
 
         # Query average handling times by queue with date filtering
-        guru_service_at_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_at_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        guru_service_de_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_de_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        guru_service_decb_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceDE_CB",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_decb_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceDE_CB",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_at_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru AT",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_at_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru AT",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_de_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru DE",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_de_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru DE",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_cbat_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_AT",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_cbat_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_AT",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        urlaubsguru_cbde_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Urlaubsguru_CB_DE",
-            GuruDailyCallData.date.between(start_date, end_date)
+        urlaubsguru_cbde_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Urlaubsguru_CB_DE",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
-        guru_service_ch_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru Service_CH",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_service_ch_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru Service_CH",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         
-        guru_serviceat_cb_aht = db.query(func.avg(GuruDailyCallData.avg_handling_time)).filter(
-            GuruDailyCallData.queue_name == "Guru_ServiceAT_CB",
-            GuruDailyCallData.date.between(start_date, end_date)
+        guru_serviceat_cb_aht = db.query(func.avg(QueueStatistics.avg_handling_time_inbound)).filter(
+            QueueStatistics.queue_name == "Guru_ServiceAT_CB",
+            QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
 
     return {

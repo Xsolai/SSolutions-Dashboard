@@ -12,8 +12,16 @@ from app.src.logger import logging
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
+    EXCLUDED_PATHS = [
+        "/auth/register", 
+        "/auth/verify-otp",
+        "/auth/resend-otp",
+    ]
     async def dispatch(self, request: Request, call_next):
         try:
+            if request.url.path in self.EXCLUDED_PATHS:
+                return await call_next(request)
+            
             # Get the DB session
             db: Session = next(get_db())
             

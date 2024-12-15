@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from app.database.models.models import BookingData, GuruCallReason, GuruDailyCallData
+from app.database.models.models import GuruCallReason
 from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func
 from app.database.scehmas import schemas

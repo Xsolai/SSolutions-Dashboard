@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import WorkflowReportGuru, User, Permission
+from app.database.models.models import WorkflowReportGuruKF, User, Permission
 from app.database.db.db_connection import  get_db
 from datetime import datetime, timedelta
 from sqlalchemy import func
@@ -52,7 +52,7 @@ async def get_email_overview(
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    print("Permission: ", user_permissions.date_filter)
+    
     
     # Parse allowed filters from the permissions table
     if user_permissions and user_permissions.date_filter:
@@ -78,11 +78,11 @@ async def get_email_overview(
     if start_date is None:
         service_level_gross = db.query(
             func.avg(
-                WorkflowReportGuru.service_level_gross
+                WorkflowReportGuruKF.service_level_gross
             )
         ).scalar() or 0
         
-        processing_times = db.query(WorkflowReportGuru.processing_time).all()
+        processing_times = db.query(WorkflowReportGuruKF.processing_time).all()
         # Clean the data to extract values from tuples
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
@@ -94,21 +94,21 @@ async def get_email_overview(
         
         total_emails = db.query(
             func.sum(
-                WorkflowReportGuru.received
+                WorkflowReportGuruKF.received
             )
         ).scalar() or 0
         
         new_cases = db.query(
             func.sum(
-                WorkflowReportGuru.new_cases
+                WorkflowReportGuruKF.new_cases
             )
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
         service_level_gross_data = db.query(
-            WorkflowReportGuru.interval.label("interval"),
-            func.avg(WorkflowReportGuru.service_level_gross).label("service_level_gross")
-        ).group_by(WorkflowReportGuru.interval).order_by(WorkflowReportGuru.interval.desc()).all()
+            WorkflowReportGuruKF.interval.label("interval"),
+            func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
+        ).group_by(WorkflowReportGuruKF.interval).order_by(WorkflowReportGuruKF.interval.desc()).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -118,14 +118,14 @@ async def get_email_overview(
     else:
         service_level_gross = db.query(
             func.avg(
-                WorkflowReportGuru.service_level_gross
+                WorkflowReportGuruKF.service_level_gross
             )
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
+            WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
         
-        processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
+        processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+            WorkflowReportGuruKF.date.between(start_date, end_date)
         ).all()
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
@@ -134,27 +134,27 @@ async def get_email_overview(
         
         total_emails = db.query(
             func.sum(
-                WorkflowReportGuru.received
+                WorkflowReportGuruKF.received
             )
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
+            WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
         
         new_cases = db.query(
             func.sum(
-                WorkflowReportGuru.new_cases
+                WorkflowReportGuruKF.new_cases
             )
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
+            WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
         service_level_gross_data = db.query(
-            WorkflowReportGuru.interval.label("interval"),
-            func.avg(WorkflowReportGuru.service_level_gross).label("service_level_gross")
+            WorkflowReportGuruKF.interval.label("interval"),
+            func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuru.interval).order_by(WorkflowReportGuru.interval.desc()).all()
+            WorkflowReportGuruKF.date.between(start_date, end_date)
+        ).group_by(WorkflowReportGuruKF.interval).order_by(WorkflowReportGuruKF.interval.desc()).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -185,14 +185,14 @@ async def get_email_overview_sub_kpis(
     # Normal Kpis
     service_level_gross = db.query(
         func.avg(
-            WorkflowReportGuru.service_level_gross
+            WorkflowReportGuruKF.service_level_gross
         )
     ).filter(
-        WorkflowReportGuru.date.between(start_date, end_date)
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
     
-    processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-        WorkflowReportGuru.date.between(start_date, end_date)
+    processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).all()
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     for pt in processing_times:
@@ -201,31 +201,31 @@ async def get_email_overview_sub_kpis(
     
     total_emails = db.query(
         func.sum(
-            WorkflowReportGuru.received
+            WorkflowReportGuruKF.received
         )
     ).filter(
-        WorkflowReportGuru.date.between(start_date, end_date)
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
     
     new_cases = db.query(
         func.sum(
-            WorkflowReportGuru.new_cases
+            WorkflowReportGuruKF.new_cases
         )
     ).filter(
-        WorkflowReportGuru.date.between(start_date, end_date)
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
     
     # Previous Kpis to calculate the change
     prev_service_level_gross = db.query(
         func.avg(
-            WorkflowReportGuru.service_level_gross
+            WorkflowReportGuruKF.service_level_gross
         )
     ).filter(
-        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
-    prev_processing_times = db.query(WorkflowReportGuru.processing_time).filter(
-        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
+    prev_processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).all()
     prev_processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in prev_processing_times]
     for pt in prev_processing_times:
@@ -234,18 +234,18 @@ async def get_email_overview_sub_kpis(
     
     prev_total_emails = db.query(
         func.sum(
-            WorkflowReportGuru.received
+            WorkflowReportGuruKF.received
         )
     ).filter(
-        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     prev_new_cases = db.query(
         func.sum(
-            WorkflowReportGuru.new_cases
+            WorkflowReportGuruKF.new_cases
         )
     ).filter(
-        WorkflowReportGuru.date.between(prev_start_date, prev_end_date)
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     return {
@@ -268,7 +268,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
     
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    print("Permission: ", user_permissions.date_filter)
+    
     
     # Parse allowed filters from the permissions table
     if user_permissions and user_permissions.date_filter:
@@ -293,9 +293,9 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
     if start_date is None:
         # Query the latest 6 intervals (dates) and service level gross
         service_level_gross_data = db.query(
-            WorkflowReportGuru.mailbox.label("mailbox"),
-            func.sum(WorkflowReportGuru.service_level_gross).label("service_level_gross")
-        ).group_by(WorkflowReportGuru.mailbox).order_by(WorkflowReportGuru.service_level_gross.desc()).all()
+            WorkflowReportGuruKF.mailbox.label("mailbox"),
+            func.sum(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
+        ).group_by(WorkflowReportGuruKF.mailbox).order_by(WorkflowReportGuruKF.service_level_gross.desc()).all()
 
         # Format the service level gross data
         service_level_gross = [
@@ -304,8 +304,8 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         ]
 
         mailbox_processing_data = db.query(
-            WorkflowReportGuru.mailbox.label("mailbox"),
-            WorkflowReportGuru.processing_time.label("processing_time")  # Fetch raw time strings
+            WorkflowReportGuruKF.mailbox.label("mailbox"),
+            WorkflowReportGuruKF.processing_time.label("processing_time")  # Fetch raw time strings
         ).all()
 
         # Process data to calculate total processing time for each mailbox
@@ -328,22 +328,22 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         
         # Query total new sent emails
         replies_data = db.query(
-            WorkflowReportGuru.mailbox.label("mailbox"),
-            func.sum(WorkflowReportGuru.sent_reply).label("sent"),
-            func.sum(WorkflowReportGuru.sent_forwarded).label("forwarded")
-        ).group_by(WorkflowReportGuru.mailbox).order_by(WorkflowReportGuru.sent_reply.desc()).all()
+            WorkflowReportGuruKF.customer.label("customer"),
+            func.sum(WorkflowReportGuruKF.sent).label("sent"),
+            func.sum(WorkflowReportGuruKF.received).label("recieved")
+        ).group_by(WorkflowReportGuruKF.customer).order_by(WorkflowReportGuruKF.sent.desc()).all()
 
         replies = [
-        {"mailbox": row.mailbox, "sent": round(row.sent or 0, 2), "forwarded": round(row.forwarded or 0, 2)}
+        {"customer": row.customer, "sent": round(row.sent or 0, 2), "recieved": round(row.recieved or 0, 2)}
         for row in replies_data
         ]
     else:
         service_level_gross_data = db.query(
-            WorkflowReportGuru.mailbox.label("mailbox"),
-            func.sum(WorkflowReportGuru.service_level_gross).label("service_level_gross")
+            WorkflowReportGuruKF.mailbox.label("mailbox"),
+            func.sum(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuru.mailbox).order_by(WorkflowReportGuru.service_level_gross.desc()).all()
+            WorkflowReportGuruKF.date.between(start_date, end_date)
+        ).group_by(WorkflowReportGuruKF.mailbox).order_by(WorkflowReportGuruKF.service_level_gross.desc()).all()
 
         # Format the service level gross data
         service_level_gross = [
@@ -352,10 +352,10 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         ]
 
         mailbox_processing_data = db.query(
-            WorkflowReportGuru.mailbox.label("mailbox"),
-            WorkflowReportGuru.processing_time.label("processing_time")  # Fetch raw time strings
+            WorkflowReportGuruKF.mailbox.label("mailbox"),
+            WorkflowReportGuruKF.processing_time.label("processing_time")  # Fetch raw time strings
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
+            WorkflowReportGuruKF.date.between(start_date, end_date)
         ).all()
         
         # Process data to calculate total processing time for each mailbox
@@ -380,20 +380,20 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         
         # Query total new sent emails
         replies_data = db.query(
-            WorkflowReportGuru.mailbox.label("mailbox"),
-            func.sum(WorkflowReportGuru.sent_reply).label("sent"),
-            func.sum(WorkflowReportGuru.sent_forwarded).label("forwarded")
+            WorkflowReportGuruKF.customer.label("customer"),
+            func.sum(WorkflowReportGuruKF.sent).label("sent"),
+            func.sum(WorkflowReportGuruKF.received).label("recieved")
         ).filter(
-            WorkflowReportGuru.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuru.mailbox).order_by(WorkflowReportGuru.sent_reply.desc()).all()
+            WorkflowReportGuruKF.date.between(start_date, end_date)
+        ).group_by(WorkflowReportGuruKF.customer).order_by(WorkflowReportGuruKF.sent.desc()).all()
 
         replies = [
-        {"mailbox": row.mailbox, "sent": round(row.sent or 0, 2), "forwarded": round(row.forwarded or 0, 2)}
+        {"customer": row.customer, "sent": round(row.sent or 0, 2), "recieved": round(row.recieved or 0, 2)}
         for row in replies_data
         ]
 
     return {
         "service_level_by_mailbox": service_level_gross,
         "Processing_time_by_mailbox": pt_mailbox,
-        "respone_by_mailbox": replies
+        "respone_by_customers": replies
     }
