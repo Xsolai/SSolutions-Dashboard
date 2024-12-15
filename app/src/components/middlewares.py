@@ -16,6 +16,7 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
         "/auth/register", 
         "/auth/verify-otp",
         "/auth/resend-otp",
+        "/login",
     ]
     async def dispatch(self, request: Request, call_next):
         try:
