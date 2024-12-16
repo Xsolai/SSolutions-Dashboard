@@ -13,8 +13,13 @@ router = APIRouter(
 )
 
 @router.get("/admin/view-role-permissions")
-def view_role_permissions(db: Session = Depends(get_db)):
+def view_role_permissions(db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     # Query the database to join User and Permission tables
+    current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
+    # Check if the current user is an admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view permissions.")
     permissions = (
         db.query(models.User.id, models.User.email, Permission)
         .join(Permission, models.User.id == Permission.user_id)
