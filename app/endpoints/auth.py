@@ -170,7 +170,7 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     #     role = "customer"
     # else:
     #     raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
-    role = "cutomer"
+    role = "customer"
     # Check if user already exists
     user = db.query(models.User).filter(
         (models.User.email == request.email) | (models.User.username == request.username)
