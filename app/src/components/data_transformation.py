@@ -17,19 +17,19 @@ def normalize_column_names(data):
 
 
 def extract_filename_part(file_name):
-    # Check if the filename contains "Workflow-Report"
-    if "Workflow-Report" in file_name:
-        # Extract text between "Workflow-Report" and "(ID_something)"
-        match = re.search(r"Workflow-Report-(.*?)(?:\(ID__\d+\))", file_name)
-        if match:
-            return match.group(1)  # Replace hyphens with underscores if needed
-    # If the filename starts with a number (e.g., 1075_daily_Guru_SB.csv)
-    elif re.match(r"^\d+_", file_name):
-        # Extract part after the number and underscore
-        match = re.search(r"\d+_(.*)", file_name)
-        if match:
-            return match.group(1).replace("-", "_").replace(".csv", "")  # Clean up file extension and replace hyphens with underscores
-    return file_name  # Return original file name if no match found
+    try:
+        if "Workflow-Report" in file_name:
+            match = re.search(r"Workflow-Report-(.*?)(?:\(ID__\d+\))", file_name)
+            if match:
+                return match.group(1)
+        elif re.match(r"^\d+_", file_name):
+            match = re.search(r"\d+_(.*)", file_name)
+            if match:
+                return match.group(1).replace("-", "_").replace(".csv", "")
+        return file_name
+    except Exception as e:
+        logging.exception("Error while extracting filename part")
+        return None
 
 
 def clean_and_convert_data(data):
@@ -123,13 +123,7 @@ def clean_and_convert_data(data):
             'CRS (Standard) original Status': ('str', ''),
             'CRS (Standard) Status': ('str', ''), 
             'Leistung Element Preis': ('float', 0.0),
-            'Leistung Originalbetrag': ('float', 0.0),  
-            #Tasks columns
-            # 'Notiz/Aufgabe erledigender Benutzer': ('str', ''),
-            # 'Notiz/Aufgabe fällig bis': ('datetime', None),
-            # 'Notiz/Aufgabe Zeit Änderung': ('datetime', None),
-            # 'Notiz/Aufgabe Aufgabentyp': ('str', ''),
-            # 'Notiz/Aufgabe Zeit Anlage': ('datetime', None),
+            'Leistung Originalbetrag': ('float', 0.0), 
         }
 
         # Replace non-numeric values like '-' with NaN, then fill NaN values and convert types
@@ -158,22 +152,21 @@ def clean_and_convert_data(data):
 def load_excel_data(file_path, skiprows=None):
     try:
         if not os.path.exists(file_path):
-            print(f"File {file_path} does not exist.")
+            logging.info(f"File {file_path} does not exist.")
             return None
-
-        if file_path.endswith('.csv'):
-            print("Reading csv", file_path)
+        # print("File_path", file_path)
+        if file_path.endswith('.csv') or file_path.endswith('.CSV'):
+            logging.info(f"Reading csv {file_path}")
             data = pd.read_csv(file_path, skiprows=skiprows, sep=";")
-            print("Columns: \n", data.columns)
-        else:
-            print("Reading excel", file_path)
+        elif file_path.endswith('.xls') or file_path.endswith('.xlsx'):
+            logging.info(f"Reading excel {file_path}")
             data = pd.read_excel(file_path, skiprows=skiprows)
         
         # print("Data loaded successfully.")
         file_name = os.path.basename(file_path)  # Extract the filename from the file path
         extracted_part = extract_filename_part(file_name)
-        print("file_name",file_name)
-        print("Exttracted file_name",extracted_part)
+        # print("file_name",file_name)
+        # print("Exttracted file_name",extracted_part)
         data['file_name'] = extracted_part.replace("_", " ")
         data.columns = data.columns.str.strip()
 
@@ -188,27 +181,24 @@ def load_excel_data(file_path, skiprows=None):
         if data is not None:
             # print("Cleaned Data Columns:", data.columns)
             # print("Data info: ", data.info())
-            print("Data: \n", data)
+            # print("Data: \n", data)
         
             return data
 
     except Exception as e:
         logging.error(f"Error loading file {file_path}: {e}")
-        print(f"Exception while loading Excel file: {e}")
         return None
     
     
 def load_csv_data(file_path):
     try:
         if not os.path.exists(file_path):
-            print(f"File {file_path} does not exist.")
+            logging.info(f"File {file_path} does not exist.")
             return None
 
         # Load data from Excel with specified engine
         data = pd.read_csv(file_path, sep=";", encoding='latin1')
         df = data.iloc[:, :-1]
-        
-        print("Data loaded successfully.")
         
         file_name = os.path.basename(file_path)  # Extract the filename from the file path
         extracted_part = extract_filename_part(file_name)
@@ -230,29 +220,28 @@ def load_csv_data(file_path):
             df["tot. Nachbearbeitung Outbound"] = df["tot. Nachbearbeitung Outbound"].apply(lambda x: x.split(",")[1] if isinstance(x, str) else None)
             df["tot. Nachbearbeitung Outbound"] = df["tot. Nachbearbeitung Outbound"].astype(float)
         
-        if "Leistung Anlagezeit" in df.columns:
-            df["Leistung Anlagezeit"] = pd.to_datetime(df["Leistung Anlagezeit"])
+        # if "Leistung Anlagezeit" in df.columns:
+        #     df["Leistung Anlagezeit"] = pd.to_datetime(df["Leistung Anlagezeit"], errors='coerce')
             
-        if "Notiz/Aufgabe fällig bis" in df.columns:
-            df["Notiz/Aufgabe fällig bis"] = pd.to_datetime(df["Notiz/Aufgabe fällig bis"], dayfirst=True)
-        if "Notiz/Aufgabe Zeit Änderung" in df.columns:
-            df["Notiz/Aufgabe Zeit Änderung"] = pd.to_datetime(df["Notiz/Aufgabe Zeit Änderung"], dayfirst=True)
-        if "Notiz/Aufgabe Zeit Anlage" in df.columns:
-            df["Notiz/Aufgabe Zeit Anlage"] = pd.to_datetime(df["Notiz/Aufgabe Zeit Anlage"], dayfirst=True)
+        date_columns = [
+            "Leistung Anlagezeit",
+            "Notiz/Aufgabe fällig bis", 
+            "Notiz/Aufgabe Zeit Änderung", 
+            "Notiz/Aufgabe Zeit Anlage"
+        ]
         
+        for col in date_columns:
+            if col in df.columns:
+                # Convert to datetime, coercing errors
+                df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+                
+                # Replace NaT with None
+                df[col] = df[col].where(df[col].notnull(), None)
         
-        print(df.info())
-        print(df.head())
-    
         df = clean_and_convert_data(df)
 
         if df is not None:
-            print("Cleaned Data Columns:", df.columns)
-            print(df.info())
-        
-        print("Returing the data \n\n")
-        print(df.head())
-        return df
+            return df
 
     except Exception as e:
         logging.error(f"Error loading file {file_path}: {e}")

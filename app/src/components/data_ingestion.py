@@ -3,6 +3,7 @@ from app.database.models.models import (GuruCallReason,WorkflowReportGuruKF,
                                         QueueStatistics, SoftBookingKF, GuruTask)
 from app.src.logger import logging
 from datetime import datetime
+import pandas as pd
 
 
 def populate_guru_call_reason(data, db: Session, date):
@@ -31,45 +32,6 @@ def populate_guru_call_reason(data, db: Session, date):
         db.rollback()  # Rollback the transaction in case of an error
         logging.error(f"Error populating GuruCallReason table: {e}")
         print(f"Exception occurred while populating GuruCallReason table: {e}")
-
-# def populate_guru_daily(data, db: Session, day, date):
-#     """Populate GuruDailyCallData table."""
-#     try:
-#         for _, row in data.iterrows():
-#             if any("Summe" in str(value) for value in row):
-#                 continue
-
-#             # Use .get() to access each column, and provide a default if missing
-#             db_record = GuruDailyCallData(
-#                 date=date,
-#                 weekday = day,
-#                 queue_name=row.get('Warteschleife', ''),
-#                 total_calls=row.get('Anrufe', 0),
-#                 answered_calls=row.get('Angenommen', 0),
-#                 calls_within_5s=row.get('Anrufe <= 5s', 0),
-#                 dropped_calls=row.get('Aufgelegt vor Antwort', 0),
-#                 quick_drops=row.get('Schnell aufgelegt <= 5s', 0),
-#                 avg_wait_time=row.get('avg Wartezeit', 0.0),
-#                 max_wait_time=row.get('max. Wartezeit', 0.0),
-#                 inbound_after_call=row.get('sum Nachbearbeitung Inbound', 0.0),
-#                 avg_handling_time=row.get('avg AHT Inbound', 0.0),
-#                 total_talk_time=row.get('sum Gesprächszeit', 0.0),
-#                 asr=row.get('ASR', 0.0),
-#                 sla=row.get('SLA20\\20', 0.0),
-#                 outbound_calls=row.get('Outbound', 0),
-#                 outbound_answered=row.get('Outbound angenommen', 0),
-#                 outbound_talk_time=row.get('sum Outbound Gesprächszeit Agent', 0.0),
-#                 outbound_after_call=row.get('sum Nachbearbeitung Outbound', 0.0)
-#             )
-#             db.add(db_record)
-#         db.commit()
-#         logging.info("Guru Daily Data successfully populated into the database.")
-
-#     except Exception as e:
-#         db.rollback()  # Rollback the transaction in case of an error
-#         logging.error(f"Error populating Guru Daily table: {e}")
-#         print(f"Exception occurred while populating Guru Daily data: {e}")
-
     
     
 def populate_workflow_report(data, db: Session, date):
@@ -97,54 +59,16 @@ def populate_workflow_report(data, db: Session, date):
             )
             db.add(db_record)
         db.commit()
-        logging.info("WorkflowReportGuruKF Data successfully populated into the database.")
+        logging.info("WorkflowReport Data successfully populated into the database.")
         
     except Exception as e:
         db.rollback()  # Rollback the transaction in case of an error
         logging.error(f"Error populating WorkflowReportGuruKF table: {e}")
         print(f"Exception occurred while populating WorkflowReportGuruKF table data: {e}")
-    
-
-# def populate_email_table(data, db: Session, date):
-#     """Populate the WorkflowReportGuru table with data from the DataFrame."""
-#     try:
-#         for _, row in data.iterrows():
-#             # Skip rows where any value in the row contains "Summe"
-#             if any("Summe" in str(value) for value in row):
-#                 continue
-            
-#             db_record = WorkflowReportGuru(
-#                 mailbox=row['Mailbox'],
-#                 date = date,
-#                 interval=row['Intervall'],
-#                 received=row['Empfangen [#]'],
-#                 new_cases=row['Neue Vorgänge [#]'],
-#                 sent=row['Gesendet [#]'],
-#                 sent_reply=row['Gesendet: Antwort [#]'],
-#                 sent_forwarded=row['Gesendet: Weiterleitung [#]'],
-#                 sent_new_message=row['Gesendet: Neue Nachricht [#]'],
-#                 sent_follow_up=row['Gesendet: Rückfrage [#]'],
-#                 sent_interim_reply=row['Gesendet: Zwischenbescheid [#]'],
-#                 archived=row['Archiviert [#]'],
-#                 trashed=row['Papierkorb [#]'],
-#                 dwell_time_net=row['Verweilzeit-Netto [∅ hh:mm:ss]'],
-#                 processing_time=row['Bearbeitungszeit [∅ Min.]'],
-#                 service_level_gross=row['ServiceLevel-Brutto [%]'],
-#                 service_level_gross_reply=row['ServiceLevel-Brutto: Antwort [%]']
-#             )
-#             db.add(db_record)
-#         db.commit()
-#         logging.info("Email Data successfully populated into the database.")
-
-#     except Exception as e:
-#         db.rollback()  # Rollback the transaction in case of an error
-#         logging.error(f"Error populating email data: {e}")
-#         print(f"Exception occurred while populating email data: {e}")
 
 def populate_queue_statistics(data, db: Session, date, day):
     """Populate the QueueStatistics table with data from the DataFrame."""
     try:
-        print("Data in queue: ", data.head())
         for _, row in data.iterrows():
             if any("Summe" in str(value) for value in row):
                 continue
@@ -189,39 +113,12 @@ def populate_queue_statistics(data, db: Session, date, day):
         
         db.commit()
         logging.info("Queue statistics data successfully populated into the database.")
-        print("Queue statistics data successfully populated into the database.")
+        # print("Queue statistics data successfully populated into the database.")
 
     except Exception as e:
         db.rollback()  # Rollback the transaction in case of an error
         logging.error(f"Error populating QueueStatistics data: {e}")
-        print(f"Exception occurred while populating queue statistics data: {e}")
-
-# def populate_booking_data(data, db: Session):
-#     """Populate the BookingData table with data from the DataFrame."""
-#     try:
-#         for _, row in data.iterrows():
-#             # Create a BookingData record
-#             db_record = BookingData(
-#                 crs_original_status=row.get('CRS (Standard) original Status', ''),
-#                 crs_status=row.get('CRS (Standard) Status', ''),
-#                 performance_element_price=row.get('Leistung Element Preis', 0.0),
-#                 order_mediator=row.get('Auftrag Vermittler (Auftrag)', ''),
-#                 external_system=row.get('CRS (Standard Externes System)', ''),
-#                 order_creation_date=row.get('Auftrag Anlagedatum (Auftrag)', None),
-#                 crs_original_booking_number=row.get('CRS (Standard) original Buchungsnummer', '')
-#             )
-            
-#             db.add(db_record)
-        
-#         db.commit()
-#         logging.info("Booking data successfully populated into the database.")
-#         print("Booking data successfully populated into the database.")
-
-#     except Exception as e:
-#         db.rollback()  # Rollback the transaction in case of an error
-#         logging.error(f"Error populating BookingData table: {e}")
-#         print(f"Exception occurred while populating BookingData table: {e}")
-        
+        print(f"Exception occurred while populating queue statistics data: {e}")        
         
 def populate_soft_booking_data(data, db: Session):
     """
@@ -247,37 +144,82 @@ def populate_soft_booking_data(data, db: Session):
 
         db.commit()
         logging.info("SoftBookingKF data successfully populated into the database.")
-        print("SoftBookingKF data successfully populated into the database.")
+        # print("SoftBookingKF data successfully populated into the database.")
 
     except Exception as e:
         db.rollback()
         logging.error(f"Error populating SoftBookingKF table: {e}")
         print(f"Exception occurred while populating SoftBookingKF table: {e}")
         
+# def populate_guru_task_data(data, db: Session, date):
+#     """
+#     Populate the GuruTask table with data from the DataFrame.
+#     """
+#     try:
+#         for _, row in data.iterrows():
+#             # Create a GuruTask record
+#             db_record = GuruTask(
+#                 date = date,
+#                 order_number=row.get('Auftrag Auftragsnummer (Auftrag)', ''),
+#                 assigned_user=row.get('Notiz/Aufgabe erledigender Benutzer', ''),
+#                 due_date=row.get('Notiz/Aufgabe fällig bis', None),
+#                 time_modified=row.get('Notiz/Aufgabe Zeit Änderung', None),
+#                 task_type=row.get('Notiz/Aufgabe Aufgabentyp', ''),
+#                 creation_time=row.get('Notiz/Aufgabe Zeit Anlage', None)
+#             )
+
+#             db.add(db_record)
+
+#         db.commit()
+#         logging.info("GuruTask data successfully populated into the database.")
+#         print("GuruTask data successfully populated into the database.")
+
+#     except Exception as e:
+#         db.rollback()
+#         logging.error(f"Error populating GuruTask table: {e}")
+#         print(f"Exception occurred while populating GuruTask table: {e}")
 def populate_guru_task_data(data, db: Session, date):
     """
     Populate the GuruTask table with data from the DataFrame.
     """
     try:
         for _, row in data.iterrows():
+            # Ensure all values are properly converted
+            order_number = str(row.get('Auftrag Auftragsnummer (Auftrag)', '')).strip() or None
+            assigned_user = str(row.get('Notiz/Aufgabe erledigender Benutzer', '')).strip() or None
+            due_date = row.get('Notiz/Aufgabe fällig bis')
+            time_modified = row.get('Notiz/Aufgabe Zeit Änderung')
+            task_type = str(row.get('Notiz/Aufgabe Aufgabentyp', '')).strip() or None
+            creation_time = row.get('Notiz/Aufgabe Zeit Anlage')
+
+            # Convert dates to None if they are NaT or invalid
+            due_date = due_date if not pd.isna(due_date) else None
+            time_modified = time_modified if not pd.isna(time_modified) else None
+            creation_time = creation_time if not pd.isna(creation_time) else None
+
             # Create a GuruTask record
             db_record = GuruTask(
-                date = date,
-                order_number=row.get('Auftrag Auftragsnummer (Auftrag)', ''),
-                assigned_user=row.get('Notiz/Aufgabe erledigender Benutzer', ''),
-                due_date=row.get('Notiz/Aufgabe fällig bis', None),
-                time_modified=row.get('Notiz/Aufgabe Zeit Änderung', None),
-                task_type=row.get('Notiz/Aufgabe Aufgabentyp', ''),
-                creation_time=row.get('Notiz/Aufgabe Zeit Anlage', None)
+                date=date,
+                order_number=order_number,
+                assigned_user=assigned_user,
+                due_date=due_date,
+                time_modified=time_modified,
+                task_type=task_type,
+                creation_time=creation_time
             )
 
             db.add(db_record)
 
         db.commit()
         logging.info("GuruTask data successfully populated into the database.")
-        print("GuruTask data successfully populated into the database.")
+        # print("GuruTask data successfully populated into the database.")
 
     except Exception as e:
         db.rollback()
         logging.error(f"Error populating GuruTask table: {e}")
         print(f"Exception occurred while populating GuruTask table: {e}")
+        # Optionally, log the specific row that caused the error
+        try:
+            logging.error(f"Problematic row details: {row.to_dict()}")
+        except Exception:
+            pass

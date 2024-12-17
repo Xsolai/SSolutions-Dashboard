@@ -45,7 +45,7 @@ def view_role_permissions(db: Session = Depends(get_db),
                 "analytics_email_subkpis_api": permission.analytics_email_subkpis_api,
                 "analytics_sales_service_api": permission.analytics_sales_service_api,
                 "analytics_booking_api": permission.analytics_booking_api,
-                "analytics_booking_sub_kpis_api": permission.analytics_booking_subkpis_api,
+                "analytics_booking_subkpis_api": permission.analytics_booking_subkpis_api,
                 "analytics_conversion_api": permission.analytics_conversion_api,
                 "date_filter": permission.date_filter,
             }
@@ -57,7 +57,7 @@ def view_role_permissions(db: Session = Depends(get_db),
 @router.get("/admin/approve/{user_id}")
 def approve_user_request(user_id: str, db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
-    user = db.query(models.User).filter(models.User.id == user_id, models.User.status == "pending").first()
+    user = db.query(models.User).filter(models.User.id == user_id).first()
     # Check if the user exists
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
     # Check if the current user is an admin
@@ -65,6 +65,9 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
         raise HTTPException(status_code=403, detail="Only admins can assign permissions.")
     if not user:
         raise HTTPException(status_code=404, detail="User not found or already processed.")
+    
+    # if user.status != "pending":
+    #     raise HTTPException(status_code=400, detail="User already processed.")
     
     user.status = "approved"
     db.commit()
@@ -87,7 +90,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
         analytics_booking_api=True,
         analytics_booking_subkpis_api=True,
         analytics_conversion_api=True,
-        date_filter="all, yesterday"
+        date_filter="all,yesterday"
     )
     db.add(default_permission)
     db.commit()
@@ -97,7 +100,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
 @router.get("/admin/reject/{user_id}")
 def approve_user_request(user_id: str, db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
-    user = db.query(models.User).filter(models.User.id == user_id, models.User.status == "pending").first()
+    user = db.query(models.User).filter(models.User.id == user_id).first()
     
     # Check if the user exists
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
@@ -179,24 +182,19 @@ def assign_permission(
 @router.get("/admin/users")
 def get_users(db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
-    try:
-        # Check if the user exists
-        current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
-        # Check if the current user is an admin
-        if current_user.role != "admin":
-            raise HTTPException(status_code=403, detail="Only admins can assign permissions.")
-    
-        users = db.query(models.User).all()
-        # print([user.email for user in users])
-        if not users:
-            raise HTTPException(status_code=404, detail="No users found.")
-        return [{
-            "user id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
-            "status": user.status
-        } for user in users]
-    except Exception as e:
-        logging.error(f"Error fetching users: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while fetching users.")
+    current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
+    # Check if the current user is an admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can assign permissions.")
+
+    users = db.query(models.User).all()
+    # print([user.email for user in users])
+    if not users:
+        raise HTTPException(status_code=404, detail="No users found.")
+    return [{
+        "user id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "status": user.status
+    } for user in users]

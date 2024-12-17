@@ -5,6 +5,8 @@ from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.src.utils import get_date_range, calculate_percentage_change
+from app.database.scehmas import schemas
+from app.database.auth import oauth2
 
 
 router = APIRouter(
@@ -22,8 +24,9 @@ def format_revenue(num):
 @router.get("/tasks_kpis")
 async def get_tasks_kpis(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
-    """Endpoint to retrieve booking data from the database."""
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
+    """Endpoint to retrieve booking data from the database."""    
     start_date, end_date = get_date_range(filter_type)
     
     if start_date is None:
@@ -37,14 +40,14 @@ async def get_tasks_kpis(
     return {
         "Total orders": total_orders,
         "# of assigned users": assign_users_by_tasks,
-        "Tota Tasks": total_tasks,
+        "Task types": total_tasks,
     }
     
 @router.get("/tasks_overview")
 async def get_tasks_overview(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
-):
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve tasks data from the database."""
     start_date, end_date = get_date_range(filter_type)
 
@@ -120,7 +123,8 @@ async def get_tasks_overview(
 @router.get("/tasks_performance")
 async def get_tasks_performance(
     filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve calls data from the database."""
     start_date, end_date = get_date_range(filter_type)
     

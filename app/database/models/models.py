@@ -183,14 +183,6 @@ class FileProcessingHistory(Base):
     filename = Column(String(255), nullable=False)  # Name of the file
     status = Column(String(50), nullable=False)  # Status of the processing (e.g., 'Success', 'Failed')
     processed_at = Column(DateTime, default=datetime.utcnow)  # Timestamp when the file was processed
-
-
-class RolePermission(Base):
-    __tablename__ = 'role_permissions'
-
-    id = Column(Integer, primary_key=True, index=True)
-    role = Column(String, unique=True, nullable=False)  # Role name
-    permissions = Column(JSON, default={})  # API permissions for the role
     
     
 class Permission(Base):
@@ -224,7 +216,7 @@ class GuruTask(Base):
     date = Column(Date)
     order_number = Column(String, nullable=False)  # Auftrag Auftragsnummer (Auftrag)
     assigned_user = Column(String)  # Notiz/Aufgabe erledigender Benutzer
-    due_date = Column(DateTime)  # Notiz/Aufgabe fällig bis
-    time_modified = Column(DateTime)  # Notiz/Aufgabe Zeit Änderung
-    task_type = Column(String)  # Notiz/Aufgabe Aufgabentyp
-    creation_time = Column(DateTime)  # Notiz/Aufgabe Zeit Anlage
+    due_date = Column(DateTime, nullable=True)# Notiz/Aufgabe fällig bis
+    time_modified = Column(DateTime, nullable=True)  # Notiz/Aufgabe Zeit Änderung
+    task_type = Column(String, nullable=True)  # Notiz/Aufgabe Aufgabentyp
+    creation_time = Column(DateTime, nullable=True)  # Notiz/Aufgabe Zeit Anlage

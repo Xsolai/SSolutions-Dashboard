@@ -21,9 +21,9 @@ def time_to_seconds(time_str):
             pass
         
         if '.' in time_str[0]:
-            print("float ", time_str[0])
+            # print("float ", time_str[0])
             return (float(time_str[0])*60)
-        print("Time str", time_str[0], time_str)
+        # print("Time str", time_str[0], time_str)
 
         # Handle time formats
         if ':' in time_str[0]:
@@ -51,17 +51,12 @@ async def get_anaytics_email_data(
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
     
+    # User and Permission Validation
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
-    
-    # Parse allowed filters from the permissions table
-    if user_permissions and user_permissions.date_filter:
-        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
-        allowed_filters = set(user_permissions.date_filter.split(","))
-    else:
-        # If `date_filter` is empty or no record exists, allow all filters
-        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -70,33 +65,49 @@ async def get_anaytics_email_data(
             detail={
                 "error": "Permission Denied",
                 "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+                "allowed_filters": list(allowed_filters)
             }
         )
     
-    # Get date range based on filter_type
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    # Date range for filtering
     start_date, end_date = get_date_range(filter_type)
+    
+    if is_admin_or_employee:
+        query = db.query(WorkflowReportGuruKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    else:
+        print("executing else containss")
+        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
     
     # Retrieve data from database
     if start_date is None:
         # Filter data based on the interval (date) column
-        email_recieved = db.query(
+        email_recieved = query.with_entities(
             func.sum(WorkflowReportGuruKF.received)
         ).scalar() or 0
 
-        email_answered = db.query(
+        email_answered = query.with_entities(
             func.sum(WorkflowReportGuruKF.sent)
         ).scalar() or 0
 
-        # email_forwarded = db.query(
-        #     func.sum(WorkflowReportGuruKF.sent_forwarded)
-        # ).scalar() or 0
+        new_cases = db.query(
+            func.sum(WorkflowReportGuruKF.new_cases)
+        ).scalar() or 0
 
-        email_archieved = db.query(
+        email_archieved = query.with_entities(
             func.sum(WorkflowReportGuruKF.archived)
         ).scalar() or 0
 
-        service_level_gross = db.query(
+        service_level_gross = query.with_entities(
             func.avg(WorkflowReportGuruKF.service_level_gross)
         ).scalar() or 0
 
@@ -104,36 +115,36 @@ async def get_anaytics_email_data(
         #     func.sum(WorkflowReportGuruKF.sent_new_message)
         # ).scalar() or 0
 
-        processing_times = db.query(WorkflowReportGuruKF.processing_time).all()
+        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).all()
         
 
     else:
         # Filter data based on the interval (date) column
-        email_recieved = db.query(
+        email_recieved = query.with_entities(
             func.sum(WorkflowReportGuruKF.received)
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
 
-        email_answered = db.query(
+        email_answered = query.with_entities(
             func.sum(WorkflowReportGuruKF.sent)
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
 
-        # email_forwarded = db.query(
-        #     func.sum(WorkflowReportGuruKF.sent_forwarded)
-        # ).filter(
-        #     WorkflowReportGuruKF.date.between(start_date, end_date)
-        # ).scalar() or 0
+        new_cases = db.query(
+            func.sum(WorkflowReportGuruKF.new_cases)
+        ).filter(
+            WorkflowReportGuruKF.date.between(start_date, end_date)
+        ).scalar() or 0
 
-        email_archieved = db.query(
+        email_archieved = query.with_entities(
             func.sum(WorkflowReportGuruKF.archived)
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
 
-        service_level_gross = db.query(
+        service_level_gross = query.with_entities(
             func.avg(WorkflowReportGuruKF.service_level_gross)
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
@@ -145,7 +156,7 @@ async def get_anaytics_email_data(
         #     WorkflowReportGuruKF.date.between(start_date, end_date)
         # ).scalar() or 0
 
-        processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).all()
     # Clean the data to extract values from tuples
@@ -182,8 +193,8 @@ async def get_anaytics_email_data(
     ]
     return {
         "email recieved": email_recieved,
-        "email answered": email_answered,
-        # "email forwarded": email_forwarded,
+        "email sent": email_answered,
+        "email new cases": new_cases,
         "email archived": email_archieved,
         "SL Gross": round(service_level_gross, 2),
         # "New Sent": new_sent,
@@ -208,13 +219,13 @@ async def get_anaytics_email_data_sub_kpis(
     email_recieved = db.query(
         func.sum(WorkflowReportGuruKF.received)
     ).filter(
-        WorkflowReportGuruKF.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuruKF.date.between(start_date_str, end_date_str)
     ).scalar() or 0
 
     email_answered = db.query(
         func.sum(WorkflowReportGuruKF.sent)
     ).filter(
-        WorkflowReportGuruKF.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuruKF.date.between(start_date_str, end_date_str)
     ).scalar() or 0
 
     # email_forwarded = db.query(
@@ -226,7 +237,7 @@ async def get_anaytics_email_data_sub_kpis(
     email_archieved = db.query(
         func.sum(WorkflowReportGuruKF.archived)
     ).filter(
-        WorkflowReportGuruKF.interval.between(start_date_str, end_date_str)
+        WorkflowReportGuruKF.date.between(start_date_str, end_date_str)
     ).scalar() or 0
 
     # new_sent = db.query(
@@ -239,13 +250,13 @@ async def get_anaytics_email_data_sub_kpis(
     prev_email_recieved = db.query(
         func.sum(WorkflowReportGuruKF.received)
     ).filter(
-        WorkflowReportGuruKF.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuruKF.date.between(prev_start_date_str, prev_end_date_str)
     ).scalar() or 0
 
     prev_email_answered = db.query(
         func.sum(WorkflowReportGuruKF.sent)
     ).filter(
-        WorkflowReportGuruKF.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuruKF.date.between(prev_start_date_str, prev_end_date_str)
     ).scalar() or 0
 
     # prev_email_forwarded = db.query(
@@ -257,7 +268,7 @@ async def get_anaytics_email_data_sub_kpis(
     prev_email_archieved = db.query(
         func.sum(WorkflowReportGuruKF.archived)
     ).filter(
-        WorkflowReportGuruKF.interval.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuruKF.date.between(prev_start_date_str, prev_end_date_str)
     ).scalar() or 0
 
     # prev_new_sent = db.query(
@@ -286,17 +297,12 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
     
+    # User and Permission Validation
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
-    
-    # Parse allowed filters from the permissions table
-    if user_permissions and user_permissions.date_filter:
-        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
-        allowed_filters = set(user_permissions.date_filter.split(","))
-    else:
-        # If `date_filter` is empty or no record exists, allow all filters
-        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -305,57 +311,72 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             detail={
                 "error": "Permission Denied",
                 "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+                "allowed_filters": list(allowed_filters)
             }
         )
     
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
     db = SessionLocal()
     start_date, end_date = get_date_range(filter_type)
-    sale_queue_name = "5vorFlugSales"
-    service_queue_name = "5vorFlugService"
+    # Apply filtering logic
+    if is_admin_or_employee:
+        query = db.query(QueueStatistics)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    else:
+        print("executing else containss")
+        query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.notlike("%5vorFlug%"))
+
     if start_date is None:
-        avg_handling_time = db.query(
+        avg_handling_time = query.with_entities(
         func.avg(
             QueueStatistics.avg_handling_time_inbound
         )
         ).scalar()*60 or 0
         
-        total_talk_time = db.query(
+        total_talk_time = query.with_entities(
             func.sum(
                 QueueStatistics.total_outbound_talk_time_destination
             )
         ).scalar()*60 or 0
         
-        total_outbound_calls = db.query(
+        total_outbound_calls = query.with_entities(
             func.sum(
                 QueueStatistics.outbound
             )
-        ).scalar()*60 or 0
+        ).scalar() or 0
         
         # Query for Sale Calls
-        sale_metrics = db.query(
+        sale_metrics = query.with_entities(
             func.sum(QueueStatistics.offered).label("sale_calls_offered"),
             func.sum(QueueStatistics.accepted).label("sale_calls_handled"),
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("sale_ACC"),
+            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 1) * 100).label("sale_ACC"),
             func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
             func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("sale_AHT_sec"),
             func.max(QueueStatistics.max_wait_time * 60).label("sale_longest_waiting_time_sec"),
             func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("sale_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name == sale_queue_name).first()
+        ).filter(QueueStatistics.queue_name.notlike("%Service%")).first()
         
         # Query for Service Calls
-        service_metrics = db.query(
+        service_metrics = query.with_entities(
             func.sum(QueueStatistics.offered).label("service_calls_offered"),
             func.sum(QueueStatistics.accepted).label("service_calls_handled"),
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("service_ACC"),
+            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 1) * 100).label("service_ACC"),
             func.avg(QueueStatistics.sla_20_20).label("service_SL"),
             func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("service_AHT_sec"),
             func.max(QueueStatistics.max_wait_time * 60).label("service_longest_waiting_time_sec"),
             func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("service_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name == service_queue_name).first()
+        ).filter(QueueStatistics.queue_name.like("%Service%")).first()
         
     else:
-        avg_handling_time = db.query(
+        avg_handling_time = query.with_entities(
             func.avg(
                 QueueStatistics.avg_handling_time_inbound
             )
@@ -363,7 +384,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         
-        total_talk_time = db.query(
+        total_talk_time = query.with_entities(
             func.sum(
                 QueueStatistics.total_outbound_talk_time_destination
             )
@@ -371,7 +392,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             QueueStatistics.date.between(start_date, end_date)
         ).scalar() or 0
         
-        total_outbound_calls = db.query(
+        total_outbound_calls = query.with_entities(
             func.sum(
                 QueueStatistics.outbound
             )
@@ -380,7 +401,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
         ).scalar() or 0
         
         # Query for Sale Calls
-        sale_metrics = db.query(
+        sale_metrics = query.with_entities(
             func.sum(QueueStatistics.offered).label("sale_calls_offered"),
             func.sum(QueueStatistics.accepted).label("sale_calls_handled"),
             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("sale_ACC"),
@@ -388,10 +409,10 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("sale_AHT_sec"),
             func.max(QueueStatistics.max_wait_time * 60).label("sale_longest_waiting_time_sec"),
             func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("sale_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name == sale_queue_name, QueueStatistics.date.between(start_date, end_date)).first()
+        ).filter(QueueStatistics.queue_name.notlike("%Service%"), QueueStatistics.date.between(start_date, end_date)).first()
         
         # Query for Service Calls
-        service_metrics = db.query(
+        service_metrics = query.with_entities(
             func.sum(QueueStatistics.offered).label("service_calls_offered"),
             func.sum(QueueStatistics.accepted).label("service_calls_handled"),
             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("service_ACC"),
@@ -399,7 +420,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
             func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("service_AHT_sec"),
             func.max(QueueStatistics.max_wait_time * 60).label("service_longest_waiting_time_sec"),
             func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("service_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name == service_queue_name, QueueStatistics.date.between(start_date, end_date)).first()
+        ).filter(QueueStatistics.queue_name.like("%Service%"), QueueStatistics.date.between(start_date, end_date)).first()
     
     return {
         "sales_metrics": {
@@ -434,17 +455,12 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
     ):
     """Endpoint to retrieve graphs data from the database."""
     
+    # User and Permission Validation
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
-    
-    # Parse allowed filters from the permissions table
-    if user_permissions and user_permissions.date_filter:
-        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
-        allowed_filters = set(user_permissions.date_filter.split(","))
-    else:
-        # If `date_filter` is empty or no record exists, allow all filters
-        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -453,13 +469,28 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
             detail={
                 "error": "Permission Denied",
                 "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+                "allowed_filters": list(allowed_filters)
             }
         )
     
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    # Date range for filtering
     start_date, end_date = get_date_range(filter_type)
-    # print(start_date)
-    # print(end_date)
+    
+    if is_admin_or_employee:
+        query = db.query(SoftBookingKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%5vF%")
+        )
+    else:
+        print("executing else containss")
+        query = db.query(SoftBookingKF).filter(SoftBookingKF.customer.notlike("%5vF%"))
     booked = "OK"
     cancelled = "XX"
     pending = "PE"
@@ -471,36 +502,36 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
     try:
         if start_date is None:
             # Count records for each status
-            total_bookings = db.query(func.count(SoftBookingKF.original_status)).scalar() or 0
-            booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked).scalar() or 0
-            cancelled_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status != cancelled).scalar() or 0
-            pending_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending).scalar() or 0
-            op_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op).scalar() or 0
-            rq_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq).scalar() or 0
-            pe_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe).scalar() or 0
-            sb_booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked).scalar() or 0
+            total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).scalar() or 0
+            booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked).scalar() or 0
+            cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled).scalar() or 0
+            pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending).scalar() or 0
+            op_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op).scalar() or 0
+            rq_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq).scalar() or 0
+            pe_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe).scalar() or 0
+            sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked).scalar() or 0
             # Calculate SB Booking Rate
             total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
             sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
-            sb_input = db.query(
+            sb_input = query.with_entities(
                 func.count(SoftBookingKF.original_status)
             ).scalar() or 0
         else:
             # start_date_str = start_date.strftime("%Y-%m-%d")
             # end_date_str = end_date.strftime("%Y-%m-%d")
             print(start_date, end_date)
-            total_bookings = db.query(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            cancelled_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            pending_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            op_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            rq_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            pe_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            sb_booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            op_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            rq_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            pe_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+            sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
             # Calculate SB Booking Rate
             total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
             sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
-            sb_input = db.query(
+            sb_input = query.with_entities(
                 func.count(SoftBookingKF.original_status)
             ).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
         
@@ -512,7 +543,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
             "Pending": pending_count,
             "OP": op_count,
             "RQ": rq_count,
-            "PE": pe_count,
+            # "PE": pe_count,
             "SB": sb_booked_count,
             "SB Booking Rate (%)": round(sb_booking_rate, 2),
             "Processing time" : sb_input * time_input,
@@ -520,7 +551,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
                 "Booked": booked_count,
                 "Cancelled": cancelled_count,
                 "Pending": pending_count,
-                "OP/RQ/PE": op_count+rq_count+pe_count,
+                "OP/RQ": op_count+rq_count,
                 "SB": sb_booked_count
             }
         }
@@ -582,17 +613,12 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
+    # User and Permission Validation
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
-    
-    # Parse allowed filters from the permissions table
-    if user_permissions and user_permissions.date_filter:
-        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
-        allowed_filters = set(user_permissions.date_filter.split(","))
-    else:
-        # If `date_filter` is empty or no record exists, allow all filters
-        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -601,20 +627,42 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
             detail={
                 "error": "Permission Denied",
                 "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+                "allowed_filters": list(allowed_filters)
+            }
+        )
+    
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    # Date range for filtering
+    start_date, end_date = get_date_range(filter_type)
+    
+    if is_admin_or_employee:
+        query = db.query(SoftBookingKF)
+    elif email_contains_5vflug:
+        print("containss")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"You don't have a permission.",
             }
         )
 
-    db = SessionLocal()    
-    start_date, end_date = get_date_range(filter_type=filter_type)
+    else:
+        print("executing else containss")
+        query = db.query(SoftBookingKF).filter(SoftBookingKF.customer.notlike("%5vF%"))
+
+    db = SessionLocal()
     if start_date is None:
         calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
         calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
         wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
         sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
-        # calls = db.query(func.sum(GuruDailyCallData.total_calls)).scalar() or 0
         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
-        turnover_cb = round(db.query(func.sum(SoftBookingKF.service_element_price)).scalar() or 0,2)
+        turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).scalar() or 0,2)
         sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
     
     else:
@@ -632,21 +680,18 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
         sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0
-        # calls = db.query(func.sum(GuruDailyCallData.total_calls)).filter(
-        # GuruDailyCallData.date.between(start_date, end_date)
-        # ).scalar() or 0
         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 1
-        turnover_cb = round(db.query(func.sum(SoftBookingKF.service_element_price)).filter(
+        turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).filter(
         SoftBookingKF.service_creation_time.between(start_date_str, end_date_str)
         ).scalar() or 0,2)
         sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0
         
-    cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb, 2)
-    sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb, 2)
+    cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
+    sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
     
     # Return metrics as a dictionary
     return {
@@ -674,4 +719,3 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
         }
         
         }
-

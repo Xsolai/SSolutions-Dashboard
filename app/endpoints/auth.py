@@ -25,7 +25,7 @@ router = APIRouter(
 # Temporary in-memory storage for reset tokens
 reset_tokens: Dict[str, int] = {}
 EMPLOYEE_DOMAIN = "@solasolution.com"
-CUSTOMER_DOMAINS = ["@customer.com", "@business.com"]
+CUSTOMER_DOMAINS = ["@guru.com", "@5vorFlug.com"]
 
 
 class ForgetPasswordRequest(BaseModel):
@@ -164,13 +164,13 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     and temporarily storing user details for verification.
     """
     # Determine the role based on the email domain
-    # if request.email.endswith(EMPLOYEE_DOMAIN):
-    #     role = "employee"
-    # elif any(request.email.endswith(domain) for domain in CUSTOMER_DOMAINS):
-    #     role = "customer"
-    # else:
-    #     raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
-    role = "customer"
+    if request.email.endswith(EMPLOYEE_DOMAIN):
+        role = "employee"
+    elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
+        role = "customer"
+    else:
+        raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+    # role = "customer"
     # Check if user already exists
     user = db.query(models.User).filter(
         (models.User.email == request.email) | (models.User.username == request.username)
@@ -295,7 +295,7 @@ def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
         send_email_to_admin(new_user)
         print("Email sent successfully.")
 
-        return {"message": "Registration successful!"}
+        return {"message": "You'll receive an email once your registration request is approved."}
     except Exception as e:
         print(f"Error during user registration: {e}")
         raise HTTPException(status_code=500, detail="Failed to register user.")

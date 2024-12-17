@@ -17,9 +17,14 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
         "/auth/verify-otp",
         "/auth/resend-otp",
         "/login",
+        "auth/verify-token",
     ]
     async def dispatch(self, request: Request, call_next):
         try:
+            if request.method == "OPTIONS":  # Skip authorization for OPTIONS requests
+                return await call_next(request)
+
+            
             if request.url.path in self.EXCLUDED_PATHS:
                 return await call_next(request)
             
@@ -46,7 +51,7 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
             # Check user permissions for this specific API
             api_name = request.url.path.strip("/")  # Remove the leading slash
             api_name = api_name+"_api"
-            # print("api_name: ", api_name)
+            print("api_name: ", api_name)
             # print("user id: ", user.id)
              # Map API path to the corresponding permission column in Permission table
             api_permission_map = {
@@ -71,6 +76,7 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
             
             if permission_column:
                 permission = db.query(Permission).filter(Permission.user_id == user.id).first()
+                # print(permission.analytics_booking_api)
                 if not permission or getattr(permission, permission_column) != 1:
                     raise HTTPException(status_code=403, detail="Access denied")
             

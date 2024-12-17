@@ -23,7 +23,7 @@ def time_to_seconds(time):
         if '.' in time[0]:
             print("float ", time[0])
             return (float(time[0])*60)
-        print("Time str", time[0], time)
+        # print("Time str", time[0], time)
 
         # Handle time formats
         if ':' in time[0]:
@@ -50,17 +50,12 @@ async def get_email_overview(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
+    # User and Permission Validation
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
-    
-    # Parse allowed filters from the permissions table
-    if user_permissions and user_permissions.date_filter:
-        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
-        allowed_filters = set(user_permissions.date_filter.split(","))
-    else:
-        # If `date_filter` is empty or no record exists, allow all filters
-        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -69,20 +64,38 @@ async def get_email_overview(
             detail={
                 "error": "Permission Denied",
                 "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+                "allowed_filters": list(allowed_filters)
             }
         )
-
+    
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    # Date range for filtering
     start_date, end_date = get_date_range(filter_type)
+    
+    if is_admin_or_employee:
+        query = db.query(WorkflowReportGuruKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    else:
+        print("executing else containss")
+        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+        
     total_processing_time_seconds = 1
     if start_date is None:
-        service_level_gross = db.query(
+        service_level_gross = query.with_entities(
             func.avg(
                 WorkflowReportGuruKF.service_level_gross
             )
         ).scalar() or 0
         
-        processing_times = db.query(WorkflowReportGuruKF.processing_time).all()
+        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).all()
         # Clean the data to extract values from tuples
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
@@ -92,31 +105,31 @@ async def get_email_overview(
             total_processing_time_seconds += seconds
             # print("Interval Data:", dict(interval_data))  # Debug print
         
-        total_emails = db.query(
+        total_emails = query.with_entities(
             func.sum(
                 WorkflowReportGuruKF.received
             )
         ).scalar() or 0
         
-        new_cases = db.query(
+        new_cases = query.with_entities(
             func.sum(
                 WorkflowReportGuruKF.new_cases
             )
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
-        service_level_gross_data = db.query(
-            WorkflowReportGuruKF.interval.label("interval"),
+        service_level_gross_data = query.with_entities(
+            WorkflowReportGuruKF.date.label("interval"),
             func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
-        ).group_by(WorkflowReportGuruKF.interval).order_by(WorkflowReportGuruKF.interval.desc()).all()
+        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.interval.desc()).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
-            {"interval": row.interval, "service_level_gross": round(row.service_level_gross or 0, 2)}
+            {"date": row.interval, "service_level_gross": round(row.service_level_gross or 0, 2)}
             for row in service_level_gross_data
         ]
     else:
-        service_level_gross = db.query(
+        service_level_gross = query.with_entities(
             func.avg(
                 WorkflowReportGuruKF.service_level_gross
             )
@@ -124,7 +137,7 @@ async def get_email_overview(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
         
-        processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).all()
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
@@ -132,7 +145,7 @@ async def get_email_overview(
             seconds = time_to_seconds(pt)
             total_processing_time_seconds += seconds
         
-        total_emails = db.query(
+        total_emails = query.with_entities(
             func.sum(
                 WorkflowReportGuruKF.received
             )
@@ -140,7 +153,7 @@ async def get_email_overview(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
         
-        new_cases = db.query(
+        new_cases = query.with_entities(
             func.sum(
                 WorkflowReportGuruKF.new_cases
             )
@@ -149,12 +162,12 @@ async def get_email_overview(
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
-        service_level_gross_data = db.query(
-            WorkflowReportGuruKF.interval.label("interval"),
+        service_level_gross_data = query.with_entities(
+            WorkflowReportGuruKF.date.label("interval"),
             func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuruKF.interval).order_by(WorkflowReportGuruKF.interval.desc()).all()
+        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.interval.desc()).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -266,17 +279,12 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     
+    # User and Permission Validation
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
-    
-    # Parse allowed filters from the permissions table
-    if user_permissions and user_permissions.date_filter:
-        # Convert the `date_filter` column (assumed to be a comma-separated string) into a set
-        allowed_filters = set(user_permissions.date_filter.split(","))
-    else:
-        # If `date_filter` is empty or no record exists, allow all filters
-        allowed_filters = {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -285,16 +293,34 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
             detail={
                 "error": "Permission Denied",
                 "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)  # Return allowed filters to the client
+                "allowed_filters": list(allowed_filters)
             }
         )
     
-    start_date, end_date = get_date_range(filter_type=filter_type)
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    # Date range for filtering
+    start_date, end_date = get_date_range(filter_type)
+    
+    if is_admin_or_employee:
+        query = db.query(WorkflowReportGuruKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    else:
+        print("executing else containss")
+        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+    
     if start_date is None:
         # Query the latest 6 intervals (dates) and service level gross
-        service_level_gross_data = db.query(
+        service_level_gross_data = query.with_entities(
             WorkflowReportGuruKF.mailbox.label("mailbox"),
-            func.sum(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
+            func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).group_by(WorkflowReportGuruKF.mailbox).order_by(WorkflowReportGuruKF.service_level_gross.desc()).all()
 
         # Format the service level gross data
@@ -303,7 +329,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
             for row in service_level_gross_data
         ]
 
-        mailbox_processing_data = db.query(
+        mailbox_processing_data = query.with_entities(
             WorkflowReportGuruKF.mailbox.label("mailbox"),
             WorkflowReportGuruKF.processing_time.label("processing_time")  # Fetch raw time strings
         ).all()
@@ -327,7 +353,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
         
         # Query total new sent emails
-        replies_data = db.query(
+        replies_data = query.with_entities(
             WorkflowReportGuruKF.customer.label("customer"),
             func.sum(WorkflowReportGuruKF.sent).label("sent"),
             func.sum(WorkflowReportGuruKF.received).label("recieved")
@@ -338,7 +364,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         for row in replies_data
         ]
     else:
-        service_level_gross_data = db.query(
+        service_level_gross_data = query.with_entities(
             WorkflowReportGuruKF.mailbox.label("mailbox"),
             func.sum(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).filter(
@@ -351,7 +377,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
             for row in service_level_gross_data
         ]
 
-        mailbox_processing_data = db.query(
+        mailbox_processing_data = query.with_entities(
             WorkflowReportGuruKF.mailbox.label("mailbox"),
             WorkflowReportGuruKF.processing_time.label("processing_time")  # Fetch raw time strings
         ).filter(
@@ -379,7 +405,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
         pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
         
         # Query total new sent emails
-        replies_data = db.query(
+        replies_data = query.with_entities(
             WorkflowReportGuruKF.customer.label("customer"),
             func.sum(WorkflowReportGuruKF.sent).label("sent"),
             func.sum(WorkflowReportGuruKF.received).label("recieved")
