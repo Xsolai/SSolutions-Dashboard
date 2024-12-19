@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from app.database.models import models
 from app.database.scehmas import schemas
 from app.database.auth import token
@@ -157,3 +157,21 @@ async def update_profile(
     db.commit()
     db.refresh(user)
     return user
+
+@router.get("/profile", response_model=schemas.UserBasicInfo, status_code=status.HTTP_200_OK)
+async def get_profile(
+    db: Session = Depends(get_db), 
+    current_user: schemas.User = Depends(oauth2.get_current_user)):
+    """
+    Retrieve the username and email of the currently logged-in user.
+    """
+    user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with the email {current_user.email} not found"
+        )
+
+    # Return the username and email
+    return {"username": user.username, "email": user.email}

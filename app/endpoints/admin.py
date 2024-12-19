@@ -92,7 +92,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
             analytics_booking_api=True,
             analytics_booking_subkpis_api=True,
             analytics_conversion_api=True,
-            date_filter="all,yesterday"
+            date_filter="yesterday"
         )
         db.add(default_permission)
         db.commit()

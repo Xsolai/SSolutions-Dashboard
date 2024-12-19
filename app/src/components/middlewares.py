@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
 from app.database.auth.oauth2 import get_current_user
-from app.database.models.models import User, Permission
+from app.database.models.models import User, Permission, BlacklistedToken
 from app.database.db.db_connection import get_db
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.src.logger import logging
@@ -18,6 +18,8 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
         "/auth/resend-otp",
         "/login",
         "auth/verify-token",
+        "/forget-password/",
+        "/reset-password/",
     ]
     async def dispatch(self, request: Request, call_next):
         try:
@@ -37,6 +39,9 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
             
             token = authorization_header.split("Bearer ")[1]
+            blacklisted_token = db.query(BlacklistedToken).filter(BlacklistedToken.token == token).first()
+            if blacklisted_token:
+                raise HTTPException(status_code=403, detail="Sign-in please")
             user = get_current_user(request=request, token=token)
             
             # Find the user in the database

@@ -11,10 +11,11 @@ import time , random
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.database.auth.jwt_handler import decode_jwt
 from app.database.auth.token import verify_token
-from app.database.models.models import User
+from app.database.models.models import User, BlacklistedToken
 from app.database.db.db_connection import get_db
 from sqlalchemy.orm import Session
 from jose import JWTError
+from app.src.logger import logging
 
 
 router = APIRouter(
@@ -341,3 +342,36 @@ def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to resend OTP.")
 
     return {"message": "OTP has been resent to your email. Please verify to complete registration."}
+
+
+@router.post("/logout")
+async def logout(request: Request, db: Session = Depends(get_db)):
+    try:
+        # Extract Authorization Header
+        authorization_header = request.headers.get("Authorization")
+        if not authorization_header or not authorization_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+        
+        token = authorization_header.split("Bearer ")[1]
+        
+        # Blacklist the token
+        blacklist_token(db, token, reason="User logged out")
+        
+        return {"detail": "Logged out successfully"}
+    
+    except Exception as exc:
+        logging.error(f"Logout Error: {str(exc)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+def blacklist_token(db: Session, token: str, reason: str):
+    # Check if the token already exists in the blacklisted tokens table
+    existing_token = db.query(BlacklistedToken).filter(BlacklistedToken.token == token).first()
+    if existing_token:
+        raise HTTPException(status_code=400, detail="Token is already blacklisted")
+    
+    # Add the token to the blacklist table
+    blacklisted_token = BlacklistedToken(token=token, reason=reason)
+    db.add(blacklisted_token)
+    db.commit()
+    print(f"Token blacklisted: {token}")
+    logging.info(f"Token blacklisted: {token}")

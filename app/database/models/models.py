@@ -270,3 +270,10 @@ class OrderJoin(Base):
     # __table_args__ = (
     #     UniqueConstraint('order_number', name='_order_number_uc'),
     # )
+
+class BlacklistedToken(Base):
+    __tablename__ = "blacklisted_tokens"
+
+    token = Column(String, primary_key=True, index=True)
+    reason = Column(String)
+    blacklisted_at = Column(DateTime, default=datetime.utcnow)
