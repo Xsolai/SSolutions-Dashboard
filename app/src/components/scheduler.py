@@ -5,7 +5,7 @@ from app.src.components.fetch_emails import download_attachments
 from app.database.db.db_connection import SessionLocal
 from app.src.components.data_ingestion import (
     populate_guru_call_reason,populate_workflow_report, 
-    populate_queue_statistics, populate_soft_booking_data, populate_guru_task_data
+    populate_queue_statistics, populate_soft_booking_data, populate_guru_task_data, create_order_join
 )
 from app.src.components.data_transformation import load_excel_data, load_csv_data
 import os
@@ -156,6 +156,13 @@ def run_task():
                     logging.info(f"Successfully processed {file_type}")
             except Exception as e:
                 logging.error(f"Error processing {file_type}: {e}", exc_info=True)
+            
+            try:
+                create_order_join(db)
+            except Exception as e:
+                logging.error(f"Error in creating order join: {e}")
+            
+            # db.close()
 
     except Exception as e:
         logging.critical("Task failed with an unexpected error", exc_info=True)

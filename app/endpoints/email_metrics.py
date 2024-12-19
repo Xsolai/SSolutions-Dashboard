@@ -189,6 +189,39 @@ async def get_email_overview_sub_kpis(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
+    # User and Permission Validation
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    
+    # Parse allowed filters
+    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
+    
+    # Validate the requested filter
+    if filter_type not in allowed_filters:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"The filter type '{filter_type}' is not allowed for this user.",
+                "allowed_filters": list(allowed_filters)
+            }
+        )
+    
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    if is_admin_or_employee:
+        query = db.query(WorkflowReportGuruKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    else:
+        print("executing else containss")
+        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
     start_date, end_date = get_date_range("yesterday")
     prev_start_date, prev_end_date = get_date_range("last_week")
     total_processing_time_seconds = 1
@@ -196,7 +229,7 @@ async def get_email_overview_sub_kpis(
     # start_date, end_date = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
     # prev_start_date, prev_end_date = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Normal Kpis
-    service_level_gross = db.query(
+    service_level_gross = query.with_entities(
         func.avg(
             WorkflowReportGuruKF.service_level_gross
         )
@@ -204,7 +237,7 @@ async def get_email_overview_sub_kpis(
         WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
     
-    processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+    processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
         WorkflowReportGuruKF.date.between(start_date, end_date)
     ).all()
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
@@ -212,7 +245,7 @@ async def get_email_overview_sub_kpis(
         seconds = time_to_seconds(pt)
         total_processing_time_seconds += seconds
     
-    total_emails = db.query(
+    total_emails = query.with_entities(
         func.sum(
             WorkflowReportGuruKF.received
         )
@@ -220,7 +253,7 @@ async def get_email_overview_sub_kpis(
         WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
     
-    new_cases = db.query(
+    new_cases = query.with_entities(
         func.sum(
             WorkflowReportGuruKF.new_cases
         )
@@ -229,7 +262,7 @@ async def get_email_overview_sub_kpis(
     ).scalar() or 0
     
     # Previous Kpis to calculate the change
-    prev_service_level_gross = db.query(
+    prev_service_level_gross = query.with_entities(
         func.avg(
             WorkflowReportGuruKF.service_level_gross
         )
@@ -237,7 +270,7 @@ async def get_email_overview_sub_kpis(
         WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
-    prev_processing_times = db.query(WorkflowReportGuruKF.processing_time).filter(
+    prev_processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
         WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).all()
     prev_processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in prev_processing_times]
@@ -245,7 +278,7 @@ async def get_email_overview_sub_kpis(
         prev_seconds = time_to_seconds(pt)
         prev_total_processing_time_seconds += prev_seconds
     
-    prev_total_emails = db.query(
+    prev_total_emails = query.with_entities(
         func.sum(
             WorkflowReportGuruKF.received
         )
@@ -253,7 +286,7 @@ async def get_email_overview_sub_kpis(
         WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
-    prev_new_cases = db.query(
+    prev_new_cases = query.with_entities(
         func.sum(
             WorkflowReportGuruKF.new_cases
         )

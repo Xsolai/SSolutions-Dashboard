@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date, JSON, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Time, Date, JSON, Boolean, ForeignKey, UniqueConstraint
 from datetime import datetime
 from app.database.db.db_connection import Base
 from sqlalchemy.orm import relationship
@@ -220,3 +220,53 @@ class GuruTask(Base):
     time_modified = Column(DateTime, nullable=True)  # Notiz/Aufgabe Zeit Änderung
     task_type = Column(String, nullable=True)  # Notiz/Aufgabe Aufgabentyp
     creation_time = Column(DateTime, nullable=True)  # Notiz/Aufgabe Zeit Anlage
+    
+# class OrderJoin(Base):
+#     __tablename__ = 'order_join'
+    
+#     id = Column(Integer, primary_key=True, autoincrement=True)
+    
+#     # Columns from SoftBookingKF
+#     booking_number = Column(String, nullable=True)
+#     customer = Column(String, nullable=True)
+#     lt_code = Column(String, nullable=True)
+#     original_status = Column(String, nullable=True)
+#     status = Column(String, nullable=True)
+#     service_element_price = Column(Float, nullable=True)
+#     service_creation_time = Column(DateTime, nullable=True)
+#     service_original_amount = Column(Float, nullable=True)
+    
+#     # Columns from GuruTask
+#     order_number = Column(String, nullable=False)
+#     assigned_user = Column(String, nullable=True)
+#     due_date = Column(DateTime, nullable=True)
+#     time_modified = Column(DateTime, nullable=True)
+#     task_type = Column(String, nullable=True)
+#     task_creation_time = Column(DateTime, nullable=True)
+    
+#     # # Create a unique constraint on the order_number to ensure no duplicates
+#     # __table_args__ = (
+#     #     UniqueConstraint('order_number', 'booking_number', name='_order_booking_uc'),
+#     # )
+
+class OrderJoin(Base):
+    __tablename__ = 'order_join'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date)
+    order_number = Column(String, nullable=False)  # Order number must always be present
+    task_type = Column(String, nullable=True)  # Task type
+    customer = Column(String, nullable=True)  # Type of entry (KF, SB, Task, etc.)
+    lt_code = Column(String, nullable=True)  # LT-Code
+    status = Column(String, nullable=True)  # Status (e.g., OP, SB)
+    element_price = Column(Float, nullable=True)  # Element price
+    original_amount = Column(Float, nullable=True)  # Original amount
+    performance_time = Column(DateTime, nullable=True)  # Performance time
+    user = Column(String, nullable=True)  # Assigned user
+    task_deadline = Column(DateTime, nullable=True)  # Task deadline
+    task_created = Column(DateTime, nullable=True)  # Task creation timestamp
+    
+    # # Optional unique constraint if you still want to enforce uniqueness
+    # __table_args__ = (
+    #     UniqueConstraint('order_number', name='_order_number_uc'),
+    # )

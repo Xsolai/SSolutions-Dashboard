@@ -72,28 +72,30 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
     user.status = "approved"
     db.commit()
     
-    # Create a default permission record for the approved user
-    default_permission = Permission(
-        user_id=user.id,
-        call_overview_api=True,
-        call_performance_api=True,
-        call_sub_kpis_api=True,
-        email_overview_api=True,
-        email_performance_api=True,
-        email_sub_kpis_api=True,
-        task_overview_api=True,
-        task_performance_api=True,
-        task_sub_kpis_api=True,
-        analytics_email_api=True,
-        analytics_email_subkpis_api=True,
-        analytics_sales_service_api=True,
-        analytics_booking_api=True,
-        analytics_booking_subkpis_api=True,
-        analytics_conversion_api=True,
-        date_filter="all,yesterday"
-    )
-    db.add(default_permission)
-    db.commit()
+    existing_permission = db.query(models.Permission).filter(models.Permission.user_id == user.id).first()
+    if not existing_permission:
+        # Create a default permission record for the approved user
+        default_permission = Permission(
+            user_id=user.id,
+            call_overview_api=True,
+            call_performance_api=True,
+            call_sub_kpis_api=True,
+            email_overview_api=True,
+            email_performance_api=True,
+            email_sub_kpis_api=True,
+            task_overview_api=True,
+            task_performance_api=True,
+            task_sub_kpis_api=True,
+            analytics_email_api=True,
+            analytics_email_subkpis_api=True,
+            analytics_sales_service_api=True,
+            analytics_booking_api=True,
+            analytics_booking_subkpis_api=True,
+            analytics_conversion_api=True,
+            date_filter="all,yesterday"
+        )
+        db.add(default_permission)
+        db.commit()
     send_email_to_user(user.status, email=user.email)
     return {"message": "User approved successfully."}
 
@@ -113,6 +115,12 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
     # db.delete(user)
     user.status = "rejected"
     db.commit()
+    user_permissions = db.query(models.Permission).filter(models.Permission.user_id == user_id).all()
+    if user_permissions:
+        for permission in user_permissions:
+            db.delete(permission)
+        db.commit()
+        
     send_email_to_user(status=user.status, email=user.email)
     return {"message": "User rejected."}
 

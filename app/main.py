@@ -15,10 +15,6 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 app = FastAPI()
 
 
-# @app.get("/restricted-endpoint", dependencies=[Depends(role_based_access_control)])
-# async def restricted_endpoint():
-#     return {"message": "You have access to this endpoint"}
-
 print("backend start")
 # Enable CORS for specific origins or allow all
 app.add_middleware(
@@ -34,7 +30,7 @@ app.add_middleware(RoleBasedAccessMiddleware)
 async def startup_event():
     # Schedule the data import task to run daily at a fixed time
     # This will run the task every day at 13:00 (1:00 PM) Pakistani time
-    schedule_daily_task(18, 47)  # Set your desired hour and minute here
+    schedule_daily_task(12, 54)  # Set your desired hour and minute here
 
 # Create tables in database
 Base.metadata.create_all(bind=engine)

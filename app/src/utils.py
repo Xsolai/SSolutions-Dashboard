@@ -54,7 +54,19 @@ def get_date_range(filter_type: str):
     return start_date, end_date
 
 
+# def calculate_percentage_change(current, previous):
+#     if previous == 0:
+#         return "N/A" if current == 0 else "+100%"
+#     return f"{((current - previous) / previous) * 100:.1f}%"
 def calculate_percentage_change(current, previous):
     if previous == 0:
-        return "N/A" if current == 0 else "+100%"
-    return f"{((current - previous) / previous) * 100:.1f}%"
+        return "0%" if current == 0 else "100%"
+    
+    percent_change = ((current - previous) / previous) * 100
+    
+    if percent_change > 100:
+        return "100%"
+    elif percent_change < -100:
+        return "0%"
+    
+    return f"{percent_change:.1f}%"
