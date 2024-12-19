@@ -1,12 +1,13 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect ,useRef} from 'react';
 import axios from 'axios';
-import { History, X, Check, AlertTriangle, Clock, Menu } from 'lucide-react';
+import {UserCircle, LogOut , History, X, Check, AlertTriangle, Clock, Menu } from 'lucide-react';
 import CallAnalysisDashboard from "@/components/CallAnalysisDashboard";
 import EmailAnalysisDashboard from "@/components/EmailAnalysisDashboard";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import logo from "@/assets/images/logo.png";
 import ProtectedRoute from '@/components/ProtectedRoute';
+import TaskAnalysisDashboard from '@/components/TaskAnalyis';
 
 const HistorySidebar = ({ isOpen, onClose }) => {
   const [historyData, setHistoryData] = useState([]);
@@ -62,9 +63,8 @@ const HistorySidebar = ({ isOpen, onClose }) => {
           onClick={onClose}
         />
       )}
-      <div className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
+      <div className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}>
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -80,7 +80,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center items-center h-full">
@@ -117,6 +117,92 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   );
 };
 
+
+const ProfileDropdown = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('https://app.saincube.com/app2/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('https://app.saincube.com/app2/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200"
+      >
+        <UserCircle className="w-6 h-6" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+          <div className="p-4 border-b border-gray-200">
+            <p className="font-medium text-gray-900">{userData?.username}</p>
+            <p className="text-sm text-gray-500">{userData?.email}</p>
+          </div>
+          <div className="p-2">
+            <button
+              onClick={handleLogout}
+              className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 transition-all duration-200"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 const Home = () => {
   const [activeTab, setActiveTab] = useState('analytics');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -143,95 +229,104 @@ const Home = () => {
     { id: 'analytics', label: 'Analytics' },
     { id: 'call-analysis', label: 'Call Analysis' },
     { id: 'email-analysis', label: 'Email Analysis' },
+    { id: 'task-analysis', label: 'Task Analysis' },
   ];
 
   return (
     <ProtectedRoute>
-    <div className="min-h-screen bg-white text-black">
-      <div className="py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-        <div className="flex-shrink-0">
-    <img 
-      src={logo.src} 
-      alt="Dashboard Logo" 
-      className="w-auto h-6 px-2" 
-    />
-  </div>
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 rounded-lg bg-black text-[#FDCC00] hover:bg-gray-800"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+      <div className="min-h-screen bg-white text-black">
+        <div className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex-shrink-0">
+              <img
+                src={logo.src}
+                alt="Dashboard Logo"
+                className="w-auto h-6 px-2"
+              />
+            </div>
+  
+            <div className="flex items-center gap-4">
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center space-x-4">
+                {navigationLinks.map((link) => (
+                  <button
+                    key={link.id}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                      activeTab === link.id
+                        ? 'text-black bg-yellow-400'
+                        : 'text-black border-[#FDCC00] border-2'
+                    }`}
+                    onClick={() => handleTabChange(link.id)}
+                  >
+                    {link.label}
+                  </button>
+                ))}
+                <button
+                  className="px-4 py-2 rounded-xl font-medium bg-black text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
+                  onClick={() => setIsHistoryOpen(true)}
+                >
+                  <History className="w-5 h-5" />
+                  History
+                </button>
+                <ProfileDropdown />
+              </div>
+  
+              {/* Mobile View */}
+              <div className="md:hidden flex items-center gap-4">
+                <button
+                  className="p-2 rounded-lg bg-black text-[#FDCC00] hover:bg-gray-800"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+                <ProfileDropdown />
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-4">
-            {navigationLinks.map((link) => (
+              </div>
+            </div>
+          </div>
+  
+          {/* Mobile Navigation Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden bg-white border-black border-2 rounded-xl mt-4 p-4 space-y-3">
+              {navigationLinks.map((link) => (
+                <button
+                  key={link.id}
+                  className={`w-full px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                    activeTab === link.id
+                      ? 'bg-[#FDCC00] text-black'
+                      : 'text-[#FDCC00] hover:bg-gray-800'
+                  }`}
+                  onClick={() => handleTabChange(link.id)}
+                >
+                  {link.label}
+                </button>
+              ))}
               <button
-                key={link.id}
-                className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                  activeTab === link.id
-                    ? 'text-black bg-yellow-400'
-                    : 'text-black border-[#FDCC00] border-2'
-                }`}
-                onClick={() => handleTabChange(link.id)}
+                className="w-full px-4 py-2 rounded-xl font-medium text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+                onClick={() => {
+                  setIsHistoryOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
               >
-                {link.label}
+                <History className="w-5 h-5" />
+                History
               </button>
-            ))}
-            <button
-              className="px-4 py-2 rounded-xl font-medium bg-black text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
-              onClick={() => setIsHistoryOpen(true)}
-            >
-              <History className="w-5 h-5" />
-              History
-            </button>
+            </div>
+          )}
+          {/* Dashboard Content */}
+          <div className="mt-6">
+            {activeTab === 'analytics' && <AnalyticsDashboard />}
+            {activeTab === 'call-analysis' && <CallAnalysisDashboard />}
+            {activeTab === 'email-analysis' && <EmailAnalysisDashboard />}
+            {activeTab === 'task-analysis' && <TaskAnalysisDashboard />}
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white border-black border-2 rounded-xl mt-4 p-4 space-y-3">
-            {navigationLinks.map((link) => (
-              <button
-                key={link.id}
-                className={`w-full px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                  activeTab === link.id
-                    ? 'bg-[#FDCC00] text-black'
-                    : 'text-[#FDCC00] hover:bg-gray-800'
-                }`}
-                onClick={() => handleTabChange(link.id)}
-              >
-                {link.label}
-              </button>
-            ))}
-            <button
-              className="w-full px-4 py-2 rounded-xl font-medium text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
-              onClick={() => {
-                setIsHistoryOpen(true);
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <History className="w-5 h-5" />
-              History
-            </button>
-          </div>
-        )}
-
-        {/* Dashboard Content */}
-        <div className="mt-6">
-          {activeTab === 'analytics' && <AnalyticsDashboard />}
-          {activeTab === 'call-analysis' && <CallAnalysisDashboard />}
-          {activeTab === 'email-analysis' && <EmailAnalysisDashboard />}
-        </div>
+        <HistorySidebar
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+        />
       </div>
-
-      <HistorySidebar 
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-      />
-    </div>
     </ProtectedRoute>
   );
 };

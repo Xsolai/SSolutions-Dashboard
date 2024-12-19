@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .modern-scrollbar {
+    @apply relative;
+  }
+
+  .modern-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .modern-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+
+  .modern-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-[#fdcc00] rounded-full;
+  }
+
+  .modern-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-[#eab308];
+  }
+
+  /* Firefox */
+  .modern-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #fdcc00 #f3f4f6;
+  }
+}
+
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Optional: Add smooth scrolling to the chart container */
+.overflow-x-auto {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}

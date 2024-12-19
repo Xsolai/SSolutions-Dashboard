@@ -1,9 +1,11 @@
 "use client";
 import React, { useState , useEffect} from 'react';
-import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend , LineChart , Line} from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import FilterComponent from './FilterComponent';
+
 
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -47,10 +49,10 @@ const Loading = () => {
 }
 
 const AnimatedText = () => {
-  const titleLines = ["Call", "Center", "Analytics"];
+  const titleLines = ["Callcenter", "Zentrale", "Analytik"];
 
   return (
-    <div className="inline-flex">
+    <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-3 space-y-2 sm:space-y-0">
       {titleLines.map((line, lineIndex) => (
         <motion.div
           key={lineIndex}
@@ -60,7 +62,7 @@ const AnimatedText = () => {
             duration: 1,
             staggerChildren: 0.1,
           }}
-          className="text-3xl sm:text-4xl md:text-5xl px-1 sm:px-1.5 lg:text-5xl font-bold text-[#fdcc00] flex"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-[#fdcc00] flex flex-wrap"
         >
           {line.split("").map((letter, index) => (
             <motion.span
@@ -82,7 +84,6 @@ const AnimatedText = () => {
   );
 };
 
-
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
   <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <div className="flex items-center justify-between mb-1">
@@ -92,16 +93,19 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
       </div>
     </div>
     <div className="text-2xl font-bold text-gray-900 mb-2">{value}</div>
-    {change && description && (
+    {change !== undefined && description && (
       <p className="text-xs text-gray-500">
-        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-blue-500' : 'text-blue-500'}`}>
-          {change}
+        <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-blue-500' : 'text-blue-500'}`}>
+          {typeof change === 'number' 
+            ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%`
+            : change}
         </span>
         {description}
       </p>
     )}
   </div>
 );
+
 
 const ChartCard = ({ title, children }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
@@ -122,246 +126,263 @@ const COLORS = [
   '#FFD100',    // Bright Yellow
   '#FF3131FF'     // Bright Blue
 ];
-// Main component with hooks properly placed
+
 const CallAnalysisDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [callsKPIs, setCallsKPIs] = useState(null);
-  const [callData, setCallData] = useState(null);
-  const [weekdayData, setWeekdayData] = useState(null);
-  const [callReasons, setCallReasons] = useState(null);
-  const [queueData, setQueueData] = useState(null);
+  const [activeTab, setActiveTab] = useState('uebersicht');
+  const [filterType, setFilterType] = useState('yesterday');
+  const [overviewData, setOverviewData] = useState(null);
+  const [subKPIs, setSubKPIs] = useState(null);
+  const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const handleDropdownChange = (e) => setActiveTab(e.target.value);
+
+  const tabs = [
+    { id: "uebersicht", name: "Übersicht" },
+    { id: "performance", name: "Leistungsmetriken" }
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const access_token = localStorage.getItem('access_token');
-        
         const config = {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${access_token}`
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json'
           }
         };
 
-        const [
-          kpisResponse, 
-          callDataResponse, 
-          weekdayResponse, 
-          reasonsResponse,
-          queueResponse
-        ] = await Promise.all([
-          axios.get('https://app.saincube.com/app2/calls_kpis', config),
-          axios.get('https://app.saincube.com/app2/call_data', config),
-          axios.get('https://app.saincube.com/app2/calls_kpis_weekdays', config),
-          axios.get('https://app.saincube.com/app2/call_reasons_breakdowns', config),
-          axios.get('https://app.saincube.com/app2/call_by_queue', config)
+        const responses = await Promise.all([
+          fetch(`https://app.saincube.com/app2/call_overview?filter_type=${filterType}`, config),
+          fetch(`https://app.saincube.com/app2/calls_sub_kpis?filter_type=${filterType}`, config),
+          fetch(`https://app.saincube.com/app2/call_performance?filter_type=${filterType}`, config)
         ]);
 
-        setCallsKPIs(kpisResponse.data);
-        setCallData(callDataResponse.data);
-        setWeekdayData(weekdayResponse.data);
-        setCallReasons(reasonsResponse.data);
-        setQueueData(queueResponse.data);
-        setLoading(false);
+        const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
+          responses.map(res => res.json())
+        );
+
+        console.log('Übersichtsdaten:', overviewRes);
+        setOverviewData(overviewRes);
+        setSubKPIs(subKPIsRes);
+        setPerformanceData(performanceRes);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Fehler beim Datenabruf:', error);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-    // const interval = setInterval(fetchData, 30000);
-    // return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [filterType]);
+
+  const UebersichtTab = () => {
+    if (loading || !overviewData || !subKPIs) return <Loading />;
   
-
-  const renderOverviewTab = () => {
-    if (!callsKPIs || !weekdayData) return <div><Loading/></div>;
-
-    const overviewStats = [
+    const uebersichtStats = [
       { 
-        title: "Total Calls", 
-        value: callsKPIs.total_calls.toLocaleString(), 
-        icon: Phone 
+        title: "Gesamtanrufe", 
+        value: overviewData?.total_calls?.toLocaleString() || '0', 
+        icon: Phone,
+        change: subKPIs['total_calls_change'],
+        description: "im Vergleich zur letzten Periode"
       },
       { 
-        title: "Answer Success Rate", 
-        value: `${callsKPIs.asr}%`, 
-        icon: CheckCircle 
+        title: "Serviceniveau", 
+        value: `${overviewData?.SLA || 0}%`, 
+        icon: CheckCircle,
+        change: subKPIs['SLA_change'],
+        description: "im Vergleich zur letzten Periode" 
       },
       { 
-        title: "Service Level", 
-        value: `${callsKPIs.SLA}%`, 
-        icon: Clock 
+        title: "ASR", 
+        value: `${overviewData?.asr || 0}%`, 
+        icon: Activity,
+        change: subKPIs['asr_change'],
+        description: "im Vergleich zur letzten Periode"  
       },
       { 
-        title: "Dropped Calls", 
-        value: callsKPIs['Dropped calls'], 
-        icon: CreditCard 
+        title: "Durchschnittliche Wartezeit", 
+        value: `${overviewData?.['avg wait time'] || 0} min`, 
+        icon: Clock,
+        change: subKPIs['avg wait time_change'],
+        description: "im Vergleich zur letzten Periode"  
       },
       { 
-        title: "Avg. Wait Time", 
-        value: `${callsKPIs['avg wait time'].toFixed(1)} sec`, 
-        icon: Clock 
+        title: "Maximale Wartezeit", 
+        value: `${overviewData?.['max. wait time'] || 0} min`, 
+        icon: Clock,
+        change: subKPIs['max. wait time_change'],
+        description: "im Vergleich zur letzten Periode"  
       },
       { 
-        title: "Max Wait Time", 
-        value: `${callsKPIs['max. wait time'].toFixed(1)} sec`, 
-        icon: Clock 
+        title: "Durchschnittliche Bearbeitungszeit", 
+        value: `${overviewData?.['avg handling time'] || 0} min`, 
+        icon: Clock,
+        change: subKPIs['avg_handling_time_change'],
+        description: "im Vergleich zur letzten Periode"  
       },
       { 
-        title: "Avg. Handling Time", 
-        value: `${callsKPIs['avg handling time'].toFixed(1)} min`, 
-        icon: Clipboard 
+        title: "Nachbearbeitungszeit", 
+        value: `${overviewData?.['After call work time'] || 0} min`,
+        icon: Clipboard,
+        change: subKPIs['After call work time_change'],
+        description: "im Vergleich zur letzten Periode"  
       },
       { 
-        title: "After-Call Work", 
-        value: `${callsKPIs['After call work time'].toFixed(1)} min`, 
-        icon: Clipboard 
+        title: "Verlorene Anrufe", 
+        value: overviewData?.['Dropped calls'] || 0, 
+        icon: Phone,
+        change: subKPIs['Dropped calls_change'],
+        description: "im Vergleich zur letzten Periode"  
       }
     ];
-
-    const formattedWeekdayData = weekdayData.map(day => ({
-      date: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.weekday],
-      calls: day.total_calls,
-      asr: day.asr,
-      sla: day.sla_percent,
-      avgWaitTime: day.avg_wait_time_sec,
-      maxWaitTime: day.max_wait_time_sec,
-      avgHandleTime: day.avg_handling_time,
-      droppedCalls: day.dropped_calls
-    }));
-
+  
+    const dailyCallData = overviewData?.['Daily Call Volume'] || [];
+  
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {overviewStats.map((stat, index) => (
+          {uebersichtStats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
         </div>
-
-        <ChartCard title="Daily Call Volume">
-          <div className="relative flex-1 w-full h-80 min-h-[400px] overflow-hidden">
-            <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
-              <div className="min-w-[800px] h-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={formattedWeekdayData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
-                  >
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="calls" name="Total Calls" fill={COLORS[2]} maxBarSize={50} />
-                    <Bar dataKey="asr" name="ASR %" fill={COLORS[0]} maxBarSize={50} />
-                    <Bar dataKey="sla" name="SLA %" fill={COLORS[1]} maxBarSize={50} />
-                    <Bar dataKey="avgWaitTime" name="Avg Wait Time" fill={COLORS[7]} maxBarSize={50} />
-                    <Bar dataKey="maxWaitTime" name="Max Wait Time" fill={COLORS[4]} maxBarSize={50} />
-                    <Bar dataKey="avgHandleTime" name="Avg Handle Time" fill={COLORS[8]} maxBarSize={50} />
-                    <Bar dataKey="droppedCalls" name="Dropped Calls" fill={COLORS[6]} maxBarSize={50} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+  
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Tägliche Gesamtanrufe">
+            <div className="h-[300px]">
+              <ResponsiveContainer>
+                <BarChart 
+                  data={dailyCallData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                >
+                  <XAxis 
+                    dataKey="call metrics.weekday"
+                    tick={{ fontSize: 12, fill: COLORS[3] }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis tick={{ fontSize: 12, fill: COLORS[3] }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="call metrics.total_calls" name="Gesamtanrufe" fill={COLORS[1]} />
+                  <Bar dataKey="call metrics.answered_calls" name="Beantwortete Anrufe" fill={COLORS[2]} />
+                  <Bar dataKey="call metrics.dropped_calls" name="Verlorene Anrufe" fill={COLORS[0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
+          </ChartCard>
+  
+          <ChartCard title="Tägliche Wartezeiten (Minuten)">
+            <div className="h-[300px]">
+              <ResponsiveContainer>
+                <LineChart 
+                  data={dailyCallData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                >
+                  <XAxis 
+                    dataKey="Time metrics.weekday"
+                    tick={{ fontSize: 12, fill: COLORS[3] }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis tick={{ fontSize: 12, fill: COLORS[3] }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="Time metrics.avg_wait_time_sec" 
+                    name="Durchschn. Wartezeit (Min)" 
+                    stroke={COLORS[2]}
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="Time metrics.max_wait_time_sec" 
+                    name="Max. Wartezeit (Min)" 
+                    stroke={COLORS[1]}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+  
+        <ChartCard title="Tägliche ASR & Serviceniveau %">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <LineChart 
+                data={dailyCallData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+              >
+                <XAxis 
+                  dataKey="% metrics.weekday"
+                  tick={{ fontSize: 12, fill: COLORS[3] }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: COLORS[3] }}
+                  domain={[0, 100]}
+                />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="% metrics.asr" 
+                  name="ASR %" 
+                  stroke={COLORS[0]}
+                  strokeWidth={2}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="% metrics.sla_percent" 
+                  name="Serviceniveau %" 
+                  stroke={COLORS[1]}
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </ChartCard>
       </div>
     );
   };
 
-  const renderPerformanceTab = () => {
-    if (!callReasons || !queueData) return <div><Loading/></div>;
-
-    // Transform call reasons data for pie chart
-    const callReasonChartData = [
-      { reason: "CB SALES", value: callReasons.cb_sales },
-      { reason: "GURU SALES", value: callReasons.guru_sales },
-      { reason: "GURU SERVICE", value: callReasons.gurur_service },
-      { reason: "WRONG CALLS", value: callReasons.wrong_calls },
-      { reason: "OTHER", value: callReasons.others }
-    ];
-
-    // Transform queue data for bar chart
-    const queueChartData = [
-      {
-        queue: "Urlaubsguru DE",
-        calls: queueData["Urlaubsguru DE Calls"],
-        aht: queueData["Urlaubsguru DE AHT"]
-      },
-      {
-        queue: "Urlaubsguru AT",
-        calls: queueData["Urlaubsguru AT Calls"],
-        aht: queueData["Urlaubsguru AT AHT"]
-      },
-      {
-        queue: "Guru ServiceDE",
-        calls: queueData["Guru ServiceDE Calls"],
-        aht: queueData["Guru ServiceDE AHT"]
-      },
-      {
-        queue: "Guru Service",
-        calls: queueData["Guru Service Calls"],
-        aht: queueData["Guru Service AHT"]
-      },
-      {
-        queue: "CB DE",
-        calls: queueData["Urlaubsguru CB DE Calls"],
-        aht: queueData["Urlaubsguru CB DE AHT"]
-      },
-      {
-        queue: "CB AT",
-        calls: queueData["Urlaubsguru CB AT Calls"],
-        aht: queueData["Urlaubsguru CB AT AHT"]
-      },
-      {
-        queue: "Service CH",
-        calls: queueData["Guru ServiceCH Calls"],
-        aht: queueData["Guru ServiceCH AHT"]
-      }
-    ];
-
+  const PerformanceTab = () => {
+    if (!performanceData) return <Loading/>;
+  
+    const anrufGruende = performanceData['Call Reasons Breakdown'] || {};
+    const warteschlangenDaten = performanceData['Call By queue'] || {};
+  
     return (
       <div className="space-y-6">
-                {/* Additional performance metrics if needed */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard 
-            title="Total Service Calls" 
-            value={(queueData["Guru Service Calls"] + queueData["Guru ServiceDE Calls"]).toLocaleString()} 
-            icon={Phone} 
-          />
-          <StatCard 
-            title="Total Sales Calls" 
-            value={(queueData["Urlaubsguru DE Calls"] + queueData["Urlaubsguru AT Calls"]).toLocaleString()} 
-            icon={Phone} 
-          />
-          <StatCard 
-            title="Average Service AHT" 
-            value={`${((queueData["Guru Service AHT"] + queueData["Guru ServiceDE AHT"]) / 2).toFixed(1)} min`} 
-            icon={Clock} 
-          />
-          <StatCard 
-            title="Average Sales AHT" 
-            value={`${((queueData["Urlaubsguru DE AHT"] + queueData["Urlaubsguru AT AHT"]) / 2).toFixed(1)} min`} 
-            icon={Clock} 
-          />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ChartCard title="Call Reasons Breakdown">
-            <div className="h-[350px] w-full">
+          <ChartCard title="Verteilung der Anrufgründe">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={callReasonChartData}
+                    data={Object.entries(anrufGruende).map(([key, value]) => ({
+                      name: key.replace(/_/g, ' ').toUpperCase(),
+                      value: value || 0
+                    }))}
                     dataKey="value"
-                    nameKey="reason"
+                    nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={120}
                     label
                   >
-                    {callReasonChartData.map((entry, index) => (
+                    {Object.entries(anrufGruende).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -371,61 +392,39 @@ const CallAnalysisDashboard = () => {
               </ResponsiveContainer>
             </div>
           </ChartCard>
-
-          <ChartCard title="Calls by Queue">
-            <div className="h-[350px] w-full">
+  
+          <ChartCard title="Anrufe nach Warteschlange">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={queueChartData}>
+                <BarChart 
+                  data={Object.entries(warteschlangenDaten)
+                    .filter(([key]) => key.includes('Calls'))
+                    .map(([key, value]) => ({
+                      queue: key.replace(' Calls', ''),
+                      calls: value || 0,
+                      aht: warteschlangenDaten[`${key.replace(' Calls', '')} AHT`] || 0
+                    }))}
+                >
                   <XAxis 
                     dataKey="queue" 
-                    tick={{ fontSize: 12, fill: COLORS[3] }}
+                    tick={{ fontSize: 12 }}
                     angle={-45}
                     textAnchor="end"
                     height={80}
                   />
-                  <YAxis 
-                    yAxisId="left"
-                    orientation="left"
-                    tick={{ fontSize: 12, fill: COLORS[3] }}
-                    label={{ value: 'Total Calls', angle: -90, position: 'insideLeft' }}
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 12, fill: COLORS[3] }}
-                    label={{ value: 'AHT (min)', angle: 90, position: 'insideRight' }}
-                  />
+                  <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar 
-                    yAxisId="left"
-                    dataKey="calls" 
-                    name="Total Calls" 
-                    fill={COLORS[2]} 
-                    radius={[4, 4, 0, 0]} 
-                  />
-                  <Bar 
-                    yAxisId="right"
-                    dataKey="aht" 
-                    name="AHT (min)" 
-                    fill={COLORS[1]} 
-                    radius={[4, 4, 0, 0]} 
-                  />
+                  <Bar dataKey="calls" name="Gesamtanrufe" fill={COLORS[1]} />
+                  <Bar dataKey="aht" name="DGB (Min)" fill={COLORS[2]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
         </div>
-
       </div>
     );
   };
-
-
-  const tabs = [
-    { id: "overview", name: "Overview" },
-    { id: "performance", name: "Performance Metrics" }
-  ];
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
@@ -434,11 +433,13 @@ const CallAnalysisDashboard = () => {
           <AnimatedText />
         </div>
 
+        <FilterComponent filterType={filterType} setFilterType={setFilterType} />
+
         <div className="border-b border-gray-200 mb-6">
           <div className="sm:hidden">
             <select
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
+              onChange={handleDropdownChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
             >
               {tabs.map((tab) => (
@@ -467,8 +468,8 @@ const CallAnalysisDashboard = () => {
         </div>
 
         <div className="py-4">
-          {activeTab === "overview" && renderOverviewTab()}
-          {activeTab === "performance" && renderPerformanceTab()}
+          {activeTab === "uebersicht" && <UebersichtTab />}
+          {activeTab === "performance" && <PerformanceTab />}
         </div>
       </div>
     </div>

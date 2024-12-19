@@ -4,6 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Line
 import { Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import FilterComponent from './FilterComponent';
 
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -64,18 +65,10 @@ const COLORS = {
 
 
 
-const getBarColor = (sla) => {
-  if (sla <= 1000) return COLORS.chartColors[1];  // Primary Yellow
-  if (sla >= 1000) return COLORS.chartColors[0];  // Dark Blue
-  return COLORS.primary;                        // Dark Blue
-};
-
-
 const AnimatedText = () => {
-  const titleLines = ["Email", "Response", "Analytics"];
-
+  const titleLines = ["E-Mail", "Antworten", "Analytik"];
   return (
-    <div className="inline-flex">
+    <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-3 space-y-2 sm:space-y-0">
       {titleLines.map((line, lineIndex) => (
         <motion.div
           key={lineIndex}
@@ -85,7 +78,7 @@ const AnimatedText = () => {
             duration: 1,
             staggerChildren: 0.1,
           }}
-          className="text-2xl sm:text-4xl md:text-4xl px-1 sm:px-1.5 lg:text-5xl font-bold text-[#fdcc00] flex"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-[#fdcc00] flex flex-wrap"
         >
           {line.split("").map((letter, index) => (
             <motion.span
@@ -107,6 +100,7 @@ const AnimatedText = () => {
   );
 };
 
+// Stat Card component
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
   <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <div className="flex items-center justify-between mb-1">
@@ -116,10 +110,10 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
       </div>
     </div>
     <div className="text-2xl font-bold text-gray-900 mb-2">{value}</div>
-    {change && description && (
+    {change !== undefined && description && (
       <p className="text-xs text-gray-500">
-        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-blue-500' : 'text-blue-500'}`}>
-          {change}
+        <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-blue-500' : 'text-blue-500'}`}>
+          {parseFloat(change) > 0 ? '+' : ''}{parseFloat(change).toFixed(1)}%
         </span>
         {description}
       </p>
@@ -127,12 +121,20 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
   </div>
 );
 
-const ChartCard = ({ title, children }) => (
+// Add this component to your existing code
+const ChartCard = ({ title, children, isWideChart = false }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
-    {children}
+    <div className={isWideChart ? "overflow-x-auto overflow-y-hidden scrollbar-hide" : ""}>
+      <div className={isWideChart ? "min-w-[1200px] lg:min-w-full" : "w-full"}>
+        <div className="h-[300px]">
+          {children}
+        </div>
+      </div>
+    </div>
   </div>
 );
+
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -152,82 +154,104 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const EmailAnalysisDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [emailData, setEmailData] = useState(null);
+  const [activeTab, setActiveTab] = useState('uebersicht');
+  const [filterType, setFilterType] = useState('yesterday');
   const [overviewData, setOverviewData] = useState(null);
+  const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const handleDropdownChange = (e) => setActiveTab(e.target.value);
+
+  const tabs = [
+    { id: "uebersicht", name: "Übersicht" },
+    { id: "leistung", name: "Leistungskennzahlen" }
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const access_token = localStorage.getItem('access_token');
-        
         const config = {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${access_token}`
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json'
           }
         };
-    
-        const [emailResponse, overviewResponse, performanceResponse] = await Promise.all([
-          axios.get('https://app.saincube.com/app2/email-data', config),
-          axios.get('https://app.saincube.com/app2/email_overview', config),
-          axios.get('https://app.saincube.com/app2/email_performance_metrics', config)
-        ]);    
 
-        setEmailData(emailResponse.data);
-        setOverviewData(overviewResponse.data);
-        setPerformanceData(performanceResponse.data);
-        setLoading(false);
+        const [overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+          fetch(`https://app.saincube.com/app2/email_overview?filter_type=${filterType}`, config)
+            .then(res => res.json()),
+          fetch(`https://app.saincube.com/app2/email_overview_sub_kpis?filter_type=${filterType}`, config)
+            .then(res => res.json()),
+          fetch(`https://app.saincube.com/app2/email_performance?filter_type=${filterType}`, config)
+            .then(res => res.json())
+        ]);
+
+        setOverviewData(overviewRes);
+        setSubKPIs(subKPIsRes);
+        setPerformanceData(performanceRes);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Fehler beim Datenabruf:', error);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-    // const interval = setInterval(fetchData, 30000);
-    // return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [filterType]);
 
-  const OverviewTab = () => {
-    if (!emailData || !overviewData) return <div><Loading/></div>;
+  const UebersichtTab = () => {
+    if (!overviewData || !subKPIs) return <Loading/>;
 
-    const overviewStats = [
+    const bearbeitungszeitMinuten = Math.round((overviewData['Total Processing Time (sec)'] || 0) / 60);
+
+    const uebersichtStats = [
       { 
-        title: "24h Service Level", 
-        value: `${emailData['SL Gross'].toFixed(1)}%`,
-        icon: CheckCircle
+        title: "Serviceniveau", 
+        value: `${overviewData.service_level_gross || 0}%`,
+        icon: CheckCircle,
+        change: subKPIs['service_level_gross change'],
+        description: "im Vergleich zur letzten Periode"
       },
       { 
-        title: "Total Emails", 
-        value: overviewData['total emails recieved'].toLocaleString(), 
-        icon: Inbox
+        title: "Gesamte E-Mails", 
+        value: (overviewData['total emails recieved'] || 0).toLocaleString(), 
+        icon: Inbox,
+        change: subKPIs['total emails recieved change'],
+        description: "im Vergleich zur letzten Periode"
       },
       { 
-        title: "Processing Time", 
-        value: `${(overviewData['Total Processing Time (sec)'] / 60).toFixed(1)}m`, 
-        icon: Timer
+        title: "Bearbeitungszeit", 
+        value: `${bearbeitungszeitMinuten}m`, 
+        icon: Timer,
+        change: subKPIs['Total Processing Time (sec) change'],
+        description: "im Vergleich zur letzten Periode"
       },
       { 
-        title: "New Cases", 
-        value: overviewData['total new cases'].toLocaleString(), 
-        icon: Reply
+        title: "Neue Fälle", 
+        value: (overviewData['total new cases'] || 0).toLocaleString(), 
+        icon: Reply,
+        change: subKPIs['total new cases change'],
+        description: "im Vergleich zur letzten Periode"
       }
     ];
 
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {overviewStats.map((stat, index) => (
+          {uebersichtStats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
         </div>
 
-        <ChartCard title="Daily Service Level Performance">
+        <ChartCard title="Tägliche Serviceniveau-Leistung">
           <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={overviewData.daily_service_level_gross}>
+              <BarChart data={overviewData.daily_service_level_gross || []}>
                 <XAxis 
                   dataKey="interval" 
                   tick={{ fontSize: 12, fill: COLORS.gray }}
@@ -235,35 +259,15 @@ const EmailAnalysisDashboard = () => {
                 />
                 <YAxis 
                   tick={{ fontSize: 12, fill: COLORS.gray }}
-                  domain={[0, 'auto']}
+                  domain={[0, 100]}
                   axisLine={{ stroke: COLORS.lightGray }}
-                  label={{ 
-                    value: 'Service Level (%)', 
-                    angle: -90, 
-                    position: 'insideLeft', 
-                    fill: COLORS.gray
-                  }}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Bar 
                   dataKey="service_level_gross" 
-                  name="Service Level"
+                  name="Serviceniveau"
                   fill={COLORS.chartColors[0]}
-                >
-                  {overviewData.daily_service_level_gross.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={getBarColor(entry.service_level_gross)}
-                    />
-                  ))}
-                </Bar>
-                <Line 
-                  type="monotone" 
-                  dataKey={() => 95} 
-                  stroke={COLORS.chartColors[0]}
-                  strokeDasharray="3 3" 
-                  name="Target (95%)"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -273,82 +277,77 @@ const EmailAnalysisDashboard = () => {
     );
   };
 
-  const PerformanceTab = () => {
-    if (!performanceData) return <div><Loading/></div>;
-
+  const LeistungTab = () => {
+    if (!performanceData) return <Loading/>;
+  
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartCard title="Processing Time by Mailbox">
-            <div className="h-60 w-full">
+        <div className="grid grid-cols-1 gap-6">
+          <ChartCard isWideChart={true} title="Bearbeitungszeit nach Postfach">
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={performanceData.Processing_time_by_mailbox}>
-                  <XAxis dataKey="mailbox" tick={{ fontSize: 12, fill: COLORS.gray }} angle={-45} textAnchor="end" height={100} />
-                  <YAxis 
-                    tick={{ fontSize: 12, fill: COLORS.gray }}
-                    label={{ 
-                      value: 'Processing Time (sec)', 
-                      angle: -90, 
-                      position: 'insideLeft' 
-                    }}
+                <LineChart data={performanceData.Processing_time_by_mailbox || []}>
+                  <XAxis 
+                    dataKey="mailbox" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={100}
+                    interval={0}
                   />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar 
+                  <YAxis />
+                  <Tooltip />
+                  <Line 
+                    type="monotone"
                     dataKey="processing_time_sec" 
-                    name="Processing Time" 
-                    fill={COLORS.chartColors[0]} 
+                    name="Bearbeitungszeit (Min)" 
+                    stroke={COLORS.chartColors[0]}
+                    strokeWidth={2}
+                    dot={{ fill: COLORS.chartColors[0], r: 4 }}
+                    activeDot={{ r: 6 }}
                   />
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
-
-          <ChartCard title="Service Level by Mailbox">
-            <div className="h-60 w-full">
+  
+          <ChartCard isWideChart={true} title="Serviceniveau nach Postfach">
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={performanceData.service_level_by_mailbox}>
-                  <XAxis dataKey="mailbox" tick={{ fontSize: 12, fill: COLORS.gray }} angle={-45} textAnchor="end" height={100} />
-                  <YAxis 
-                    domain={[0, 'auto']} 
-                    tick={{ fontSize: 12, fill: COLORS.gray }}
-                    label={{ 
-                      value: 'Service Level (%)', 
-                      angle: -90, 
-                      position: 'insideLeft' 
-                    }}
+                <LineChart data={performanceData.service_level_by_mailbox || []}>
+                  <XAxis 
+                    dataKey="mailbox" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={100}
+                    interval={0}
                   />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar 
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Line 
+                    type="monotone"
                     dataKey="service_level_gross" 
-                    name="Service Level" 
-                    fill={COLORS.chartColors[1]} 
+                    name="Serviceniveau" 
+                    stroke={COLORS.chartColors[1]}
+                    strokeWidth={2}
+                    dot={{ fill: COLORS.chartColors[1], r: 4 }}
+                    activeDot={{ r: 6 }}
                   />
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
         </div>
-
-        <ChartCard title="Mailbox Response Metrics">
-          <div className="h-80 w-full">
+  
+        <ChartCard isWideChart={true} title="Antworten nach Kunden">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={performanceData.respone_by_mailbox}>
-                <XAxis dataKey="mailbox" tick={{ fontSize: 12, fill: COLORS.gray }} angle={-45} textAnchor="end" height={100} />
-                <YAxis tick={{ fontSize: 12, fill: COLORS.gray }} />
-                <Tooltip content={<CustomTooltip />} />
+              <BarChart data={performanceData.respone_by_customers || []}>
+                <XAxis dataKey="customer" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
                 <Legend />
-                <Bar 
-                  dataKey="sent" 
-                  name="Replies" 
-                  fill={COLORS.chartColors[2]} 
-                />
-                <Bar 
-                  dataKey="forwarded" 
-                  name="Forwards" 
-                  fill={COLORS.chartColors[3]} 
-                />
+                <Bar dataKey="sent" name="Gesendet" fill={COLORS.chartColors[2]} />
+                <Bar dataKey="recieved" name="Empfangen" fill={COLORS.chartColors[3]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -356,28 +355,21 @@ const EmailAnalysisDashboard = () => {
       </div>
     );
   };
-
-
-  const tabs = [
-    { id: "overview", name: "Overview" },
-    { id: "performance", name: "Performance Metrics" }
-  ];
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        {/* Header */}
         <div className="mb-10 px-2 pt-4 sm:mb-6 flex justify-between items-center">
           <AnimatedText />
         </div>
-
+        <FilterComponent filterType={filterType} setFilterType={setFilterType} />
         {/* Tabs Navigation */}
         <div className="border-b border-gray-200 mb-6">
-          {/* Dropdown for Mobile */}
+          {/* Dropdown für Mobile */}
           <div className="sm:hidden">
             <select
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
+              onChange={handleDropdownChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
             >
               {tabs.map((tab) => (
@@ -388,7 +380,7 @@ const EmailAnalysisDashboard = () => {
             </select>
           </div>
 
-          {/* Tabs for Desktop */}
+          {/* Tabs für Desktop */}
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -406,14 +398,14 @@ const EmailAnalysisDashboard = () => {
           </div>
         </div>
 
-        {/* Tab Content */}
         <div className="py-4">
-          {activeTab === "overview" && <OverviewTab />}
-          {activeTab === "performance" && <PerformanceTab />}
+          {activeTab === "uebersicht" && <UebersichtTab />}
+          {activeTab === "leistung" && <LeistungTab />}
         </div>
       </div>
     </div>
   );
 };
+
 
 export default EmailAnalysisDashboard;

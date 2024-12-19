@@ -51,24 +51,27 @@ const LoginForm = () => {
         }, 1000);
       }
     } catch (error) {
-      let errorMessage = 'Login failed. Please try again.';
-      
       if (error.response) {
         switch (error.response.status) {
+          case 403:
           case 404:
-            errorMessage = error.response.data.detail || 'Invalid credentials';
-            break;
           case 422:
-            errorMessage = 'Invalid email or password format';
+            toast.error(error.response.data.detail);
             break;
           default:
-            errorMessage = 'An error occurred. Please try again.';
+            toast.error(error.response.data.detail || 'Server error occurred');
         }
+      } else if (error.request) {
+        // Request was made but no response received
+        toast.error('No response from server. Please check your connection.');
+      } else {
+        // Error in request setup
+        toast.error('Error in making request. Please try again.');
       }
-      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
+  
   };
 
   const inputClass = "mt-1 block w-full px-3 py-2 bg-white border border-yellow-400 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 hover:border-gray-400 transition-all duration-200 ease-in-out appearance-none";

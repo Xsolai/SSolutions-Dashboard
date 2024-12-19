@@ -17,7 +17,23 @@ const passwordSchema = z
   .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
 
 const schema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
+  username: z.string()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username cannot exceed 30 characters')
+  .toLowerCase() // Convert to lowercase before validation
+  .regex(/^[a-z0-9][a-z0-9_]*[a-z0-9]$/, 'Username can only contain letters, numbers, and underscores. It must start and end with a letter or number')
+  .refine(
+    (value) => !value.includes(' '),
+    'Username cannot contain spaces'
+  )
+  .refine(
+    (value) => !/__/.test(value),
+    'Username cannot contain consecutive underscores'
+  )
+  .refine(
+    (value) => !/[^a-z0-9_]/.test(value),
+    'Username can only contain letters, numbers, and single underscores'
+  ),
   email: z.string().email('Invalid email address'),
   role: z.enum(['customer', 'employee'], { required_error: 'Please select a role' }),
   password: passwordSchema,
@@ -96,24 +112,6 @@ const SignupForm = () => {
               placeholder="john.doe@example.com"
             />
             {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <div className="relative">
-              <select
-                id="role"
-                {...register('role')}
-                className={`${inputClass} pr-10 ${errors.role ? 'border-red-500' : ''}`}
-              >
-                <option value="customer">Customer</option>
-                <option value="employee">Employee</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.role && <p className="mt-1 text-xs text-red-500">{errors.role.message}</p>}
           </div>
 
           <div>
