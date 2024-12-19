@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import OrderJoin, OrderJoin, Permission, User
+from app.database.models.models import GuruTask, OrderJoin, Permission, User
 from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func
 from datetime import datetime, timedelta
@@ -57,24 +57,24 @@ async def get_tasks_kpis(
     if is_admin_or_employee:
         query = db.query(OrderJoin).filter(
             OrderJoin.order_number.in_(
-                db.query(OrderJoin.order_number)
+                db.query(GuruTask.order_number)
             ))
     elif email_contains_5vflug:
         print("containss")
         query = db.query(OrderJoin).filter(
-            OrderJoin.order_number.in_(db.query(OrderJoin.order_number)),
+            OrderJoin.order_number.in_(db.query(GuruTask.order_number)),
             OrderJoin.customer.like("%5vF%")
         )
     else:
         print("executing else containss")
-        query = db.query(OrderJoin).filter(OrderJoin.order_number.in_(db.query(OrderJoin.order_number)),OrderJoin.customer.notlike("%5vF%"))
+        query = db.query(OrderJoin).filter(OrderJoin.order_number.in_(db.query(GuruTask.order_number)),OrderJoin.customer.notlike("%5vF%"))
        
     start_date, end_date = get_date_range(filter_type)
     
     if start_date is None:
         orders = db.query(func.count(OrderJoin.order_number)).filter(
             OrderJoin.order_number.in_(
-                db.query(OrderJoin.order_number)
+                db.query(GuruTask.order_number)
             )
         ).scalar() or 0
         
@@ -130,17 +130,17 @@ async def get_tasks_overview(
     if is_admin_or_employee:
         query = db.query(OrderJoin).filter(
             OrderJoin.order_number.in_(
-                db.query(OrderJoin.order_number)
+                db.query(GuruTask.order_number)
             ))
     elif email_contains_5vflug:
         print("containss")
         query = db.query(OrderJoin).filter(
-            OrderJoin.order_number.in_(db.query(OrderJoin.order_number)),
+            OrderJoin.order_number.in_(db.query(GuruTask.order_number)),
             OrderJoin.customer.like("%5vF%")
         )
     else:
         print("executing else containss")
-        query = db.query(OrderJoin).filter(OrderJoin.order_number.in_(db.query(OrderJoin.order_number)),OrderJoin.customer.notlike("%5vF%"))
+        query = db.query(OrderJoin).filter(OrderJoin.order_number.in_(db.query(GuruTask.order_number)),OrderJoin.customer.notlike("%5vF%"))
        
     
     start_date, end_date = get_date_range(filter_type)
@@ -244,17 +244,17 @@ async def get_tasks_performance(
     if is_admin_or_employee:
         query = db.query(OrderJoin).filter(
             OrderJoin.order_number.in_(
-                db.query(OrderJoin.order_number)
+                db.query(GuruTask.order_number)
             ))
     elif email_contains_5vflug:
         print("containss")
         query = db.query(OrderJoin).filter(
-            OrderJoin.order_number.in_(db.query(OrderJoin.order_number)),
+            OrderJoin.order_number.in_(db.query(GuruTask.order_number)),
             OrderJoin.customer.like("%5vF%")
         )
     else:
         print("executing else containss")
-        query = db.query(OrderJoin).filter(OrderJoin.order_number.in_(db.query(OrderJoin.order_number)),OrderJoin.customer.notlike("%5vF%"))
+        query = db.query(OrderJoin).filter(OrderJoin.order_number.in_(db.query(GuruTask.order_number)),OrderJoin.customer.notlike("%5vF%"))
     
     start_date, end_date = get_date_range(filter_type)
     
