@@ -223,7 +223,12 @@ async def get_tasks_performance(
     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
     
     # Parse allowed filters
-    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
+    # allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
+    if user_permissions and user_permissions.date_filter:
+        allowed_filters = set(user_permissions.date_filter.split(","))
+    else:
+        allowed_filters = {"yesterday"}
+
     
     # Validate the requested filter
     if filter_type not in allowed_filters:
@@ -259,11 +264,17 @@ async def get_tasks_performance(
     start_date, end_date = get_date_range(filter_type)
     
     if start_date is None:
-        assign_users_by_tasks = query.with_entities(
-            OrderJoin.user.label("assign_users_by_tasks"),
-            func.count(OrderJoin.task_created).label("task_count"),
-        ).filter(OrderJoin.task_created.isnot(None)).group_by(OrderJoin.user).all()
-        
+        # assign_users_by_tasks = query.with_entities(
+        #     OrderJoin.user.label("assign_users_by_tasks"),
+        #     func.count(OrderJoin.task_created).label("task_count"),
+        # ).filter(OrderJoin.task_created.isnot(None)).group_by(OrderJoin.user).all()
+        assign_users_by_tasks = [
+            {"assign_users_by_tasks": row[0], "task_count": row[1]}
+            for row in query.with_entities(
+                OrderJoin.user.label("assign_users_by_tasks"),
+                func.count(OrderJoin.task_created).label("task_count")
+            ).filter(OrderJoin.task_created.isnot(None)).group_by(OrderJoin.user).all()
+        ]
         assign_tasks_by_date = query.with_entities(
             func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
             func.count(OrderJoin.user).label("assign_tasks_by_date"),
@@ -284,13 +295,22 @@ async def get_tasks_performance(
         ).group_by(func.date(OrderJoin.task_deadline)).all()
 
     else:
-        assign_users_by_tasks = query.with_entities(
-            OrderJoin.user.label("assign_users_by_tasks"),
-            func.count(OrderJoin.task_created).label("task_count"),
-        ).filter(
-            OrderJoin.date.between(start_date, end_date),
-            OrderJoin.task_created.isnot(None)
-        ).group_by(OrderJoin.user).all()
+        # assign_users_by_tasks = query.with_entities(
+        #     OrderJoin.user.label("assign_users_by_tasks"),
+        #     func.count(OrderJoin.task_created).label("task_count"),
+        # ).filter(
+        #     OrderJoin.date.between(start_date, end_date),
+        #     OrderJoin.task_created.isnot(None)
+        # ).group_by(OrderJoin.user).all()
+        
+        assign_users_by_tasks = [
+            {"assign_users_by_tasks": row[0], "task_count": row[1]}
+            for row in query.with_entities(
+                OrderJoin.user.label("assign_users_by_tasks"),
+                func.count(OrderJoin.task_created).label("task_count")
+            ).filter(OrderJoin.date.between(start_date, end_date),OrderJoin.task_created.isnot(None)
+                     ).group_by(OrderJoin.user).all()
+        ]
         
         assign_tasks_by_date = query.with_entities(
             func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
@@ -319,12 +339,12 @@ async def get_tasks_performance(
     
     # Prepare response
     trends_data = [
-        {"date": row.date, "tasks_count": row.tasks_count}
+        {"date": str(row.date), "tasks_count": row.tasks_count}
         for row in tasks_trend
     ]
     
     upcoming_tasks_data = [
-    {"date": row.date, "tasks_due": row.tasks_due}
+    {"date": str(row.date), "tasks_due": row.tasks_due}
     for row in upcoming_tasks_next_week
 ]
     
