@@ -121,7 +121,7 @@ async def get_email_overview(
         service_level_gross_data = query.with_entities(
             WorkflowReportGuruKF.date.label("interval"),
             func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
-        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.interval.desc()).all()
+        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.interval.desc()).limit(10).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -167,7 +167,7 @@ async def get_email_overview(
             func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.interval.desc()).all()
+        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.date.desc()).limit(10).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -176,7 +176,7 @@ async def get_email_overview(
         ]
     
     return {
-        "Total Processing Time (sec)": total_processing_time_seconds if total_processing_time_seconds>1 else 0,
+        "Total Processing Time (sec)": round(total_processing_time_seconds,2) if total_processing_time_seconds>1 else 0,
         "total emails recieved": total_emails,
         "total new cases": new_cases,
         "service_level_gross": round(service_level_gross, 2),
@@ -222,6 +222,7 @@ async def get_email_overview_sub_kpis(
     else:
         print("executing else containss")
         query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+    
     start_date, end_date = get_date_range("yesterday")
     prev_start_date, prev_end_date = get_date_range("last_week")
     total_processing_time_seconds = 1
@@ -295,7 +296,7 @@ async def get_email_overview_sub_kpis(
     ).scalar() or 0
     
     return {
-        "Total Processing Time (sec)": total_processing_time_seconds,
+        "Total Processing Time (sec)": round(total_processing_time_seconds, 2),
         "Total Processing Time (sec) change": round(((total_processing_time_seconds - prev_total_processing_time_seconds)/ prev_total_processing_time_seconds)/60, 2),
         "total emails recieved": total_emails,
         "total emails recieved change": calculate_percentage_change(total_emails, prev_total_emails),

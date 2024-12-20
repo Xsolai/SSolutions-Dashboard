@@ -69,11 +69,11 @@ def get_talk_time(query, start_date, end_date):
 def get_inbound_after_call(query, start_date, end_date):
     """Endpoint to retrieve average wait time for calls."""
     if start_date is None:
-        after_call = query.with_entities(func.sum(
+        after_call = query.with_entities(func.avg(
         QueueStatistics.avg_handling_time_inbound
         )).scalar() or 0
     else:
-        after_call = query.with_entities(func.sum(
+        after_call = query.with_entities(func.avg(
             QueueStatistics.avg_handling_time_inbound
         )).filter(
             QueueStatistics.date.between(start_date, end_date)
@@ -208,6 +208,7 @@ async def get_calls(
             
     # Format the result
     result = []
+    
     for row in weekday_data:
         if row.weekday is not None:  # Ensure weekday is not None
             total_calls = int(row.total_calls or 0)
@@ -244,8 +245,7 @@ async def get_calls(
         "After call work time": round(get_inbound_after_call(query, start_date=start_date, end_date=end_date), 2),
         "avg handling time": round(avg_handling_time or 0, 2),
         "Dropped calls": int(dropped_calls or 0),
-        "Daily Call Volume": result
-        
+        "Daily Call Volume": result  
     }
 
 @router.get("/calls_sub_kpis")

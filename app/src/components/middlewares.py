@@ -20,6 +20,7 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
         "auth/verify-token",
         "/forget-password/",
         "/reset-password/",
+        "/history"
     ]
     async def dispatch(self, request: Request, call_next):
         try:

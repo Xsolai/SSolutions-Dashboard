@@ -7,7 +7,7 @@ from sqlalchemy import func, cast, Date
 from collections import defaultdict
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import get_date_range, calculate_percentage_change
+from app.src.utils import get_date_range, calculate_percentage_change, get_date_range_booking
 
 
 router = APIRouter(
@@ -205,89 +205,76 @@ async def get_anaytics_email_data(
     
 @router.get("/anaytics_email_subkpis")
 async def get_anaytics_email_data_sub_kpis(
-    filter_type: str = Query("all", description="Filter by date range: yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
+    # User and Permission Validation
+    user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    if is_admin_or_employee:
+        query = db.query(WorkflowReportGuruKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    else:
+        print("executing else containss")
+        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+        
+    
+    
     start_date, end_date = get_date_range("yesterday")
     prev_start_date, prev_end_date = get_date_range("last_week")
-    total_processing_time_seconds = 1
-    prev_total_processing_time_seconds = 1
-    start_date_str, end_date_str = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
-    prev_start_date_str, prev_end_date_str = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Filter data based on the interval (date) column
-    email_recieved = db.query(
+    email_recieved = query.with_entities(
         func.sum(WorkflowReportGuruKF.received)
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date_str, end_date_str)
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
 
-    email_answered = db.query(
+    email_answered = query.with_entities(
         func.sum(WorkflowReportGuruKF.sent)
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date_str, end_date_str)
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
 
-    # email_forwarded = db.query(
-    #     func.sum(WorkflowReportGuruKF.sent_forwarded)
-    # ).filter(
-    #     WorkflowReportGuruKF.interval.between(start_date_str, end_date_str)
-    # ).scalar() or 0
-
-    email_archieved = db.query(
+    email_archieved = query.with_entities(
         func.sum(WorkflowReportGuruKF.archived)
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date_str, end_date_str)
+        WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
-
-    # new_sent = db.query(
-    #     func.sum(WorkflowReportGuruKF.sent_new_message)
-    # ).filter(
-    #     WorkflowReportGuruKF.interval.between(start_date_str, end_date_str)
-    # ).scalar() or 0
     
     # Previous values to calculate the change
-    prev_email_recieved = db.query(
+    prev_email_recieved = query.with_entities(
         func.sum(WorkflowReportGuruKF.received)
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
 
-    prev_email_answered = db.query(
+    prev_email_answered = query.with_entities(
         func.sum(WorkflowReportGuruKF.sent)
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
 
-    # prev_email_forwarded = db.query(
-    #     func.sum(WorkflowReportGuruKF.sent_forwarded)
-    # ).filter(
-    #     WorkflowReportGuruKF.interval.between(prev_start_date_str, prev_end_date_str)
-    # ).scalar() or 0
-
-    prev_email_archieved = db.query(
+    prev_email_archieved = query.with_entities(
         func.sum(WorkflowReportGuruKF.archived)
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date_str, prev_end_date_str)
+        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
-
-    # prev_new_sent = db.query(
-    #     func.sum(WorkflowReportGuruKF.sent_new_message)
-    # ).filter(
-    #     WorkflowReportGuruKF.interval.between(prev_start_date_str, prev_end_date_str)
-    # ).scalar() or 0
         
     return {
         "email recieved": email_recieved,
         "email recieved change": calculate_percentage_change(email_answered, prev_email_recieved),
         "email answered": email_answered,
         "email answered change": calculate_percentage_change(email_answered, prev_email_answered),
-        # "email forwarded": email_forwarded,
-        # "email forwarded change": calculate_percentage_change(email_forwarded, prev_email_forwarded),
         "email archived": email_archieved,
         "email archived change": calculate_percentage_change(email_archieved, prev_email_archieved),
-        # "New Sent": new_sent,
-        # "New Sent change": calculate_percentage_change(new_sent, prev_new_sent),
     }
 
 
@@ -479,7 +466,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
-    start_date, end_date = get_date_range(filter_type)
+    start_date, end_date = get_date_range_booking(filter_type)
     
     if is_admin_or_employee:
         query = db.query(SoftBookingKF)
@@ -517,8 +504,6 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
                 func.count(SoftBookingKF.original_status)
             ).scalar() or 0
         else:
-            # start_date_str = start_date.strftime("%Y-%m-%d")
-            # end_date_str = end_date.strftime("%Y-%m-%d")
             print(start_date, end_date)
             total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
             booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
@@ -564,34 +549,48 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
 async def get_booking_data_sub_kpis(db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
+    # User and Permission Validation
+    user = db.query(User).filter(User.email == current_user.get("email")).first()
     
-    start_date, end_date = get_date_range("yesterday")
-    prev_start_date, prev_end_date = get_date_range("last_week")
-    start_date_str, end_date_str = start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
-    prev_start_date_str, prev_end_date_str = prev_start_date.strftime("%Y-%m-%d"), prev_end_date.strftime("%Y-%m-%d")
-    # print(start_date)
-    # print(end_date)
+    # Determine user access level
+    email_filter = current_user.get("email")
+    email_contains_5vflug = "5vorFlug" in email_filter
+    is_admin_or_employee = user.role in ["admin", "employee"]
+    
+    if is_admin_or_employee:
+        query = db.query(SoftBookingKF)
+    elif email_contains_5vflug:
+        print("containss")
+        query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%5vF%")
+        )
+    else:
+        print("executing else containss")
+        query = db.query(SoftBookingKF).filter(SoftBookingKF.customer.notlike("%5vF%"))
+    
+    start_date, end_date = get_date_range_booking("yesterday")
+    prev_start_date, prev_end_date = get_date_range_booking("last_week")
     booked = "OK"
     cancelled = "XX"
     pending = "PE"
     sb_booked = "SB"
     
     try:
-        total_bookings = db.query(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-        booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-        cancelled_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status != cancelled, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-        pending_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-        sb_booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status != cancelled, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
         # Calculate SB Booking Rate
         total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
         sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
         
         # Previous week metrics to calculate change
-        prev_total_bookings = db.query(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(prev_start_date_str, prev_end_date_str)).scalar() or 0
-        prev_booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(prev_start_date_str, prev_end_date_str)).scalar() or 0
-        prev_cancelled_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status != cancelled, SoftBookingKF.service_creation_time.between(prev_start_date_str, prev_end_date_str)).scalar() or 0
-        prev_pending_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(prev_start_date_str, prev_end_date_str)).scalar() or 0
-        prev_sb_booked_count = db.query(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(prev_start_date_str, prev_end_date_str)).scalar() or 0
+        prev_total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(prev_start_date, prev_end_date)).scalar() or 0
+        prev_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(prev_start_date, prev_end_date)).scalar() or 0
+        prev_cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status != cancelled, SoftBookingKF.service_creation_time.between(prev_start_date, prev_end_date)).scalar() or 0
+        prev_pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(prev_start_date, prev_end_date)).scalar() or 0
+        prev_sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(prev_start_date, prev_end_date)).scalar() or 0
         # Calculate SB Booking Rate
         prev_total_sb_booked_and_cancelled = prev_booked_count + prev_sb_booked_count + prev_cancelled_count
         prev_sb_booking_rate = (prev_sb_booked_count + prev_booked_count / prev_total_sb_booked_and_cancelled * 100) if prev_total_sb_booked_and_cancelled > 0 else 0

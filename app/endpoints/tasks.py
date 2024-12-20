@@ -205,8 +205,8 @@ async def get_tasks_overview(
 
     return {
         "Tasks by categories": status_by_cat_data,
-        "Tasks by date": status_by_date_data,
-        "Tasks by weekday": status_by_weekday,
+        "Tasks created by date": status_by_date_data,
+        "Tasks created by weekday": status_by_weekday,
     }
 
     

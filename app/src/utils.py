@@ -39,20 +39,55 @@ def get_date_range(filter_type: str):
     elif filter_type == "yesterday":
         start_date = end_date = today - timedelta(days=1)
     elif filter_type == "last_week":
-        start_date = today - timedelta(days=today.weekday() + 7)
-        end_date = today - timedelta(days=today.weekday() + 1)
+        start_date = today - timedelta(days=7)
+        end_date = today - timedelta(days=1)
+        print(start_date, end_date)
     elif filter_type == "last_month":
-        first_day_of_current_month = today.replace(day=1)
-        end_date = first_day_of_current_month - timedelta(days=1)
-        start_date = end_date.replace(day=1)
+        start_date = today - timedelta(days=30)
+        end_date = today
     elif filter_type == "last_year":
-        start_date = today.replace(year=today.year - 1, month=1, day=1)
-        end_date = today.replace(year=today.year - 1, month=12, day=31)
+        start_date = today - timedelta(days=365)
+        end_date = today
     else:
         raise ValueError(f"Invalid filter type: '{filter_type}'. Valid options are 'all', 'yesterday', 'last_week', 'last_month', 'last_year'.")
 
     return start_date, end_date
 
+
+
+def get_date_range_booking(filter_type: str):
+    """
+    Utility to calculate date ranges based on filter type.
+
+    Args:
+        filter_type (str): The type of filter. Options include "all", "yesterday", "last_week", "last_month", "last_year".
+
+    Returns:
+        tuple: A tuple of (start_date, end_date) where dates are in ISO 8601 format (YYYY-MM-DD HH:MM:SS.ssssss) or None for "all".
+
+    Raises:
+        ValueError: If an invalid filter type is provided.
+    """
+    today = datetime.now()
+
+    if filter_type == "all":
+        start_date, end_date = None, None
+    elif filter_type == "yesterday":
+        start_date = (today - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif filter_type == "last_week":  # Last 7 days including today
+        start_date = (today - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif filter_type == "last_month":  # Last 30 days including today
+        start_date = (today - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif filter_type == "last_year":  # Last 365 days including today
+        start_date = (today - timedelta(days=365)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    else:
+        raise ValueError(f"Invalid filter type: '{filter_type}'. Valid options are 'all', 'yesterday', 'last_week', 'last_month', 'last_year'.")
+
+    return start_date, end_date
 
 # def calculate_percentage_change(current, previous):
 #     if previous == 0:
