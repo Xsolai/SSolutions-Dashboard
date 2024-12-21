@@ -1,13 +1,23 @@
 "use client";
-import React, { useState, useEffect ,useRef} from 'react';
-import axios from 'axios';
-import {UserCircle, LogOut , History, X, Check, AlertTriangle, Clock, Menu } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import {
+  UserCircle,
+  LogOut,
+  History,
+  X,
+  Check,
+  AlertTriangle,
+  Clock,
+  Menu,
+  Settings,
+} from "lucide-react";
 import CallAnalysisDashboard from "@/components/CallAnalysisDashboard";
 import EmailAnalysisDashboard from "@/components/EmailAnalysisDashboard";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import logo from "@/assets/images/logo.png";
-import ProtectedRoute from '@/components/ProtectedRoute';
-import TaskAnalysisDashboard from '@/components/TaskAnalyis';
+import ProtectedRoute from "@/components/ProtectedRoute";
+import TaskAnalysisDashboard from "@/components/TaskAnalyis";
 
 const HistorySidebar = ({ isOpen, onClose }) => {
   const [historyData, setHistoryData] = useState([]);
@@ -16,11 +26,11 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get('https://app.saincube.com/app2/history');
+        const response = await axios.get("https://app.saincube.com/app2/history");
         setHistoryData(response.data);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching history:', error);
+        console.error("Error fetching history:", error);
         setLoading(false);
       }
     };
@@ -29,10 +39,9 @@ const HistorySidebar = ({ isOpen, onClose }) => {
       fetchHistory();
     }
 
-    // Optional: Set up polling for real-time updates
     let interval;
     if (isOpen) {
-      interval = setInterval(fetchHistory, 30000); // Update every 30 seconds
+      interval = setInterval(fetchHistory, 30000);
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -41,14 +50,14 @@ const HistorySidebar = ({ isOpen, onClose }) => {
 
   const getStatusIcon = (status) => {
     switch (status.toLowerCase()) {
-      case 'success':
-      case 'completed':
+      case "success":
+      case "completed":
         return <Check className="w-5 h-5 text-green-500" />;
-      case 'error':
-      case 'failed':
+      case "error":
+      case "failed":
         return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case 'pending':
-      case 'processing':
+      case "pending":
+      case "processing":
         return <Clock className="w-5 h-5 text-yellow-500" />;
       default:
         return null;
@@ -63,8 +72,11 @@ const HistorySidebar = ({ isOpen, onClose }) => {
           onClick={onClose}
         />
       )}
-      <div className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}>
+      <div
+        className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -117,31 +129,9 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   );
 };
 
-
-const ProfileDropdown = () => {
+const ProfileDropdown = ({ role }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [userData, setUserData] = useState(null);
   const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await fetch('https://app.saincube.com/app2/profile', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUserData(data);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -150,25 +140,25 @@ const ProfileDropdown = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('https://app.saincube.com/app2/auth/logout', {
-        method: 'POST',
+      const response = await fetch("https://app.saincube.com/app2/auth/logout", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
       });
-      
+
       if (response.ok) {
-        localStorage.removeItem('access_token');
-        window.location.href = '/';
+        localStorage.removeItem("access_token");
+        window.location.href = "/";
       }
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error("Error logging out:", error);
     }
   };
 
@@ -184,9 +174,20 @@ const ProfileDropdown = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
           <div className="p-4 border-b border-gray-200">
-            <p className="font-medium text-gray-900">{userData?.username}</p>
-            <p className="text-sm text-gray-500">{userData?.email}</p>
+            <p className="font-medium text-gray-900">{localStorage.getItem("username")}</p>
+            <p className="text-sm text-gray-500">{localStorage.getItem("email")}</p>
           </div>
+          {role === "admin" && (
+            <div className="p-2">
+              <a
+                href="/dashboard/admin"
+                className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-md flex items-center gap-2 transition-all duration-200"
+              >
+                <Settings className="w-4 h-4" />
+                Admin Panel
+              </a>
+            </div>
+          )}
           <div className="p-2">
             <button
               onClick={handleLogout}
@@ -202,34 +203,39 @@ const ProfileDropdown = () => {
   );
 };
 
-
 const Home = () => {
-  const [activeTab, setActiveTab] = useState('analytics');
+  const [activeTab, setActiveTab] = useState("analytics");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [role, setRole] = useState("");
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setIsMobileMenuOpen(false);
-  };
-
-  // Handle resize events
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768) {
-        setIsMobileMenuOpen(false);
+    const fetchUserRole = async () => {
+      try {
+        const response = await fetch("https://app.saincube.com/app2/profile", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setRole(data.role);
+          localStorage.setItem("username", data.username);
+          localStorage.setItem("email", data.email);
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    fetchUserRole();
   }, []);
 
   const navigationLinks = [
-    { id: 'analytics', label: 'Analytics' },
-    { id: 'call-analysis', label: 'Call Analysis' },
-    { id: 'email-analysis', label: 'Email Analysis' },
-    { id: 'task-analysis', label: 'Task Analysis' },
+    { id: "analytics", label: "Analytics" },
+    { id: "call-analysis", label: "Call Analysis" },
+    { id: "email-analysis", label: "Email Analysis" },
+    { id: "task-analysis", label: "Task Analysis" },
   ];
 
   return (
@@ -244,34 +250,34 @@ const Home = () => {
                 className="w-auto h-6 px-2"
               />
             </div>
-  
+
             <div className="flex items-center gap-4">
-              {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-4">
                 {navigationLinks.map((link) => (
                   <button
                     key={link.id}
                     className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                       activeTab === link.id
-                        ? 'text-black bg-yellow-400'
-                        : 'text-black border-[#FDCC00] border-2'
+                        ? "text-black bg-yellow-400"
+                        : "text-black border-[#FDCC00] border-2"
                     }`}
-                    onClick={() => handleTabChange(link.id)}
+                    onClick={() => setActiveTab(link.id)}
                   >
                     {link.label}
                   </button>
                 ))}
-                <button
-                  className="px-4 py-2 rounded-xl font-medium bg-black text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
-                  onClick={() => setIsHistoryOpen(true)}
-                >
-                  <History className="w-5 h-5" />
-                  History
-                </button>
-                <ProfileDropdown />
+                {role === "admin" && (
+                  <button
+                    className="px-4 py-2 rounded-xl font-medium bg-black text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
+                    onClick={() => setIsHistoryOpen(true)}
+                  >
+                    <History className="w-5 h-5" />
+                    History
+                  </button>
+                )}
+                <ProfileDropdown role={role} />
               </div>
-  
-              {/* Mobile View */}
+
               <div className="md:hidden flex items-center gap-4">
                 <button
                   className="p-2 rounded-lg bg-black text-[#FDCC00] hover:bg-gray-800"
@@ -279,13 +285,11 @@ const Home = () => {
                 >
                   <Menu className="w-6 h-6" />
                 </button>
-                <ProfileDropdown />
-
+                <ProfileDropdown role={role} />
               </div>
             </div>
           </div>
-  
-          {/* Mobile Navigation Menu */}
+
           {isMobileMenuOpen && (
             <div className="md:hidden bg-white border-black border-2 rounded-xl mt-4 p-4 space-y-3">
               {navigationLinks.map((link) => (
@@ -293,39 +297,38 @@ const Home = () => {
                   key={link.id}
                   className={`w-full px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                     activeTab === link.id
-                      ? 'bg-[#FDCC00] text-black'
-                      : 'text-[#FDCC00] hover:bg-gray-800'
+                      ? "bg-[#FDCC00] text-black"
+                      : "text-[#FDCC00] hover:bg-gray-800"
                   }`}
-                  onClick={() => handleTabChange(link.id)}
+                  onClick={() => setActiveTab(link.id)}
                 >
                   {link.label}
                 </button>
               ))}
-              <button
-                className="w-full px-4 py-2 rounded-xl font-medium text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
-                onClick={() => {
-                  setIsHistoryOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                <History className="w-5 h-5" />
-                History
-              </button>
+              {role === "admin" && (
+                <button
+                  className="w-full px-4 py-2 rounded-xl font-medium text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setIsHistoryOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  <History className="w-5 h-5" />
+                  History
+                </button>
+              )}
             </div>
           )}
-          {/* Dashboard Content */}
+
           <div className="mt-6">
-            {activeTab === 'analytics' && <AnalyticsDashboard />}
-            {activeTab === 'call-analysis' && <CallAnalysisDashboard />}
-            {activeTab === 'email-analysis' && <EmailAnalysisDashboard />}
-            {activeTab === 'task-analysis' && <TaskAnalysisDashboard />}
+            {activeTab === "analytics" && <AnalyticsDashboard />}
+            {activeTab === "call-analysis" && <CallAnalysisDashboard />}
+            {activeTab === "email-analysis" && <EmailAnalysisDashboard />}
+            {activeTab === "task-analysis" && <TaskAnalysisDashboard />}
           </div>
         </div>
 
-        <HistorySidebar
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-        />
+        <HistorySidebar isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
       </div>
     </ProtectedRoute>
   );

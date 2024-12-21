@@ -121,12 +121,12 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
   </div>
 );
 
-// Add this component to your existing code
+// Updated ChartCard component with reduced height
 const ChartCard = ({ title, children, isWideChart = false }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
-    <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
+    <h3 className="text-base font-medium text-gray-700 mb-6">{title}</h3>
     <div className={isWideChart ? "overflow-x-auto overflow-y-hidden scrollbar-hide" : ""}>
-      <div className={isWideChart ? "min-w-[1200px] lg:min-w-full" : "w-full"}>
+      <div className={isWideChart ? "min-w-[1000px] lg:min-w-full" : "w-full"}>
         <div className="h-[300px]">
           {children}
         </div>
@@ -134,7 +134,6 @@ const ChartCard = ({ title, children, isWideChart = false }) => (
     </div>
   </div>
 );
-
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -200,15 +199,14 @@ const EmailAnalysisDashboard = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+
   }, [filterType]);
 
   const UebersichtTab = () => {
     if (!overviewData || !subKPIs) return <Loading/>;
-
+    
     const bearbeitungszeitMinuten = Math.round((overviewData['Total Processing Time (sec)'] || 0) / 60);
-
+    
     const uebersichtStats = [
       { 
         title: "Serviceniveau", 
@@ -239,7 +237,14 @@ const EmailAnalysisDashboard = () => {
         description: "im Vergleich zur letzten Periode"
       }
     ];
-
+    
+    // Format the data
+    const formattedData = (overviewData.daily_service_level_gross || [])
+      .map(item => ({
+        ...item
+      }))
+      .reverse();
+  
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -247,29 +252,70 @@ const EmailAnalysisDashboard = () => {
             <StatCard key={index} {...stat} />
           ))}
         </div>
-
+  
         <ChartCard title="Tägliche Serviceniveau-Leistung">
-          <div className="h-[400px] w-full">
+          <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={overviewData.daily_service_level_gross || []}>
-                <XAxis 
-                  dataKey="interval" 
-                  tick={{ fontSize: 12, fill: COLORS.gray }}
-                  axisLine={{ stroke: COLORS.lightGray }}
+              <LineChart
+                data={formattedData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+              >
+                <XAxis
+                  dataKey="date"
+                  height={50}
+                  angle={-45}
+                  textAnchor="end"
+                  tick={{ 
+                    fontSize: 14,
+                    fill: '#4a4a4a'
+                  }}
+                  axisLine={{ stroke: '#e5e5e5' }}
+                  tickLine={{ stroke: '#e5e5e5' }}
+                  dx={-5}
+                  dy={20}
                 />
-                <YAxis 
-                  tick={{ fontSize: 12, fill: COLORS.gray }}
+                <YAxis
+                  tick={{ 
+                    fontSize: 14,
+                    fill: '#4a4a4a'
+                  }}
                   domain={[0, 100]}
-                  axisLine={{ stroke: COLORS.lightGray }}
+                  axisLine={{ stroke: '#e5e5e5' }}
+                  tickLine={{ stroke: '#e5e5e5' }}
                 />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-                <Bar 
-                  dataKey="service_level_gross" 
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                          <p className="text-gray-900 font-medium text-base mb-1">{data.date}</p>
+                          <p className="text-base text-gray-600">
+                            <span>Serviceniveau: </span>
+                            <span className="font-medium">{data.service_level_gross.toFixed(2)}%</span>
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{
+                    bottom: -20,
+                    fontSize: '14px'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="service_level_gross"
                   name="Serviceniveau"
-                  fill={COLORS.chartColors[0]}
+                  stroke="#fdcc00"
+                  strokeWidth={2}
+                  dot={{ fill: '#fdcc00', r: 4 }}
+                  activeDot={{ r: 6, fill: '#fdcc00' }}
                 />
-              </BarChart>
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
@@ -280,78 +326,124 @@ const EmailAnalysisDashboard = () => {
   const LeistungTab = () => {
     if (!performanceData) return <Loading/>;
   
+    const axisStyle = {
+      fontSize: 12,
+      fontFamily: 'Inter, sans-serif',
+      fill: '#4a4a4a'
+    };
+  
+    // Common chart configurations
+    const chartConfig = {
+      xAxis: {
+        angle: -60,
+        textAnchor: 'end',
+        interval: 0,
+        height:65,
+        tick: { ...axisStyle },
+        axisLine: { stroke: '#e5e5e5' },
+        tickLine: { stroke: '#e5e5e5' },
+        dx: -10
+      },
+      yAxis: {
+        tick: { ...axisStyle },
+        axisLine: { stroke: '#e5e5e5' },
+        tickLine: { stroke: '#e5e5e5' }
+      },
+      tooltip: {
+        contentStyle: {
+          backgroundColor: '#fff',
+          border: '1px solid #e5e5e5',
+          borderRadius: '4px',
+          padding: '8px 12px'
+        }
+      }
+    };
+  
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6">
           <ChartCard isWideChart={true} title="Bearbeitungszeit nach Postfach">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={performanceData.Processing_time_by_mailbox || []}>
-                  <XAxis 
-                    dataKey="mailbox" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={100}
-                    interval={0}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Line 
-                    type="monotone"
-                    dataKey="processing_time_sec" 
-                    name="Bearbeitungszeit (Min)" 
-                    stroke={COLORS.chartColors[0]}
-                    strokeWidth={2}
-                    dot={{ fill: COLORS.chartColors[0], r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart 
+                data={performanceData.Processing_time_by_mailbox || []}
+                margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+              >
+                <XAxis
+                  dataKey="mailbox"
+                  {...chartConfig.xAxis}
+                />
+                <YAxis
+                  {...chartConfig.yAxis}
+                />
+                <Tooltip {...chartConfig.tooltip} />
+                <Line
+                  type="monotone"
+                  dataKey="processing_time_sec"
+                  name="Bearbeitungszeit (Sek)"
+                  stroke="#fdcc00"
+                  strokeWidth={2}
+                  dot={{ fill: '#fdcc00', r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </ChartCard>
   
           <ChartCard isWideChart={true} title="Serviceniveau nach Postfach">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={performanceData.service_level_by_mailbox || []}>
-                  <XAxis 
-                    dataKey="mailbox" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={100}
-                    interval={0}
-                  />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Line 
-                    type="monotone"
-                    dataKey="service_level_gross" 
-                    name="Serviceniveau" 
-                    stroke={COLORS.chartColors[1]}
-                    strokeWidth={2}
-                    dot={{ fill: COLORS.chartColors[1], r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-  
-        <ChartCard isWideChart={true} title="Antworten nach Kunden">
-          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={performanceData.respone_by_customers || []}>
-                <XAxis dataKey="customer" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="sent" name="Gesendet" fill={COLORS.chartColors[2]} />
-                <Bar dataKey="recieved" name="Empfangen" fill={COLORS.chartColors[3]} />
+              <LineChart 
+                data={performanceData.service_level_by_mailbox || []}
+                margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+              >
+                <XAxis
+                  dataKey="mailbox"
+                  {...chartConfig.xAxis}
+                />
+                <YAxis
+                  {...chartConfig.yAxis}
+                  domain={[0, 100]}
+                />
+                <Tooltip {...chartConfig.tooltip} />
+                <Line
+                  type="monotone"
+                  dataKey="service_level_gross"
+                  name="Serviceniveau"
+                  stroke="#fdcc00"
+                  strokeWidth={2}
+                  dot={{ fill: '#fdcc00', r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+  
+          <ChartCard isWideChart={true} title="Antworten nach Kunden">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={performanceData.respone_by_customers || []}
+                margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+              >
+                <XAxis
+                  dataKey="customer"
+                  {...chartConfig.xAxis}
+                />
+                <YAxis {...chartConfig.yAxis} />
+                <Tooltip {...chartConfig.tooltip} />
+                <Legend wrapperStyle={{ bottom: -0 }} />
+                <Bar
+                  dataKey="sent"
+                  name="Gesendet"
+                  fill="#fdcc00"
+                />
+                <Bar
+                  dataKey="recieved"
+                  name="Empfangen"
+                  fill="#ffdb4d"
+                />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </ChartCard>
+          </ChartCard>
+        </div>
       </div>
     );
   };

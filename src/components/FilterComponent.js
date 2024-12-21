@@ -1,12 +1,12 @@
-import { Calendar , Clock} from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 
 const FilterComponent = ({ filterType, setFilterType }) => {
     const filterOptions = [
-      { id: 'yesterday', label: 'Yesterday' },
-      { id: 'last_week', label: 'Last Week' },
-      { id: 'last_month', label: 'Last Month' },
-      { id: 'last_year', label: 'Last Year' },
-      { id: 'all', label: 'All Time' },
+      { id: 'yesterday', label: 'Gestern' },
+      { id: 'last_week', label: 'Letzte Woche' },
+      { id: 'last_month', label: 'Letzter Monat' },
+      { id: 'last_year', label: 'Letztes Jahr' },
+      { id: 'all', label: 'Alle Zeit' },
     ];
   
     return (
@@ -24,7 +24,7 @@ const FilterComponent = ({ filterType, setFilterType }) => {
             
             <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
               <Clock className="h-3 w-3 mr-1" />
-              <span>Live updates</span>
+              <span>Live-Updates</span>
             </div>
           </div>
   

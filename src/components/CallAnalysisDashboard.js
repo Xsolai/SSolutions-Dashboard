@@ -1,6 +1,6 @@
 "use client";
-import React, { useState , useEffect} from 'react';
-import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend , LineChart , Line} from 'recharts';
+import React, { useState, useEffect } from 'react';
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -28,23 +28,23 @@ const SkeletonChartCard = () => (
 const Loading = () => {
   return (
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {[...Array(5)].map((_, i) => (
-              <SkeletonStatCard key={i} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {[...Array(2)].map((_, i) => (
-              <SkeletonStatCard key={i} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[...Array(2)].map((_, i) => (
-              <SkeletonChartCard key={i} />
-            ))}
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {[...Array(5)].map((_, i) => (
+          <SkeletonStatCard key={i} />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        {[...Array(2)].map((_, i) => (
+          <SkeletonStatCard key={i} />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[...Array(2)].map((_, i) => (
+          <SkeletonChartCard key={i} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -96,7 +96,7 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
     {change !== undefined && description && (
       <p className="text-xs text-gray-500">
         <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-blue-500' : 'text-blue-500'}`}>
-          {typeof change === 'number' 
+          {typeof change === 'number'
             ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%`
             : change}
         </span>
@@ -176,74 +176,78 @@ const CallAnalysisDashboard = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
   }, [filterType]);
 
   const UebersichtTab = () => {
     if (loading || !overviewData || !subKPIs) return <Loading />;
-  
+
     const uebersichtStats = [
-      { 
-        title: "Gesamtanrufe", 
-        value: overviewData?.total_calls?.toLocaleString() || '0', 
+      {
+        title: "Gesamtanrufe",
+        value: overviewData?.total_calls?.toLocaleString() || '0',
         icon: Phone,
         change: subKPIs['total_calls_change'],
         description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "Serviceniveau", 
-        value: `${overviewData?.SLA || 0}%`, 
+      {
+        title: "Serviceniveau",
+        value: `${overviewData?.SLA || 0}%`,
         icon: CheckCircle,
         change: subKPIs['SLA_change'],
-        description: "im Vergleich zur letzten Periode" 
+        description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "ASR", 
-        value: `${overviewData?.asr || 0}%`, 
+      {
+        title: "ASR",
+        value: `${overviewData?.asr || 0}%`,
         icon: Activity,
         change: subKPIs['asr_change'],
-        description: "im Vergleich zur letzten Periode"  
+        description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "Durchschnittliche Wartezeit", 
-        value: `${overviewData?.['avg wait time'] || 0} min`, 
+      {
+        title: "Durchschnittliche Wartezeit",
+        value: `${overviewData?.['avg wait time'] || 0} min`,
         icon: Clock,
         change: subKPIs['avg wait time_change'],
-        description: "im Vergleich zur letzten Periode"  
+        description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "Maximale Wartezeit", 
-        value: `${overviewData?.['max. wait time'] || 0} min`, 
+      {
+        title: "Maximale Wartezeit",
+        value: `${overviewData?.['max. wait time'] || 0} min`,
         icon: Clock,
         change: subKPIs['max. wait time_change'],
-        description: "im Vergleich zur letzten Periode"  
+        description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "Durchschnittliche Bearbeitungszeit", 
-        value: `${overviewData?.['avg handling time'] || 0} min`, 
+      {
+        title: "Durchschnittliche Bearbeitungszeit",
+        value: `${overviewData?.['avg handling time'] || 0} min`,
         icon: Clock,
         change: subKPIs['avg_handling_time_change'],
-        description: "im Vergleich zur letzten Periode"  
+        description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "Nachbearbeitungszeit", 
+      {
+        title: "Nachbearbeitungszeit",
         value: `${overviewData?.['After call work time'] || 0} min`,
         icon: Clipboard,
         change: subKPIs['After call work time_change'],
-        description: "im Vergleich zur letzten Periode"  
+        description: "im Vergleich zur letzten Periode"
       },
-      { 
-        title: "Verlorene Anrufe", 
-        value: overviewData?.['Dropped calls'] || 0, 
+      {
+        title: "Verlorene Anrufe",
+        value: overviewData?.['Dropped calls'] || 0,
         icon: Phone,
         change: subKPIs['Dropped calls_change'],
-        description: "im Vergleich zur letzten Periode"  
+        description: "im Vergleich zur letzten Periode"
       }
     ];
-  
+
     const dailyCallData = overviewData?.['Daily Call Volume'] || [];
-  
+
+    // Sort dailyCallData based on the weekday (assuming "call metrics.weekday" is a string like 'Monday', 'Tuesday', etc.)
+    const sortedDailyCallData = dailyCallData.sort((a, b) => {
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return daysOfWeek.indexOf(a['call metrics'].weekday) - daysOfWeek.indexOf(b['call metrics'].weekday);
+    });
+
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -251,22 +255,23 @@ const CallAnalysisDashboard = () => {
             <StatCard key={index} {...stat} />
           ))}
         </div>
-  
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Tägliche Gesamtanrufe">
             <div className="h-[300px]">
               <ResponsiveContainer>
-                <BarChart 
-                  data={dailyCallData}
+                <BarChart
+                  data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis 
-                    dataKey="call metrics.weekday"
+                  <XAxis
+                    dataKey="call metrics.weekday"  // This should match the field for weekdays
                     tick={{ fontSize: 12, fill: COLORS[3] }}
-                    angle={-45}
+                    angle={-65}
                     textAnchor="end"
                     height={60}
                   />
+
                   <YAxis tick={{ fontSize: 12, fill: COLORS[3] }} />
                   <Tooltip />
                   <Legend />
@@ -277,15 +282,15 @@ const CallAnalysisDashboard = () => {
               </ResponsiveContainer>
             </div>
           </ChartCard>
-  
+
           <ChartCard title="Tägliche Wartezeiten (Minuten)">
             <div className="h-[300px]">
               <ResponsiveContainer>
-                <LineChart 
-                  data={dailyCallData}
+                <LineChart
+                  data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis 
+                  <XAxis
                     dataKey="Time metrics.weekday"
                     tick={{ fontSize: 12, fill: COLORS[3] }}
                     angle={-45}
@@ -295,17 +300,17 @@ const CallAnalysisDashboard = () => {
                   <YAxis tick={{ fontSize: 12, fill: COLORS[3] }} />
                   <Tooltip />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="Time metrics.avg_wait_time_sec" 
-                    name="Durchschn. Wartezeit (Min)" 
+                  <Line
+                    type="monotone"
+                    dataKey="Time metrics.avg_wait_time_sec"
+                    name="Durchschn. Wartezeit (Min)"
                     stroke={COLORS[2]}
                     strokeWidth={2}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="Time metrics.max_wait_time_sec" 
-                    name="Max. Wartezeit (Min)" 
+                  <Line
+                    type="monotone"
+                    dataKey="Time metrics.max_wait_time_sec"
+                    name="Max. Wartezeit (Min)"
                     stroke={COLORS[1]}
                     strokeWidth={2}
                   />
@@ -314,38 +319,38 @@ const CallAnalysisDashboard = () => {
             </div>
           </ChartCard>
         </div>
-  
+
         <ChartCard title="Tägliche ASR & Serviceniveau %">
           <div className="h-[300px]">
             <ResponsiveContainer>
-              <LineChart 
-                data={dailyCallData}
+              <LineChart
+                data={sortedDailyCallData}
                 margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
               >
-                <XAxis 
+                <XAxis
                   dataKey="% metrics.weekday"
                   tick={{ fontSize: 12, fill: COLORS[3] }}
                   angle={-45}
                   textAnchor="end"
                   height={60}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fontSize: 12, fill: COLORS[3] }}
                   domain={[0, 100]}
                 />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="% metrics.asr" 
-                  name="ASR %" 
+                <Line
+                  type="monotone"
+                  dataKey="% metrics.asr"
+                  name="ASR %"
                   stroke={COLORS[0]}
                   strokeWidth={2}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="% metrics.sla_percent" 
-                  name="Serviceniveau %" 
+                <Line
+                  type="monotone"
+                  dataKey="% metrics.sla_percent"
+                  name="Serviceniveau %"
                   stroke={COLORS[1]}
                   strokeWidth={2}
                 />
@@ -357,12 +362,13 @@ const CallAnalysisDashboard = () => {
     );
   };
 
+
   const PerformanceTab = () => {
-    if (!performanceData) return <Loading/>;
-  
+    if (!performanceData) return <Loading />;
+
     const anrufGruende = performanceData['Call Reasons Breakdown'] || {};
     const warteschlangenDaten = performanceData['Call By queue'] || {};
-  
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -392,11 +398,11 @@ const CallAnalysisDashboard = () => {
               </ResponsiveContainer>
             </div>
           </ChartCard>
-  
+
           <ChartCard title="Anrufe nach Warteschlange">
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
+                <BarChart
                   data={Object.entries(warteschlangenDaten)
                     .filter(([key]) => key.includes('Calls'))
                     .map(([key, value]) => ({
@@ -405,8 +411,8 @@ const CallAnalysisDashboard = () => {
                       aht: warteschlangenDaten[`${key.replace(' Calls', '')} AHT`] || 0
                     }))}
                 >
-                  <XAxis 
-                    dataKey="queue" 
+                  <XAxis
+                    dataKey="queue"
                     tick={{ fontSize: 12 }}
                     angle={-45}
                     textAnchor="end"
@@ -455,11 +461,10 @@ const CallAnalysisDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
-                  activeTab === tab.id
+                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${activeTab === tab.id
                     ? "text-black border-yellow-400"
                     : "text-gray-500 border-transparent hover:text-black hover:border-yellow-300"
-                }`}
+                  }`}
               >
                 {tab.name}
               </button>

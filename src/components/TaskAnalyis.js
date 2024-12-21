@@ -124,19 +124,13 @@ const AnimatedText = () => {
 };
 
 
-// Add this component to your existing code
-const ChartCard = ({ title, children, isWideChart = false }) => (
+const ChartCard = ({ title, children }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
-    <div className={isWideChart ? "overflow-x-auto overflow-y-hidden scrollbar-hide" : ""}>
-      <div className={isWideChart ? "min-w-[1200px] lg:min-w-full" : "w-full"}>
-        <div className="h-[350px]">
-          {children}
-        </div>
-      </div>
-    </div>
+    {children}
   </div>
 );
+
 
 const TaskAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -179,85 +173,115 @@ const TaskAnalysisDashboard = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
   }, [filterType]);
 
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;
-
-    const overviewStats = [
-      {
-        title: "Gesamtbestellungen",
-        value: (data.kpis['Total orders'] || 0).toLocaleString(),
-        icon: Briefcase,
-      },
-      {
-        title: "Zugewiesene Benutzer",
-        value: (data.kpis['# of assigned users'] || 0).toLocaleString(),
-        icon: Users,
-      },
-      {
-        title: "Gesamtaufgaben",
-        value: (data.kpis['Task types'] || 0).toLocaleString(),
-        icon: Activity,
-      }
-    ];
-
+  
+    // Parse and validate data
+    const tasksByWeekday = data.overview['Tasks created by weekday'] || [];
+    const tasksByMonth = data.overview['Tasks created by date'] || [];
+  
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {overviewStats.map((stat, index) => (
-            <StatCard key={index} {...stat} />
-          ))}
-        </div>
-
-        <ChartCard title="Aufgaben nach Kategorie">
-          <div className="h-[360px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data.overview['Tasks by categories'] || []}
-                  dataKey="count"
-                  nameKey="tasks"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={150}
-                  label
-                >
-                  {(data.overview['Tasks by categories'] || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS.chartColors[index % COLORS.chartColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+          
+          <ChartCard title="Aufgaben nach Kategorie">
+  <div className="flex flex-col md:flex-row h-[400px] md:h-[450px] gap-4">
+    {/* Chart Container */}
+    <div className="flex-1 min-h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+          <Pie
+            data={data.overview['Tasks by categories'] || []}
+            dataKey="count"
+            nameKey="tasks"
+            cx="50%"
+            cy="50%"
+            outerRadius={({ width, height }) => Math.min(width, height) * 0.4}
+            labelLine={false}
+            label={false} 
+          >
+            {(data.overview['Tasks by categories'] || []).map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS.chartColors[index % COLORS.chartColors.length]} />
+            ))}
+          </Pie>
+          <Tooltip 
+            formatter={(value, name) => [`${value} Aufgaben`, name]}
+            contentStyle={{
+              backgroundColor: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '12px'
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+    
+    {/* Scrollable Legend Container with Values */}
+    <div className="md:w-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 p-2">
+      {(data.overview['Tasks by categories'] || []).map((entry, index) => (
+        <div key={index} className="flex items-center justify-between mb-2 hover:bg-gray-50 p-1 rounded">
+          <div className="flex items-center">
+            <div 
+              className="w-3 h-3 rounded-sm mr-2" 
+              style={{ backgroundColor: COLORS.chartColors[index % COLORS.chartColors.length] }}
+            />
+            <span className="text-sm text-gray-700">{entry.tasks}</span>
           </div>
-        </ChartCard>
-
+          <span className="text-sm font-medium text-gray-900">{entry.count}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</ChartCard>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Tasks by Weekday */}
           <ChartCard title="Aufgaben nach Wochentag">
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.overview['Tasks by weekday'] || []}>
+                <BarChart data={tasksByWeekday}>
                   <XAxis dataKey="weekday" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value) => [`${value} Aufgaben`]}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      fontSize: '12px',
+                    }}
+                  />
                   <Legend />
-                  <Bar dataKey="count" name="Aufgaben" fill={COLORS.chartColors[0]} />
+                  <Bar
+                    dataKey="count"
+                    name="Aufgaben"
+                    fill={COLORS.chartColors[0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
-
+  
+          {/* Tasks by Month */}
           <ChartCard title="Aufgaben nach Monat">
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.overview['Tasks by date'] || []}>
+                <LineChart data={tasksByMonth}>
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value) => [`${value} Aufgaben`]}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      fontSize: '12px',
+                    }}
+                  />
                   <Legend />
                   <Line
                     type="monotone"
@@ -274,39 +298,75 @@ const TaskAnalysisDashboard = () => {
       </div>
     );
   };
-
+  
+  
   const PerformanceTab = () => {
     if (!data.performance) return <Loading />;
 
     return (
       <div className="space-y-6">
-        <ChartCard isWideChart={true} title="Aufgaben nach Benutzer">
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data.performance['Tasks assigned to users'] || []}
-                margin={{ bottom: 90 }}
-              >
-                <XAxis
-                  dataKey="assign_users_by_tasks"
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="task_count"
-                  name="Aufgaben"
-                  fill={COLORS.chartColors[0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+            <h3 className="text-lg font-medium text-gray-900 mb-6">Aufgaben nach Benutzer</h3>
+            <div className="overflow-x-auto overflow-y-hidden scrollbar-hide">
+              <div className="min-w-[1200px] lg:min-w-full">
+                <div className="h-[450px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={data.performance['Tasks assigned to users'] || []}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 160 }}
+                    >
+                      <XAxis
+                        dataKey="assign_users_by_tasks"
+                        angle={-60}
+                        textAnchor="end"
+                        height={150}
+                        interval={0}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                    <Legend wrapperStyle={{ bottom: -0 }} />
+                      <Bar
+                        dataKey="task_count"
+                        name="Aufgaben"
+                        fill={COLORS.chartColors[0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
           </div>
-        </ChartCard>
 
+          <ChartCard title="Aufgaben nach Fälligkeitsdatum">
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.performance['Tasks assign to users by date'] || []}
+                  margin={{ bottom: 20 }}
+                >
+                  <XAxis
+                    dataKey="month"
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ bottom: -0 }} />
+                  <Bar
+                    dataKey="assign_tasks_by_date"
+                    name="Zugewiesene Aufgaben"
+                    fill={COLORS.chartColors[0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+          
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+
           <ChartCard  title="Aufgabenerstell-Trend">
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -322,7 +382,7 @@ const TaskAnalysisDashboard = () => {
                   />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
+                  <Legend wrapperStyle={{ bottom: -0 }} />
                   <Line
                     type="monotone"
                     dataKey="tasks_count"
@@ -336,7 +396,7 @@ const TaskAnalysisDashboard = () => {
           </ChartCard>
 
           <ChartCard title="Anstehende Aufgaben (Nächste 7 Tage)">
-            <div className="h-[400px]">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={data.performance['Upcoming tasks'] || []}
@@ -350,7 +410,7 @@ const TaskAnalysisDashboard = () => {
                   />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
+                  <Legend wrapperStyle={{ bottom: -0 }} />
                   <Bar
                     dataKey="tasks_due"
                     name="Fällige Aufgaben"
