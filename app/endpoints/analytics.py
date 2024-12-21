@@ -178,6 +178,16 @@ async def get_anaytics_email_data(
         {"interval_start": f"{interval}m", "total_processing_time_sec": total}
         for interval, total in sorted(interval_data.items())
     ]
+    # Calculate processing time trend with interval ranges
+    processing_time_trend = [
+        {
+            "interval_start": f"{interval}m",
+            "interval_end": f"{interval + 10}m",
+            "total_processing_time_sec": total
+        }
+        for interval, total in sorted(interval_data.items())
+    ]
+
     # calculating for counts 
     interval_count_data = defaultdict(int)  # Default value is int for counting occurrences
 
@@ -187,10 +197,20 @@ async def get_anaytics_email_data(
             interval_count = (seconds // 600) * 10  # Group into 10-minute intervals
             interval_count_data[interval_count] += 1  # Increment the count for this interval
 
+    # processing_count_trend = [
+    #     {"interval_start": f"{interval}m", "count": count}
+    #     for interval, count in sorted(interval_count_data.items())
+    # ]
+    # Calculate processing count trend with interval ranges
     processing_count_trend = [
-        {"interval_start": f"{interval}m", "count": count}
+        {
+            "interval_start": f"{interval}m",
+            "interval_end": f"{interval + 10}m",
+            "count": count
+        }
         for interval, count in sorted(interval_count_data.items())
     ]
+
     return {
         "email recieved": email_recieved,
         "email sent": email_answered,

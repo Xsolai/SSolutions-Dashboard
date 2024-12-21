@@ -174,4 +174,4 @@ async def get_profile(
         )
 
     # Return the username and email
-    return {"username": user.username, "email": user.email}
+    return {"username": user.username, "email": user.email, "role": user.role}
