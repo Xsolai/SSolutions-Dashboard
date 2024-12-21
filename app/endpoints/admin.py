@@ -71,6 +71,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
     
     user.status = "approved"
     db.commit()
+    db.refresh(user)
     
     existing_permission = db.query(models.Permission).filter(models.Permission.user_id == user.id).first()
     if not existing_permission:
@@ -115,6 +116,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
     # db.delete(user)
     user.status = "rejected"
     db.commit()
+    db.refresh(user)
     user_permissions = db.query(models.Permission).filter(models.Permission.user_id == user_id).all()
     if user_permissions:
         for permission in user_permissions:
@@ -177,6 +179,7 @@ def assign_permission(
 
         # Commit the changes to the database
         db.commit()
+        db.refresh(permission)
         return {"message": "Permissions updated successfully."}
     except HTTPException as http_ex:
         db.rollback()
