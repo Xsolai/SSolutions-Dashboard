@@ -152,7 +152,7 @@ const AnalyticsDashboard = () => {
           bookingSubKPIs,
           conversionData
         ] = await Promise.all([
-          fetch(`https://app.saincube.com/app2/anaytics_email?filter_type=${filterType}`, config),
+          fetch(`https://app.saincube.com/app2/analytics_email?filter_type=${filterType}`, config),
           fetch(`https://app.saincube.com/app2/anaytics_email_subkpis?filter_type=${filterType}`, config),
           fetch(`https://app.saincube.com/app2/analytics_sales_service?filter_type=${filterType}`, config),
           fetch(`https://app.saincube.com/app2/analytics_booking?filter_type=${filterType}`, config),
