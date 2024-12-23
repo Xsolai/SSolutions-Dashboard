@@ -196,7 +196,7 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
 
     # Send OTP via email
     try:
-        subject = "Your Registration OTP"
+        subject = "Einmalpasswort (OTP) für Ihre Registrierung"
         send_registration_otp(recipient_email=request.email, subject=subject, otp=otp)
     except Exception as e:
         print(f"Error sending email: {e}")
@@ -330,7 +330,7 @@ def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
 
     # Resend OTP via email
     try:
-        subject = "Your Resent Registration OTP"
+        subject = "Ihr erneut gesendeter Registrierungs-OTP"
         # Directly pass the required parameters
         send_registration_otp(
             recipient_email=request.email,

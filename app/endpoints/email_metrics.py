@@ -407,12 +407,12 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
 
         # Format the results
         pt_mailbox = [
-            {"mailbox": mailbox, "processing_time_min": round(total_time, 2)}
+            {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
             for mailbox, total_time in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_min"], reverse=True)
+        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
         
         # Query total new sent emails
         replies_data = query.with_entities(
@@ -459,12 +459,12 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
 
         # Format the results
         pt_mailbox = [
-            {"mailbox": mailbox, "processing_time_min": round(total_time, 2)}
+            {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
             for mailbox, total_time in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_min"], reverse=True)
+        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
         
         # Query total new sent emails
         replies_data = query.with_entities(

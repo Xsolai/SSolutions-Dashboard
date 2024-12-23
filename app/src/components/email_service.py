@@ -8,12 +8,12 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "sabasaeed410@gmail.com"
 SENDER_PASSWORD = "bzns rnnc yaic jjko"
-ADMIN_EMAIL = "sabasaeed410@gmail.com"
+ADMIN_EMAIL = "solasolution@ai-mitarbeiter.de"
 
 def send_thank_you_email(recipient_email, subject, body):
     try:
         msg = MIMEMultipart()
-        msg["From"] = SENDER_EMAIL
+        msg["From"] = ADMIN_EMAIL
         msg["To"] = recipient_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
@@ -37,7 +37,7 @@ def send_reset_password_email(recipient_email, subject, body):
     """
     try:
         msg = MIMEMultipart()
-        msg["From"] = SENDER_EMAIL
+        msg["From"] = ADMIN_EMAIL
         msg["To"] = recipient_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
@@ -68,11 +68,12 @@ def send_registration_otp(recipient_email, subject, otp):
     """
     try:
         # Create the email body with OTP
-        body = f"Dear User,\n\nYour OTP for registration is: {otp}\n\nThis OTP is valid for 5 minutes.\n\nThank you!"
+        # body = f"Dear User,\n\nYour OTP for registration is: {otp}\n\nThis OTP is valid for 5 minutes.\n\nThank you!"
+        body = f"Betreff: Ihr Einmalpasswort (OTP) für die Registrierung\n\nSehr geehrter Nutzer,\n\nIhr Einmalpasswort (OTP) für die Registrierung lautet: {otp}\n\nBitte beachten Sie, dass dieses OTP nur 5 Minuten gültig ist.\n\nVielen Dank, dass Sie sich für Solasolution entschieden haben!\n\nMit freundlichen Grüßen\nIhr Solasolution-Team"
         
         # Prepare email message
         msg = MIMEMultipart()
-        msg["From"] = SENDER_EMAIL
+        msg["From"] = ADMIN_EMAIL
         msg["To"] = recipient_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
@@ -95,18 +96,20 @@ def send_email_to_admin(user):
     try:
         subject = "New User Registration Request for Approval"
         body = f"""
-     Dear Admin,
+    Betreff: Neue Registrierungsanfrage
 
-     A new user has submitted a registration request on the system. Please review their details below:
+    Sehr geehrter Administratorin,
 
-     - Name: {user.username}
-     - Email: {user.email}
-     - Registration Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    ein neuer Benutzer hat eine Registrierungsanfrage im System eingereicht. Bitte überprüfen Sie die folgenden Details:
+
+    - Name: {user.username}
+    - E-Mail: {user.email}
+    - Registrierungsdatum: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     
-     Kindly log in to the admin panel to approve or reject this registration request.
+    Bitte loggen Sie sich in das Admin-Panel ein, um diese Registrierungsanfrage zu genehmigen oder abzulehnen.
 
-     Best regards,
-     The System
+    Mit freundlichen Grüßen
+    Ihr Solasolution-Team
      """
         
         # Prepare email message
@@ -133,31 +136,30 @@ def send_email_to_admin(user):
 def send_email_to_user(status: str, email):
     try:
         if status == "approved":
-            subject = "Your Registration Has Been Approved"
+            subject = "Ihre Registrierung wurde erfolgreich bestätigt"
             body = f"""
-            Dear User,
+            Sehr geehrter Nutzer,
 
-            We are pleased to inform you that your registration request has been approved. 
-            You can now log in and access your account using the credentials provided during registration.
+            wir freuen uns, Ihnen mitteilen zu können, dass Ihre Registrierung erfolgreich bestätigt wurde.
+            Ab sofort können Sie sich mit den bei der Registrierung angegebenen Zugangsdaten einloggen und auf Ihr Konto zugreifen.
 
-            If you have any questions or need further assistance, please feel free to contact us.
-
-            Best regards,  
-            The Support Team
+            Falls Sie Fragen haben oder Unterstützung benötigen, steht Ihnen unser Team gerne zur Verfügung.
+            
+            Mit freundlichen Grüßen
+            Ihr Solasolution-Team
             """
         elif status == "rejected":
-            subject = "Your Registration Request Has Been Rejected"
+            subject = "Ihr Registrierungsantrag wurde abgelehnt"
             body = f"""
-            Dear User,
+            Sehr geehrter Nutzerin,
 
-            We regret to inform you that your registration request has been reviewed and rejected. 
-            If you believe this decision was made in error or if you have additional details to provide, 
-            please contact our support team for clarification.
+            wir bedauern, Ihnen mitteilen zu müssen, dass Ihr Registrierungsantrag geprüft und abgelehnt wurde.
+            Sollten Sie der Meinung sein, dass diese Entscheidung irrtümlich getroffen wurde, oder wenn Sie zusätzliche Informationen bereitstellen möchten, wenden Sie sich bitte an unser Support-Team, um eine Klärung zu erhalten.
 
-            Thank you for your understanding.
+            Vielen Dank für Ihr Verständnis.
 
-            Best regards,  
-            The Support Team
+            Mit freundlichen Grüßen
+            Ihr Solasolution-Team
             """
         else:
             raise ValueError("Invalid status provided for email notification.")
@@ -165,7 +167,7 @@ def send_email_to_user(status: str, email):
         
         # Prepare email message
         msg = MIMEMultipart()
-        msg["From"] = SENDER_EMAIL
+        msg["From"] = ADMIN_EMAIL
         msg["To"] = email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
