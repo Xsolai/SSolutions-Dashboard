@@ -168,6 +168,7 @@ def run_task():
         logging.critical("Task failed with an unexpected error", exc_info=True)
 
 def schedule_daily_task(hour, minute):
+    logging.info("Running scheduler")
     scheduler = BackgroundScheduler()
     scheduler.add_job(run_task, 'cron', hour=hour, minute=minute)
     scheduler.start()

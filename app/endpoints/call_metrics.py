@@ -108,7 +108,7 @@ async def get_calls(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
@@ -256,7 +256,7 @@ async def get_calls_sub_kpis(
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Apply filtering logic
@@ -798,7 +798,7 @@ async def get_call_performance(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering

@@ -82,8 +82,9 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
             
             if permission_column:
                 permission = db.query(Permission).filter(Permission.user_id == user.id).first()
+                db.refresh(permission)
                 # print(permission.analytics_booking_api)
-                if not permission or getattr(permission, permission_column) != 1:
+                if not permission or not getattr(permission, permission_column, False):
                     raise HTTPException(status_code=403, detail="Access denied")
             
             response = await call_next(request)

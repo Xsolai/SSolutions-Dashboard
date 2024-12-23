@@ -42,6 +42,34 @@ def time_to_seconds(time):
     except Exception as e:
         print(f"Error converting time '{time}': {e}")
         return 0
+    
+def time_to_minutes(time):
+    """Convert time in various formats to minutes."""
+    try:
+        if isinstance(time, tuple):
+            pass
+
+        if '.' in time[0]:
+            print("float ", time[0])
+            return float(time[0])  # Assuming this represents minutes directly
+
+        # Handle time formats
+        if ':' in time[0]:
+            if len(time[0].split(':')) == 2:
+                # Format: 'mm:ss'
+                dt = datetime.strptime(time[0], "%M:%S")
+                total_minutes = dt.minute + dt.second / 60
+                return total_minutes
+            elif len(time[0].split(':')) == 3:
+                # Format: 'hh:mm:ss'
+                dt = datetime.strptime(time[0], "%H:%M:%S")
+                total_minutes = dt.hour * 60 + dt.minute + dt.second / 60
+                return total_minutes
+
+        return 0  # Return 0 if format is unrecognized
+    except Exception as e:
+        print(f"Error converting time '{time}': {e}")
+        return 0
 
 
 @router.get("/email_overview")
@@ -70,7 +98,7 @@ async def get_email_overview(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
@@ -209,7 +237,7 @@ async def get_email_overview_sub_kpis(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
@@ -333,7 +361,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
@@ -375,16 +403,16 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
                 processing_time_by_mailbox[row.mailbox] = 0
 
             # Convert processing_time to seconds and accumulate
-            processing_time_by_mailbox[row.mailbox] += time_to_seconds((row.processing_time,))
+            processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))
 
         # Format the results
         pt_mailbox = [
-            {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
+            {"mailbox": mailbox, "processing_time_min": round(total_time, 2)}
             for mailbox, total_time in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
+        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_min"], reverse=True)
         
         # Query total new sent emails
         replies_data = query.with_entities(
@@ -400,7 +428,7 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
     else:
         service_level_gross_data = query.with_entities(
             WorkflowReportGuruKF.mailbox.label("mailbox"),
-            func.sum(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
+            func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).group_by(WorkflowReportGuruKF.mailbox).order_by(WorkflowReportGuruKF.service_level_gross.desc()).all()
@@ -427,16 +455,16 @@ async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by 
             print("Processing time: ", row.processing_time)    
 
             # Convert processing_time to seconds and accumulate
-            processing_time_by_mailbox[row.mailbox] += time_to_seconds((row.processing_time,))
+            processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))
 
         # Format the results
         pt_mailbox = [
-            {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
+            {"mailbox": mailbox, "processing_time_min": round(total_time, 2)}
             for mailbox, total_time in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
+        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_min"], reverse=True)
         
         # Query total new sent emails
         replies_data = query.with_entities(

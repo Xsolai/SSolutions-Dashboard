@@ -44,7 +44,7 @@ def time_to_seconds(time_str):
         return 0
 
 
-@router.get("/anaytics_email")
+@router.get("/analytics_email")
 async def get_anaytics_email_data(
     filter_type: str = Query("all", description="Filter by date range: yesterday, last_week, last_month, last_year"),
     db: Session = Depends(get_db),
@@ -71,7 +71,7 @@ async def get_anaytics_email_data(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
@@ -99,7 +99,7 @@ async def get_anaytics_email_data(
             func.sum(WorkflowReportGuruKF.sent)
         ).scalar() or 0
 
-        new_cases = db.query(
+        new_cases = query.with_entities(
             func.sum(WorkflowReportGuruKF.new_cases)
         ).scalar() or 0
 
@@ -132,7 +132,7 @@ async def get_anaytics_email_data(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
 
-        new_cases = db.query(
+        new_cases = query.with_entities(
             func.sum(WorkflowReportGuruKF.new_cases)
         ).filter(
             WorkflowReportGuruKF.date.between(start_date, end_date)
@@ -232,7 +232,7 @@ async def get_anaytics_email_data_sub_kpis(
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
@@ -324,7 +324,7 @@ async def get_sales_and_service(filter_type: str = Query("all", description="Fil
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     db = SessionLocal()
@@ -482,7 +482,7 @@ async def get_booking_data(time_input: float = 6*60, filter_type: str = Query("a
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
@@ -574,7 +574,7 @@ async def get_booking_data_sub_kpis(db: Session = Depends(get_db),
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
@@ -652,7 +652,7 @@ async def get_conversion_data(filter_type: str = Query("all", description="Filte
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorFlug" in email_filter
+    email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # Date range for filtering
