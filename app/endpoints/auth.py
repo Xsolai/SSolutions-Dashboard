@@ -165,13 +165,13 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     and temporarily storing user details for verification.
     """
     # Determine the role based on the email domain
-    # if request.email.endswith(EMPLOYEE_DOMAIN):
-    #     role = "employee"
-    # elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
-    #     role = "customer"
-    # else:
-    #     raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
-    role = "admin"
+    if request.email.endswith(EMPLOYEE_DOMAIN):
+        role = "employee"
+    elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
+        role = "customer"
+    else:
+        raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+    # role = "admin"
     # Check if user already exists
     user = db.query(models.User).filter(
         (models.User.email == request.email) | (models.User.username == request.username)
