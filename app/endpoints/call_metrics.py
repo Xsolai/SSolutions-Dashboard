@@ -5,7 +5,10 @@ from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import get_date_range, calculate_percentage_change
+from app.src.utils import get_date_subkpis, calculate_percentage_change, validate_user_and_date_permissions
+from datetime import date
+from typing import Optional
+
 
 
 router = APIRouter(
@@ -83,38 +86,35 @@ def get_inbound_after_call(query, start_date, end_date):
 
 @router.get("/call_overview")
 async def get_calls(
-    filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
+    include_all: bool = Query(
+        False, description="Set to True to retrieve all data without date filtering."
+    ),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
+    
     """Endpoint to retrieve calls data from the database."""
-    
-    # User and Permission Validation
+    # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
-    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    
-    # Parse allowed filters
-    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
-    
-    # Validate the requested filter
-    if filter_type not in allowed_filters:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)
-            }
-        )
+    # Calculate the allowed date range based on the user's permissions
+    start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    # Date range for filtering
-    start_date, end_date = get_date_range(filter_type)
     total_call_reasons_query = 0
-    # Apply filtering logic
+    # Filtering Logic
     if is_admin_or_employee:
         query = db.query(QueueStatistics)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
@@ -127,8 +127,7 @@ async def get_calls(
     else:
         query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.notlike("%5vorFlug%"))
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-
-    # start_date, end_date = get_date_range(filter_type)
+        
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
@@ -273,8 +272,8 @@ async def get_calls_sub_kpis(
         query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.notlike("5vorFlug%"))
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
 
-    start_date, end_date = get_date_range("yesterday")
-    prev_start_date, prev_end_date = get_date_range("last_week")
+    start_date, end_date = get_date_subkpis("yesterday")
+    prev_start_date, prev_end_date = get_date_subkpis("last_week")
     
     # Current KPIs
     total_calls = query.with_entities(func.sum(QueueStatistics.calls)).filter(
@@ -397,7 +396,7 @@ async def get_calls_sub_kpis(
 #     # print("admin or employee ", is_admin_or_employee, user.role)
 
 #     # Date range for filtering
-#     start_date, end_date = get_date_range(filter_type)
+#     start_date, end_date = get_date_subkpis(filter_type)
     
 #     # Apply filtering logic
 #     if is_admin_or_employee:
@@ -772,37 +771,33 @@ async def get_calls_sub_kpis(
     
 @router.get("/call_performance")
 async def get_call_performance(
-    filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
+    include_all: bool = Query(
+        False, description="Set to True to retrieve all data without date filtering."
+    ),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)
 ):
     """Endpoint to retrieve queue-wise calls KPIs from the database with date filtering."""
-    
-    # User and Permission Validation
+    # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
-    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    
-    # Parse allowed filters
-    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
-    
-    # Validate the requested filter
-    if filter_type not in allowed_filters:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)
-            }
-        )
+
+    # Calculate the allowed date range based on the user's permissions
+    start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
-    
-    # Date range for filtering
-    start_date, end_date = get_date_range(filter_type)
     
     def safe_sum_query(query, column=QueueStatistics.calls):
         """Safely execute sum query with fallback to 0"""

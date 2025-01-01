@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from app.database.models.models import WorkflowReportGuruKF, User, Permission
+from app.database.models.models import WorkflowReportGuruKF, User
 from app.database.db.db_connection import  get_db
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import func
-from collections import defaultdict
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import get_date_range, calculate_percentage_change
+from app.src.utils import get_date_subkpis, calculate_percentage_change, validate_user_and_date_permissions
+from typing import Optional
 
 
 router = APIRouter(
@@ -74,35 +74,31 @@ def time_to_minutes(time):
 
 @router.get("/email_overview")
 async def get_email_overview(
-    filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
+    include_all: bool = Query(
+        False, description="Set to True to retrieve all data without date filtering."
+    ),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
-    # User and Permission Validation
+    # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
-    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    
-    # Parse allowed filters
-    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
-    
-    # Validate the requested filter
-    if filter_type not in allowed_filters:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)
-            }
-        )
+    # Calculate the allowed date range based on the user's permissions
+    start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
-    
-    # Date range for filtering
-    start_date, end_date = get_date_range(filter_type)
     
     if is_admin_or_employee:
         query = db.query(WorkflowReportGuruKF)
@@ -213,27 +209,26 @@ async def get_email_overview(
 
 @router.get("/email_overview_sub_kpis")
 async def get_email_overview_sub_kpis(
-    filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
+    include_all: bool = Query(
+        False, description="Set to True to retrieve all data without date filtering."
+    ),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
-    # User and Permission Validation
+    # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
-    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
-    
-    # Parse allowed filters
-    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
-    
-    # Validate the requested filter
-    if filter_type not in allowed_filters:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)
-            }
-        )
+    # Calculate the allowed date range based on the user's permissions
+    start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     
     # Determine user access level
     email_filter = current_user.get("email")
@@ -251,8 +246,8 @@ async def get_email_overview_sub_kpis(
         print("executing else containss")
         query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
     
-    start_date, end_date = get_date_range("yesterday")
-    prev_start_date, prev_end_date = get_date_range("last_week")
+    start_date, end_date = get_date_subkpis("yesterday")
+    prev_start_date, prev_end_date = get_date_subkpis("last_week")
     total_processing_time_seconds = 1
     prev_total_processing_time_seconds = 1
     # start_date, end_date = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
@@ -336,43 +331,41 @@ async def get_email_overview_sub_kpis(
 
 
 @router.get("/email_performance")
-async def get_mailbox_SL(filter_type: str = Query("all", description="Filter by date range: all, yesterday, last_week, last_month, last_year"),
+async def get_mailbox_SL(
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
+    include_all: bool = Query(
+        False, description="Set to True to retrieve all data without date filtering."
+    ),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     
-    # User and Permission Validation
+    # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
-    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    # Calculate the allowed date range based on the user's permissions
+    start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     
-    # Parse allowed filters
-    allowed_filters = set(user_permissions.date_filter.split(",")) if user_permissions and user_permissions.date_filter else {"all", "yesterday", "last_week", "last_month", "last_year"}
-    
-    # Validate the requested filter
-    if filter_type not in allowed_filters:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"The filter type '{filter_type}' is not allowed for this user.",
-                "allowed_filters": list(allowed_filters)
-            }
-        )
     
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    # Date range for filtering
-    start_date, end_date = get_date_range(filter_type)
-    
     if is_admin_or_employee:
         query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
         )
     else:
         print("executing else containss")

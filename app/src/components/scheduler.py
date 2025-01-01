@@ -13,7 +13,7 @@ from app.src.utils import add_file_record
 from app.src.logger import logging
 
 # Define the Pakistani timezone
-pk_timezone = timezone('Asia/Karachi')
+pk_timezone = timezone('Europe/Berlin')
 scheduler = BackgroundScheduler(timezone=pk_timezone)
 
 def parse_date_to_weekday(date_str):
