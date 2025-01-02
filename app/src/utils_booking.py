@@ -21,7 +21,7 @@ def validate_user_and_date_permissions_booking(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            detail="User not found." 
         )
     
     # Retrieve the user's permissions

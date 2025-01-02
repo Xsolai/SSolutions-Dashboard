@@ -37,6 +37,7 @@ async def get_tasks_kpis(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve booking data from the database.""" 
@@ -51,10 +52,23 @@ async def get_tasks_kpis(
     email_contains_5vflug = "5vorflug" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
+    # if is_admin_or_employee:
+    #     query = db.query(OrderJoin).join(
+    #         GuruTask, OrderJoin.order_number == GuruTask.order_number
+    #     ).distinct()
     if is_admin_or_employee:
-        query = db.query(OrderJoin).join(
+        if "5vorflug" in company:
+            query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).distinct()
+            ).filter(OrderJoin.customer.like("%5vF%")).distinct()  
+        elif "guru" in company:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        else:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).distinct()
     elif email_contains_5vflug:
         print("containss")
         query = db.query(OrderJoin).join(
@@ -103,6 +117,7 @@ async def get_tasks_overview(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve tasks data from the database."""
@@ -118,9 +133,18 @@ async def get_tasks_overview(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(OrderJoin).join(
+        if "5vorflug" in company:
+            query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).distinct()
+            ).filter(OrderJoin.customer.like("%5vF%")).distinct()  
+        elif "guru" in company:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        else:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).distinct()
     elif email_contains_5vflug:
         print("containss")
         query = db.query(OrderJoin).join(
@@ -213,6 +237,7 @@ async def get_tasks_performance(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve calls data from the database."""
@@ -227,9 +252,18 @@ async def get_tasks_performance(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(OrderJoin).join(
+        if "5vorflug" in company:
+            query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).distinct()
+            ).filter(OrderJoin.customer.like("%5vF%")).distinct()  
+        elif "guru" in company:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        else:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).distinct()
     elif email_contains_5vflug:
         print("containss")
         query = db.query(OrderJoin).join(

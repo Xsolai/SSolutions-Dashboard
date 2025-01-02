@@ -99,6 +99,7 @@ async def get_calls(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     
@@ -116,12 +117,21 @@ async def get_calls(
     total_call_reasons_query = 0
     # Filtering Logic
     if is_admin_or_employee:
-        query = db.query(QueueStatistics)
+        if "5vorflug" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(QueueStatistics)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     elif email_contains_5vflug:
         print("containss")
         query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+            QueueStatistics.queue_name.like("%5vorFlug%")  
         )
         total_call_reasons = 0
     else:
@@ -249,6 +259,7 @@ async def get_calls(
 
 @router.get("/calls_sub_kpis")
 async def get_calls_sub_kpis(
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     # User and Permission Validation
@@ -260,8 +271,17 @@ async def get_calls_sub_kpis(
     
     # Apply filtering logic
     if is_admin_or_employee:
-        query = db.query(QueueStatistics)
-        total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        if "5vorflug" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(QueueStatistics)
+            
     elif email_contains_5vflug:
         print("containss")
         query = db.query(QueueStatistics).filter(
@@ -784,6 +804,7 @@ async def get_call_performance(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)
 ):
@@ -829,8 +850,16 @@ async def get_call_performance(
     
     # Base query setup
     if is_admin_or_employee:
-        # Full access 
-        query = db.query(QueueStatistics)
+        if "5vorflug" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(QueueStatistics)
         
         # Call Reasons Breakdown
         call_reasons = {

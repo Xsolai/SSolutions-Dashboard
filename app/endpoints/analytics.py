@@ -61,6 +61,7 @@ async def get_anaytics_email_data(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
@@ -76,7 +77,16 @@ async def get_anaytics_email_data(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(WorkflowReportGuruKF)
+        if "5vorflug" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
@@ -223,6 +233,7 @@ async def get_anaytics_email_data(
     
 @router.get("/anaytics_email_subkpis")
 async def get_anaytics_email_data_sub_kpis(
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
@@ -234,7 +245,16 @@ async def get_anaytics_email_data_sub_kpis(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(WorkflowReportGuruKF)
+        if "5vorflug" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
@@ -311,6 +331,7 @@ async def get_sales_and_service(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
@@ -329,7 +350,16 @@ async def get_sales_and_service(
     
     # Apply filtering logic
     if is_admin_or_employee:
-        query = db.query(QueueStatistics)
+        if "5vorflug" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(QueueStatistics)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(QueueStatistics).filter(
@@ -467,6 +497,7 @@ async def get_booking_data(time_input: float = 6*60,
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user),
     # access_control: bool = Depends(role_based_access_control),
@@ -484,7 +515,16 @@ async def get_booking_data(time_input: float = 6*60,
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(SoftBookingKF)
+        if "5vorflug" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(SoftBookingKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(SoftBookingKF).filter(
@@ -561,7 +601,9 @@ async def get_booking_data(time_input: float = 6*60,
         return None
 
 @router.get("/analytics_booking_subkpis")
-async def get_booking_data_sub_kpis(db: Session = Depends(get_db),
+async def get_booking_data_sub_kpis(
+    company: str = "all",
+    db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
     # User and Permission Validation
@@ -573,7 +615,16 @@ async def get_booking_data_sub_kpis(db: Session = Depends(get_db),
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(SoftBookingKF)
+        if "5vorflug" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(SoftBookingKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(SoftBookingKF).filter(
@@ -637,6 +688,7 @@ async def get_conversion_data(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
@@ -651,7 +703,16 @@ async def get_conversion_data(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(SoftBookingKF)
+        if "5vorflug" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(SoftBookingKF)
     elif email_contains_5vflug:
         print("containss")
         raise HTTPException(

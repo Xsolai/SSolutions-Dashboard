@@ -87,6 +87,7 @@ async def get_email_overview(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
@@ -101,7 +102,16 @@ async def get_email_overview(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(WorkflowReportGuruKF)
+        if "5vorflug" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
@@ -209,6 +219,7 @@ async def get_email_overview(
 
 @router.get("/email_overview_sub_kpis")
 async def get_email_overview_sub_kpis(
+    company: str = "all",
     start_date: Optional[date] = Query(
         None, 
         description="Start date for the filter in 'YYYY-MM-DD' format.",
@@ -236,7 +247,16 @@ async def get_email_overview_sub_kpis(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(WorkflowReportGuruKF)
+        if "5vorflug" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
@@ -345,6 +365,7 @@ async def get_mailbox_SL(
     include_all: bool = Query(
         False, description="Set to True to retrieve all data without date filtering."
     ),
+    company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
@@ -361,7 +382,16 @@ async def get_mailbox_SL(
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
-        query = db.query(WorkflowReportGuruKF)
+        if "5vorflug" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+        )
+        elif "guru" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
+        )
+        else:
+            query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
