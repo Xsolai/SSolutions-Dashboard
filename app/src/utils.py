@@ -74,18 +74,18 @@ def validate_user_and_date_permissions(
     print("current: ", start_date, end_date)
 
     # Ensure the requested date range is within the allowed range
-    # if start_date < allowed_start or end_date > allowed_end:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail={
-    #             "error": "Permission Denied",
-    #             "message": "Requested date range is not within the allowed range.",
-    #             "allowed_date_range": {
-    #                 "start_date": allowed_start.isoformat(),
-    #                 "end_date": allowed_end.isoformat(),
-    #             }
-    #         }
-    #     )
+    if start_date < allowed_start or end_date > allowed_end:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": "Requested date range is not within the allowed range.",
+                "allowed_date_range": {
+                    "start_date": allowed_start.isoformat(),
+                    "end_date": allowed_end.isoformat(),
+                }
+            }
+        )
     
     return start_date, end_date
         
