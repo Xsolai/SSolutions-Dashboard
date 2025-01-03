@@ -209,8 +209,6 @@ def get_combined_date_range(filters):
     if not filters:
         raise ValueError("No valid date filters provided.")
     
-    if "all" in filters:
-        return None, None
     # Calculate the union of the selected date ranges
     selected_ranges = [date_ranges[filter_type] for filter_type in filters if filter_type in date_ranges]
     if not selected_ranges:
