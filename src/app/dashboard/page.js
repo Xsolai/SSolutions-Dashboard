@@ -30,7 +30,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
         setHistoryData(response.data);
         setLoading(false);
       } catch (error) {
-        console.error("Fehler beim Abrufen des Verlaufs:", error);
+        console.error("Error fetching history:", error);
         setLoading(false);
       }
     };
@@ -82,7 +82,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                 <History className="w-6 h-6" />
-                Verlauf
+                History
               </h2>
               <button
                 onClick={onClose}
@@ -96,11 +96,11 @@ const HistorySidebar = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center items-center h-full">
-                <div className="text-gray-500">Verlauf wird geladen...</div>
+                <div className="text-gray-500">Loading history...</div>
               </div>
             ) : historyData.length === 0 ? (
               <div className="flex justify-center items-center h-full">
-                <div className="text-gray-500">Kein Verlauf verfügbar</div>
+                <div className="text-gray-500">No history available</div>
               </div>
             ) : (
               <div className="p-4 space-y-3">
@@ -158,7 +158,7 @@ const ProfileDropdown = ({ role }) => {
         window.location.href = "/";
       }
     } catch (error) {
-      console.error("Fehler beim Abmelden:", error);
+      console.error("Error logging out:", error);
     }
   };
 
@@ -184,7 +184,7 @@ const ProfileDropdown = ({ role }) => {
                 className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-md flex items-center gap-2 transition-all duration-200"
               >
                 <Settings className="w-4 h-4" />
-                Admin-Panel
+                Admin Panel
               </a>
             </div>
           )}
@@ -194,7 +194,7 @@ const ProfileDropdown = ({ role }) => {
               className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 transition-all duration-200"
             >
               <LogOut className="w-4 h-4" />
-              Abmelden
+              Logout
             </button>
           </div>
         </div>
@@ -224,7 +224,7 @@ const Home = () => {
           localStorage.setItem("email", data.email);
         }
       } catch (error) {
-        console.error("Fehler beim Abrufen des Profils:", error);
+        console.error("Error fetching profile:", error);
       }
     };
 
@@ -232,10 +232,10 @@ const Home = () => {
   }, []);
 
   const navigationLinks = [
-    { id: "analytics", label: "Analytik" },
-    { id: "call-analysis", label: "Anrufanalyse" },
-    { id: "email-analysis", label: "E-Mail-Analyse" },
-    { id: "task-analysis", label: "Aufgabenanalyse" },
+    { id: "analytics", label: "Analytics" },
+    { id: "call-analysis", label: "Call Analysis" },
+    { id: "email-analysis", label: "Email Analysis" },
+    { id: "task-analysis", label: "Task Analysis" },
   ];
 
   return (
@@ -272,7 +272,7 @@ const Home = () => {
                     onClick={() => setIsHistoryOpen(true)}
                   >
                     <History className="w-5 h-5" />
-                    Verlauf
+                    History
                   </button>
                 )}
                 <ProfileDropdown role={role} />
@@ -314,7 +314,7 @@ const Home = () => {
                   }}
                 >
                   <History className="w-5 h-5" />
-                  Verlauf
+                  History
                 </button>
               )}
             </div>

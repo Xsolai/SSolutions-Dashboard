@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Briefcase, TrendingUp, DollarSign, Archive, Clock, CheckCircle, Users, Activity } from 'lucide-react';
-import { motion } from 'framer-motion';
-import FilterComponent from './FilterComponent';
-import axios from 'axios';
+import CustomDateRangeFilter from './FilterComponent';
+
 // Reuse the existing Loading, SkeletonStatCard, and SkeletonChartCard components...
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -14,27 +13,6 @@ const SkeletonStatCard = () => (
     </div>
     <div className="h-8 bg-gray-200 rounded w-2/3 mb-2"></div>
     <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-  </div>
-);
-
-// Stat Card component
-const StatCard = ({ title, value, icon: Icon, change, description }) => (
-  <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
-    <div className="flex items-center justify-between mb-1">
-      <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-      <div className="p-2 bg-yellow-50 rounded-lg">
-        <Icon className="h-5 w-5 text-yellow-400" />
-      </div>
-    </div>
-    <div className="text-2xl font-bold text-gray-900 mb-2">{value}</div>
-    {change && description && (
-      <p className="text-xs text-gray-500">
-        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-blue-500' : 'text-blue-500'}`}>
-          {change}
-        </span>
-        {description}
-      </p>
-    )}
   </div>
 );
 
@@ -88,41 +66,6 @@ const COLORS = {
   ]
 };
 
-const AnimatedText = () => {
-  const titleLines = ["Aufgabe", "Übersicht", "Analytik"];
-  return (
-    <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-3 space-y-2 sm:space-y-0">
-      {titleLines.map((line, lineIndex) => (
-        <motion.div
-          key={lineIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: 1,
-            staggerChildren: 0.1,
-          }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-[#fdcc00] flex flex-wrap "
-        >
-          {line.split("").map((letter, index) => (
-            <motion.span
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.3,
-                delay: index * 0.1 + lineIndex * 0.5,
-              }}
-              className="flex"
-            >
-              {letter}
-            </motion.span>
-          ))}
-        </motion.div>
-      ))}
-    </div>
-  );
-};
-
 
 const ChartCard = ({ title, children }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
@@ -131,16 +74,20 @@ const ChartCard = ({ title, children }) => (
   </div>
 );
 
-
 const TaskAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [filterType, setFilterType] = useState('yesterday');
+  const [dateRange, setDateRange] = useState({
+    startDate: null,
+    endDate: null,
+    isAllTime: false
+  });
   const [data, setData] = useState({
     kpis: null,
     overview: null,
     performance: null
   });
   const [loading, setLoading] = useState(true);
+
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
@@ -148,94 +95,140 @@ const TaskAnalysisDashboard = () => {
     { id: "performance", name: "Leistungsmetriken" }
   ];
 
+  // Initialize with default date range (yesterday)
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const access_token = localStorage.getItem('access_token');
-        const config = { headers: { 'Authorization': `Bearer ${access_token}` } };
+
+        // Format dates for API query
+        const formatDate = (date) => {
+          if (!date) return null;
+          return date.toISOString().split('T')[0];
+        };
+
+        // Build query parameters
+        const queryString = new URLSearchParams({
+          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+          include_all: dateRange.isAllTime || false
+        }).toString();
+
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        };
 
         const [kpisRes, overviewRes, performanceRes] = await Promise.all([
-          axios.get(`https://app.saincube.com/app2/tasks_kpis?filter_type=${filterType}`, config),
-          axios.get(`https://app.saincube.com/app2/tasks_overview?filter_type=${filterType}`, config),
-          axios.get(`https://app.saincube.com/app2/tasks_performance?filter_type=${filterType}`, config)
+          fetch(`https://app.saincube.com/app2/tasks_kpis?${queryString}`, config)
+            .then(res => res.json()),
+          fetch(`https://app.saincube.com/app2/tasks_overview?${queryString}`, config)
+            .then(res => res.json()),
+          fetch(`https://app.saincube.com/app2/tasks_performance?${queryString}`, config)
+            .then(res => res.json())
         ]);
 
         setData({
-          kpis: kpisRes.data,
-          overview: overviewRes.data,
-          performance: performanceRes.data
+          kpis: kpisRes,
+          overview: overviewRes,
+          performance: performanceRes
         });
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [filterType]);
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      fetchData();
+    }
+  }, [dateRange]);
+
+  const handleDateRangeChange = (newRange) => {
+    setDateRange({
+      startDate: newRange.startDate,
+      endDate: newRange.endDate,
+      isAllTime: newRange.isAllTime
+    });
+  };
+
 
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;
-  
+
     // Parse and validate data
     const tasksByWeekday = data.overview['Tasks created by weekday'] || [];
     const tasksByMonth = data.overview['Tasks created by date'] || [];
-  
+
     return (
       <div className="space-y-4">
-          
-          <ChartCard title="Aufgaben nach Kategorie">
-  <div className="flex flex-col md:flex-row h-[400px] md:h-[450px] gap-4">
-    {/* Chart Container */}
-    <div className="flex-1 min-h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <Pie
-            data={data.overview['Tasks by categories'] || []}
-            dataKey="count"
-            nameKey="tasks"
-            cx="50%"
-            cy="50%"
-            outerRadius={({ width, height }) => Math.min(width, height) * 0.4}
-            labelLine={false}
-            label={false} 
-          >
-            {(data.overview['Tasks by categories'] || []).map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS.chartColors[index % COLORS.chartColors.length]} />
-            ))}
-          </Pie>
-          <Tooltip 
-            formatter={(value, name) => [`${value} Aufgaben`, name]}
-            contentStyle={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '12px'
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-    
-    {/* Scrollable Legend Container with Values */}
-    <div className="md:w-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 p-2">
-      {(data.overview['Tasks by categories'] || []).map((entry, index) => (
-        <div key={index} className="flex items-center justify-between mb-2 hover:bg-gray-50 p-1 rounded">
-          <div className="flex items-center">
-            <div 
-              className="w-3 h-3 rounded-sm mr-2" 
-              style={{ backgroundColor: COLORS.chartColors[index % COLORS.chartColors.length] }}
-            />
-            <span className="text-sm text-gray-700">{entry.tasks}</span>
+
+        <ChartCard title="Aufgaben nach Kategorie">
+          <div className="flex flex-col md:flex-row h-[400px] md:h-[450px] gap-4">
+            {/* Chart Container */}
+            <div className="flex-1 min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <Pie
+                    data={data.overview['Tasks by categories'] || []}
+                    dataKey="count"
+                    nameKey="tasks"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={({ width, height }) => Math.min(width, height) * 0.4}
+                    labelLine={false}
+                    label={false}
+                  >
+                    {(data.overview['Tasks by categories'] || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS.chartColors[index % COLORS.chartColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => [`${value} Aufgaben`, name]}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Scrollable Legend Container with Values */}
+            <div className="md:w-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 p-2">
+              {(data.overview['Tasks by categories'] || []).map((entry, index) => (
+                <div key={index} className="flex items-center justify-between mb-2 hover:bg-gray-50 p-1 rounded">
+                  <div className="flex items-center">
+                    <div
+                      className="w-3 h-3 rounded-sm mr-2"
+                      style={{ backgroundColor: COLORS.chartColors[index % COLORS.chartColors.length] }}
+                    />
+                    <span className="text-sm text-gray-700">{entry.tasks}</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{entry.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <span className="text-sm font-medium text-gray-900">{entry.count}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-</ChartCard>
+        </ChartCard>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Tasks by Weekday */}
           <ChartCard title="Aufgaben nach Wochentag">
@@ -264,7 +257,7 @@ const TaskAnalysisDashboard = () => {
               </ResponsiveContainer>
             </div>
           </ChartCard>
-  
+
           {/* Tasks by Month */}
           <ChartCard title="Aufgaben nach Monat">
             <div className="h-[400px]">
@@ -298,76 +291,76 @@ const TaskAnalysisDashboard = () => {
       </div>
     );
   };
-  
-  
+
+
   const PerformanceTab = () => {
     if (!data.performance) return <Loading />;
 
     return (
       <div className="space-y-6">
         <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Aufgaben nach Benutzer</h3>
-            <div className="overflow-x-auto overflow-y-hidden scrollbar-hide">
-              <div className="min-w-[1200px] lg:min-w-full">
-                <div className="h-[450px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={data.performance['Tasks assigned to users'] || []}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 160 }}
-                    >
-                      <XAxis
-                        dataKey="assign_users_by_tasks"
-                        angle={-60}
-                        textAnchor="end"
-                        height={150}
-                        interval={0}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis />
-                      <Tooltip />
+          <h3 className="text-lg font-medium text-gray-900 mb-6">Aufgaben nach Benutzer</h3>
+          <div className="overflow-x-auto overflow-y-hidden scrollbar-hide">
+            <div className="min-w-[1200px] lg:min-w-full">
+              <div className="h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.performance['Tasks assigned to users'] || []}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 160 }}
+                  >
+                    <XAxis
+                      dataKey="assign_users_by_tasks"
+                      angle={-60}
+                      textAnchor="end"
+                      height={150}
+                      interval={0}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis />
+                    <Tooltip />
                     <Legend wrapperStyle={{ bottom: -0 }} />
-                      <Bar
-                        dataKey="task_count"
-                        name="Aufgaben"
-                        fill={COLORS.chartColors[0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                    <Bar
+                      dataKey="task_count"
+                      name="Aufgaben"
+                      fill={COLORS.chartColors[0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
+        </div>
 
-          <ChartCard title="Aufgaben nach Fälligkeitsdatum">
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.performance['Tasks assign to users by date'] || []}
-                  margin={{ bottom: 20 }}
-                >
-                  <XAxis
-                    dataKey="month"
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ bottom: -0 }} />
-                  <Bar
-                    dataKey="assign_tasks_by_date"
-                    name="Zugewiesene Aufgaben"
-                    fill={COLORS.chartColors[0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-          
+        <ChartCard title="Aufgaben nach Fälligkeitsdatum">
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={data.performance['Tasks assign to users by date'] || []}
+                margin={{ bottom: 20 }}
+              >
+                <XAxis
+                  dataKey="month"
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend wrapperStyle={{ bottom: -0 }} />
+                <Bar
+                  dataKey="assign_tasks_by_date"
+                  name="Zugewiesene Aufgaben"
+                  fill={COLORS.chartColors[0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
 
-          <ChartCard  title="Aufgabenerstell-Trend">
+          <ChartCard title="Aufgabenerstell-Trend">
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -429,16 +422,12 @@ const TaskAnalysisDashboard = () => {
   return (
     <div className="bg-gray-50 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        {/* Header */}
-        <div className="mb-10 px-2 pt-4 sm:mb-6 flex justify-between items-center">
-          <AnimatedText />
+        {/* FilterComponent accepts date range */}
+        <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
+          <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
         </div>
-
-        {/* Filter Component */}
-        <FilterComponent filterType={filterType} setFilterType={setFilterType} />
-
-      {/* Tabs Navigation */}
-      <div className="border-b border-gray-200 mb-6">
+        {/* Tabs Navigation */}
+        <div className="border-b border-gray-200 mb-6">
           {/* Dropdown for Mobile */}
           <div className="sm:hidden">
             <select
@@ -460,11 +449,10 @@ const TaskAnalysisDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
-                  activeTab === tab.id
+                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${activeTab === tab.id
                     ? "text-black border-yellow-400"
                     : "text-gray-500 border-transparent hover:text-black hover:border-yellow-300"
-                }`}
+                  }`}
               >
                 {tab.name}
               </button>

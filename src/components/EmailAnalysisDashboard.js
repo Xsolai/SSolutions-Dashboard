@@ -3,8 +3,7 @@ import React, { useState , useEffect} from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, Cell } from 'recharts';
 import { Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
-import FilterComponent from './FilterComponent';
+import CustomDateRangeFilter from './FilterComponent';
 
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -154,37 +153,67 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const EmailAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('uebersicht');
-  const [filterType, setFilterType] = useState('yesterday');
+  const [dateRange, setDateRange] = useState({
+    startDate: null,
+    endDate: null,
+    isAllTime: false
+  });
   const [overviewData, setOverviewData] = useState(null);
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
+
   const tabs = [
     { id: "uebersicht", name: "Übersicht" },
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
+
+  // Initialize with default date range (yesterday)
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const access_token = localStorage.getItem('access_token');
+        
+        // Format dates for API query
+        const formatDate = (date) => {
+          if (!date) return null;
+          return date.toISOString().split('T')[0];
+        };
+
+        // Build query parameters
+        const queryString = new URLSearchParams({
+          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+          include_all: dateRange.isAllTime || false
+        }).toString();
+
         const config = {
-          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${access_token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${access_token}`
           }
         };
 
         const [overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-          fetch(`https://app.saincube.com/app2/email_overview?filter_type=${filterType}`, config)
+          fetch(`https://app.saincube.com/app2/email_overview?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://app.saincube.com/app2/email_overview_sub_kpis?filter_type=${filterType}`, config)
+          fetch(`https://app.saincube.com/app2/email_overview_sub_kpis?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://app.saincube.com/app2/email_performance?filter_type=${filterType}`, config)
+          fetch(`https://app.saincube.com/app2/email_performance?${queryString}`, config)
             .then(res => res.json())
         ]);
 
@@ -198,9 +227,20 @@ const EmailAnalysisDashboard = () => {
       }
     };
 
-    fetchData();
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      fetchData();
+    }
+  }, [dateRange]);
 
-  }, [filterType]);
+  const handleDateRangeChange = (newRange) => {
+    setDateRange({
+      startDate: newRange.startDate,
+      endDate: newRange.endDate,
+      isAllTime: newRange.isAllTime
+    });
+  };
+
+
 
   const UebersichtTab = () => {
     if (!overviewData || !subKPIs) return <Loading/>;
@@ -450,11 +490,11 @@ const EmailAnalysisDashboard = () => {
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
-      <div className="max-w-full mx-auto p-4 sm:p-6">
-        <div className="mb-10 px-2 pt-4 sm:mb-6 flex justify-between items-center">
-          <AnimatedText />
-        </div>
-        <FilterComponent filterType={filterType} setFilterType={setFilterType} />
+    <div className="max-w-full mx-auto p-4 sm:p-6">
+      {/* FilterComponent accepts date range */}
+      <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
+      <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+      </div>
         {/* Tabs Navigation */}
         <div className="border-b border-gray-200 mb-6">
           {/* Dropdown für Mobile */}

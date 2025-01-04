@@ -3,7 +3,7 @@ import React, { useState , useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart } from 'recharts';
 import { Mail, PhoneCall, Phone, TrendingUp,TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
-import FilterComponent from './FilterComponent';
+import CustomDateRangeFilter from './FilterComponent';
 
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -121,8 +121,11 @@ const ChartCard = ({ title, children }) => (
 );
 
 const AnalyticsDashboard = () => {
-  const [activeTab, setActiveTab] = useState('email');
-  const [filterType, setFilterType] = useState('yesterday');
+  const [dateRange, setDateRange] = useState({
+    startDate: null,
+    endDate: null,
+    isAllTime: false
+  });
   const [data, setData] = useState({
     emailData: null,
     emailSubKPIs: null,
@@ -132,68 +135,114 @@ const AnalyticsDashboard = () => {
     conversionData: null
   });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('email');
 
   const access_token = localStorage.getItem('access_token');
-
   const config = {
     headers: {
       'Authorization': `Bearer ${access_token}`
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [
-          emailData,
-          emailSubKPIs,
-          salesServiceData,
-          bookingData,
-          bookingSubKPIs,
-          conversionData
-        ] = await Promise.all([
-          fetch(`https://app.saincube.com/app2/analytics_email?filter_type=${filterType}`, config),
-          fetch(`https://app.saincube.com/app2/anaytics_email_subkpis?filter_type=${filterType}`, config),
-          fetch(`https://app.saincube.com/app2/analytics_sales_service?filter_type=${filterType}`, config),
-          fetch(`https://app.saincube.com/app2/analytics_booking?filter_type=${filterType}`, config),
-          fetch('https://app.saincube.com/app2/analytics_booking_subkpis', config),
-          fetch(`https://app.saincube.com/app2/analytics_conversion?filter_type=${filterType}`, config)
-        ]);
+  const fetchData = async (dateParams) => {
+    setLoading(true);
+    const { startDate, endDate, isAllTime } = dateParams;
     
-        const [
-          emailDataJson,
-          emailSubKPIsJson,
-          salesServiceDataJson,
-          bookingDataJson,
-          bookingSubKPIsJson,
-          conversionDataJson
-        ] = await Promise.all([
-          emailData.json(),
-          emailSubKPIs.json(),
-          salesServiceData.json(),
-          bookingData.json(),
-          bookingSubKPIs.json(),
-          conversionData.json()
-        ]);
-  
-        setData({
-          emailData: emailDataJson,
-          emailSubKPIs: emailSubKPIsJson,
-          salesServiceData: salesServiceDataJson,
-          bookingData: bookingDataJson,
-          bookingSubKPIs: bookingSubKPIsJson,
-          conversionData: conversionDataJson
-        });
-        setLoading(false);
-      } catch (error) {
-        console.error('Fehler beim Datenabruf:', error);
-        setLoading(false);
-      }
+    // Format dates according to backend expectation (YYYY-MM-DD)
+    const formatDate = (date) => {
+      if (!date) return null;
+      return date.toISOString().split('T')[0];
     };
   
-    fetchData();
-  }, [filterType]);
+    // Build query parameters
+    const queryString = new URLSearchParams({
+      ...(startDate && { start_date: formatDate(startDate) }),
+      ...(endDate && { end_date: formatDate(endDate) }),
+      include_all: isAllTime || false
+    }).toString();
+  
+    try {
+      const [
+        emailData,
+        emailSubKPIs,
+        salesServiceData,
+        bookingData,
+        bookingSubKPIs,
+        conversionData
+      ] = await Promise.all([
+        // Fixed API endpoint names to match backend
+        fetch(`https://app.saincube.com/app2/analytics_email?${queryString}`, config),
+        fetch('https://app.saincube.com/app2/anaytics_email_subkpis', config), // Note: backend has typo in 'anaytics'
+        fetch(`https://app.saincube.com/app2/analytics_sales_service?${queryString}`, config),
+        fetch(`https://app.saincube.com/app2/analytics_booking?${queryString}`, config),
+        fetch('https://app.saincube.com/app2/analytics_booking_subkpis', config),
+        fetch(`https://app.saincube.com/app2/analytics_conversion?${queryString}`, config)
+      ]);
 
+  
+      const [
+        emailDataJson,
+        emailSubKPIsJson,
+        salesServiceDataJson,
+        bookingDataJson,
+        bookingSubKPIsJson,
+        conversionDataJson
+      ] = await Promise.all([
+        emailData.json(),
+        emailSubKPIs.json(),
+        salesServiceData.json(),
+        bookingData.json(),
+        bookingSubKPIs.json(),
+        conversionData.json()
+      ]);
+  
+      // Update state with fetched data
+      setData({
+        emailData: emailDataJson,
+        emailSubKPIs: emailSubKPIsJson,
+        salesServiceData: salesServiceDataJson,
+        bookingData: bookingDataJson,
+        bookingSubKPIs: bookingSubKPIsJson,
+        conversionData: conversionDataJson
+      });
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      // Could add error state handling here
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Initialize with default date range
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
+  
+  // Handle date range updates
+  useEffect(() => {
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      fetchData(dateRange);
+    }
+  }, [dateRange]);
+  
+  // Handle date filter changes from calendar component
+  const handleDateRangeChange = (newRange) => {
+    setDateRange({
+      startDate: newRange.startDate,
+      endDate: newRange.endDate,
+      isAllTime: newRange.isAllTime
+    });
+  };
+
+  
   const EmailTab = () => {
     if (!data.emailData || !data.emailSubKPIs) return <Loading />;
     
@@ -625,13 +674,11 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
-      <div className="max-w-full mx-auto p-4 sm:p-6">
-        {/* Header */}
-        <div className="mb-10 px-2 pt-4 sm:mb-6 flex justify-between items-center">
-          <AnimatedText />
-        </div>
-        <FilterComponent filterType={filterType} setFilterType={setFilterType} />
-        {/* Tabs Navigation */}
+    <div className="max-w-full mx-auto p-4 sm:p-6">
+      {/* FilterComponent accepts date range */}
+      <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
+      <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+      </div>
         <div className="border-b border-gray-200 mb-6">
           {/* Dropdown für Mobile */}
           <div className="sm:hidden">
