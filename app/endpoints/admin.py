@@ -222,4 +222,17 @@ def get_companies(
     companies = db.query(models.WorkflowReportGuruKF.customer).distinct().all()
     if not companies:
         raise HTTPException(status_code=404, detail="No customer found.")
-    return [{"company": company.customer.lower()} for company in companies]
+    # return [{"company": company.customer.lower()} for company in companies]
+    result_set = set()
+    for company in companies:
+        company_name = company.customer.lower()
+        if "5vorflug" in company_name:
+            result_set.add("5vorflug")
+        elif "guru" in company_name:
+            result_set.add("guru")
+    
+    result = [{"company": name} for name in result_set]
+    if not result:
+        raise HTTPException(status_code=404, detail="No exact matches found.")
+    
+    return result
