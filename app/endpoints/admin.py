@@ -209,3 +209,17 @@ def get_users(db: Session = Depends(get_db),
         "role": user.role,
         "status": user.status
     } for user in users]
+    
+    
+@router.get("/admin/companies")
+def get_companies(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)
+):
+    current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
+    if not current_user or current_user.role.lower() != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can access this resource.")
+    companies = db.query(models.WorkflowReportGuruKF.customer).distinct().all()
+    if not companies:
+        raise HTTPException(status_code=404, detail="No customer found.")
+    return [{"company": company.customer.lower()} for company in companies]
