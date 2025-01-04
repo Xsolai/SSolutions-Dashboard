@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Briefcase, TrendingUp, DollarSign, Archive, Clock, CheckCircle, Users, Activity } from 'lucide-react';
 import CustomDateRangeFilter from './FilterComponent';
+import CompanyDropdown from './Company';
+
 
 // Reuse the existing Loading, SkeletonStatCard, and SkeletonChartCard components...
 const SkeletonStatCard = () => (
@@ -81,6 +83,7 @@ const TaskAnalysisDashboard = () => {
     endDate: null,
     isAllTime: false
   });
+  const [selectedCompany, setSelectedCompany] = useState('');
   const [data, setData] = useState({
     kpis: null,
     overview: null,
@@ -94,6 +97,12 @@ const TaskAnalysisDashboard = () => {
     { id: "overview", name: "Übersicht" },
     { id: "performance", name: "Leistungsmetriken" }
   ];
+
+  // Add handleCompanyChange function
+  const handleCompanyChange = (company) => {
+    setSelectedCompany(company);
+    // The data will be refetched automatically due to the useEffect dependency
+  };
 
   // Initialize with default date range (yesterday)
   useEffect(() => {
@@ -120,11 +129,12 @@ const TaskAnalysisDashboard = () => {
           return date.toISOString().split('T')[0];
         };
 
-        // Build query parameters
+        // Build query parameters including company filter
         const queryString = new URLSearchParams({
           ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
           ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false
+          include_all: dateRange.isAllTime || false,
+          ...(selectedCompany && { company: selectedCompany }) // Add company parameter
         }).toString();
 
         const config = {
@@ -157,7 +167,7 @@ const TaskAnalysisDashboard = () => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData();
     }
-  }, [dateRange]);
+  }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
 
   const handleDateRangeChange = (newRange) => {
     setDateRange({
@@ -419,12 +429,15 @@ const TaskAnalysisDashboard = () => {
   };
 
 
-  return (
+ return (
     <div className="bg-gray-50 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        {/* FilterComponent accepts date range */}
+        {/* Updated filter section to include CompanyDropdown */}
         <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
-          <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+          <div className="flex flex-row gap-4">
+            <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+            <CompanyDropdown onCompanyChange={handleCompanyChange} />
+          </div>
         </div>
         {/* Tabs Navigation */}
         <div className="border-b border-gray-200 mb-6">

@@ -4,6 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Line
 import { Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CustomDateRangeFilter from './FilterComponent';
+import CompanyDropdown from './Company';
 
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -158,17 +159,24 @@ const EmailAnalysisDashboard = () => {
     endDate: null,
     isAllTime: false
   });
+  const [selectedCompany, setSelectedCompany] = useState('');
   const [overviewData, setOverviewData] = useState(null);
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
-
 
   const tabs = [
     { id: "uebersicht", name: "Übersicht" },
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
+
+  // Add handleCompanyChange function
+  const handleCompanyChange = (company) => {
+    setSelectedCompany(company);
+    // The data will be refetched automatically due to the useEffect dependency
+  };
 
   // Initialize with default date range (yesterday)
   useEffect(() => {
@@ -195,11 +203,12 @@ const EmailAnalysisDashboard = () => {
           return date.toISOString().split('T')[0];
         };
 
-        // Build query parameters
+        // Build query parameters including company filter
         const queryString = new URLSearchParams({
           ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
           ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false
+          include_all: dateRange.isAllTime || false,
+          ...(selectedCompany && { company: selectedCompany }) // Add company parameter
         }).toString();
 
         const config = {
@@ -230,7 +239,7 @@ const EmailAnalysisDashboard = () => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData();
     }
-  }, [dateRange]);
+  }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
 
   const handleDateRangeChange = (newRange) => {
     setDateRange({
@@ -239,7 +248,6 @@ const EmailAnalysisDashboard = () => {
       isAllTime: newRange.isAllTime
     });
   };
-
 
 
   const UebersichtTab = () => {
@@ -490,11 +498,14 @@ const EmailAnalysisDashboard = () => {
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
-    <div className="max-w-full mx-auto p-4 sm:p-6">
-      {/* FilterComponent accepts date range */}
-      <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
-      <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-      </div>
+      <div className="max-w-full mx-auto p-4 sm:p-6">
+        {/* Updated filter section to include CompanyDropdown */}
+        <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
+          <div className="flex flex-row gap-4">
+            <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+            <CompanyDropdown onCompanyChange={handleCompanyChange} />
+          </div>
+        </div>
         {/* Tabs Navigation */}
         <div className="border-b border-gray-200 mb-6">
           {/* Dropdown für Mobile */}

@@ -4,6 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tool
 import { Mail, PhoneCall, Phone, TrendingUp,TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CustomDateRangeFilter from './FilterComponent';
+import CompanyDropdown from './Company';
 
 const SkeletonStatCard = () => (
   <div className="bg-white p-4 rounded-lg border border-gray-100">
@@ -144,23 +145,33 @@ const AnalyticsDashboard = () => {
     }
   };
 
-  const fetchData = async (dateParams) => {
-    setLoading(true);
-    const { startDate, endDate, isAllTime } = dateParams;
-    
-    // Format dates according to backend expectation (YYYY-MM-DD)
-    const formatDate = (date) => {
-      if (!date) return null;
-      return date.toISOString().split('T')[0];
-    };
+// Add to your state declarations
+const [selectedCompany, setSelectedCompany] = useState('');
+
+// Add handleCompanyChange function
+const handleCompanyChange = (company) => {
+  setSelectedCompany(company);
+  fetchData(dateRange); // Refetch data with new company filter
+};
+
+// Update the fetchData function
+const fetchData = async (dateParams) => {
+  setLoading(true);
+  const { startDate, endDate, isAllTime } = dateParams;
   
-    // Build query parameters
-    const queryString = new URLSearchParams({
-      ...(startDate && { start_date: formatDate(startDate) }),
-      ...(endDate && { end_date: formatDate(endDate) }),
-      include_all: isAllTime || false
-    }).toString();
-  
+  const formatDate = (date) => {
+    if (!date) return null;
+    return date.toISOString().split('T')[0];
+  };
+
+  const queryString = new URLSearchParams({
+    ...(startDate && { start_date: formatDate(startDate) }),
+    ...(endDate && { end_date: formatDate(endDate) }),
+    include_all: isAllTime || false,
+    ...(selectedCompany && { company: selectedCompany }) // Add company parameter
+  }).toString();
+
+
     try {
       const [
         emailData,
@@ -675,10 +686,12 @@ const AnalyticsDashboard = () => {
   return (
     <div className="bg-gray-50 rounded-[50px]">
     <div className="max-w-full mx-auto p-4 sm:p-6">
-      {/* FilterComponent accepts date range */}
-      <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
-      <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-      </div>
+    <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
+  <div className="flex flex-row gap-4 ">
+    <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+    <CompanyDropdown onCompanyChange={handleCompanyChange} />
+  </div>
+</div>
         <div className="border-b border-gray-200 mb-6">
           {/* Dropdown für Mobile */}
           <div className="sm:hidden">
