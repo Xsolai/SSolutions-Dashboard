@@ -517,11 +517,11 @@ async def get_booking_data(time_input: float = 6*60,
     if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%5vorFlug%")  
+            SoftBookingKF.customer.like("%5vF%")  
         )
         elif "guru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vorFlug%")  
+            SoftBookingKF.customer.notlike("%5vF%")  
         )
         else:
             query = db.query(SoftBookingKF)
@@ -617,11 +617,11 @@ async def get_booking_data_sub_kpis(
     if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%5vorFlug%")  
+            SoftBookingKF.customer.like("%5vF%")  
         )
         elif "guru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vorFlug%")  
+            SoftBookingKF.customer.notlike("%5vF%")  
         )
         else:
             query = db.query(SoftBookingKF)
