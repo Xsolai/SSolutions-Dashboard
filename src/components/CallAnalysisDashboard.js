@@ -47,41 +47,6 @@ const Loading = () => {
   );
 }
 
-const AnimatedText = () => {
-  const titleLines = ["Callcenter", "Zentrale", "Analytik"];
-
-  return (
-    <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-3 space-y-2 sm:space-y-0">
-      {titleLines.map((line, lineIndex) => (
-        <motion.div
-          key={lineIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: 1,
-            staggerChildren: 0.1,
-          }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-[#fdcc00] flex flex-wrap"
-        >
-          {line.split("").map((letter, index) => (
-            <motion.span
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.3,
-                delay: index * 0.1 + lineIndex * 0.5,
-              }}
-              className="block"
-            >
-              {letter}
-            </motion.span>
-          ))}
-        </motion.div>
-      ))}
-    </div>
-  );
-};
 
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
   <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
@@ -158,11 +123,17 @@ const CallAnalysisDashboard = () => {
         setLoading(true);
         const access_token = localStorage.getItem('access_token');
         
-        // Format dates for API query
-        const formatDate = (date) => {
-          if (!date) return null;
-          return date.toISOString().split('T')[0];
-        };
+    // Modified date formatting to preserve exact date
+    const formatDate = (date) => {
+      if (!date) return null;
+      
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    };
 
         // Build query parameters including company filter
         const queryString = new URLSearchParams({
@@ -203,15 +174,13 @@ const CallAnalysisDashboard = () => {
     }
   }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
 
-  // Initialize with default date range
   useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
     
     setDateRange({
-      startDate: yesterday,
-      endDate: yesterday,
+      startDate: currentDate,
+      endDate: currentDate,
       isAllTime: false
     });
   }, []);

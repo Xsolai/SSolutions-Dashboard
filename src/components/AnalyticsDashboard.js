@@ -81,39 +81,6 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
   </div>
 );
 
-const AnimatedText = () => {
-  const letters = "Analyse".split(""); // Changed to German
-
-  return (
-    <div className="inline-block">
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          duration: 1, // Total duration for the animation
-          staggerChildren: 0.1, // Delay between revealing each letter
-        }}
-        className="text-4xl sm:px-2 md:text-4xl lg:text-5xl font-bold text-[#fdcc00] flex"
-      >
-        {letters.map((letter, index) => (
-          <motion.span
-            key={index}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: 0.3,
-              delay: index * 0.1,
-            }}
-            className="block"
-          >
-            {letter}
-          </motion.span>
-        ))}
-      </motion.span>
-    </div>
-  );
-};
-
 const ChartCard = ({ title, children }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
@@ -154,22 +121,41 @@ const handleCompanyChange = (company) => {
   fetchData(dateRange); // Refetch data with new company filter
 };
 
-// Update the fetchData function
-const fetchData = async (dateParams) => {
-  setLoading(true);
-  const { startDate, endDate, isAllTime } = dateParams;
-  
-  const formatDate = (date) => {
-    if (!date) return null;
-    return date.toISOString().split('T')[0];
-  };
+  // Updated initialization to use current date instead of yesterday
+  useEffect(() => {
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    setDateRange({
+      startDate: currentDate,
+      endDate: currentDate,
+      isAllTime: false
+    });
+  }, []);
 
-  const queryString = new URLSearchParams({
-    ...(startDate && { start_date: formatDate(startDate) }),
-    ...(endDate && { end_date: formatDate(endDate) }),
-    include_all: isAllTime || false,
-    ...(selectedCompany && { company: selectedCompany }) // Add company parameter
-  }).toString();
+  const fetchData = async (dateParams) => {
+    setLoading(true);
+    const { startDate, endDate, isAllTime } = dateParams;
+    
+    // Modified date formatting to preserve exact date
+    const formatDate = (date) => {
+      if (!date) return null;
+      
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    };
+
+    const queryString = new URLSearchParams({
+      ...(startDate && { start_date: formatDate(startDate) }),
+      ...(endDate && { end_date: formatDate(endDate) }),
+      include_all: isAllTime || false,
+      ...(selectedCompany && { company: selectedCompany })
+    }).toString();
+
 
 
     try {
@@ -242,8 +228,8 @@ const fetchData = async (dateParams) => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData(dateRange);
     }
-  }, [dateRange]);
-  
+  }, [dateRange, selectedCompany]);
+    
   // Handle date filter changes from calendar component
   const handleDateRangeChange = (newRange) => {
     setDateRange({
@@ -358,11 +344,49 @@ const fetchData = async (dateParams) => {
     const [showSales, setShowSales] = useState(true);
     if (!data.salesServiceData) return <Loading />;
   
-    const salesMetrics = data.salesServiceData?.sales_metrics || {};
-    const serviceMetrics = data.salesServiceData?.service_metrics || {};
+    // Add safe default values for both sales and service metrics
+    const defaultMetrics = {
+      calls_offered: 0,
+      calls_handled: 0,
+      ACC: 0,
+      SL: 0,
+      AHT_sec: 0,
+      longest_waiting_time_sec: 0,
+      total_talk_time_sec: 0
+    };
+  
+    const salesMetrics = {
+      ...defaultMetrics,
+      ...(data.salesServiceData?.sales_metrics || {})
+    };
+    
+    const serviceMetrics = {
+      ...defaultMetrics,
+      ...(data.salesServiceData?.service_metrics || {})
+    };
     
     const activeMetrics = showSales ? salesMetrics : serviceMetrics;
     const serviceType = showSales ? 'Vertrieb' : 'Service';
+  
+    // Create safe chart data
+    const callOverviewData = [{
+      name: serviceType,
+      angeboten: activeMetrics.calls_offered || 0,
+      bearbeitet: activeMetrics.calls_handled || 0
+    }];
+  
+    const serviceMetricsData = [{
+      name: serviceType,
+      acc: Number(activeMetrics.ACC) || 0,
+      sl: Number(activeMetrics.SL) || 0
+    }];
+  
+    const handlingTimeData = [{
+      name: serviceType,
+      durchschnitt: Number(activeMetrics.AHT_sec) || 0,
+      wartezeit: Number(activeMetrics.longest_waiting_time_sec) || 0,
+      sprechzeit: Number(activeMetrics.total_talk_time_sec) || 0
+    }];
   
     return (
       <div className="space-y-4">
@@ -396,22 +420,22 @@ const fetchData = async (dateParams) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             title={`${serviceType} Anrufe Angeboten`}
-            value={activeMetrics.calls_offered}
+            value={activeMetrics.calls_offered || 0}
             icon={PhoneCall}
           />
           <StatCard
             title={`${serviceType} Anrufe Bearbeitet`}
-            value={activeMetrics.calls_handled}
+            value={activeMetrics.calls_handled || 0}
             icon={Phone}
           />
           <StatCard
             title={`${serviceType} ACC`}
-            value={`${activeMetrics.ACC}%`}
+            value={`${Number(activeMetrics.ACC).toFixed(2)}%`}
             icon={CheckCircle}
           />
           <StatCard
             title={`${serviceType} Serviceniveau`}
-            value={`${activeMetrics.SL}%`}
+            value={`${Number(activeMetrics.SL).toFixed(2)}%`}
             icon={TrendingUp}
           />
         </div>
@@ -420,13 +444,7 @@ const fetchData = async (dateParams) => {
           <ChartCard title="Anruf Übersicht">
             <div className="h-48">
               <ResponsiveContainer>
-                <BarChart data={[
-                  {
-                    name: serviceType,
-                    angeboten: activeMetrics.calls_offered,
-                    bearbeitet: activeMetrics.calls_handled
-                  }
-                ]}>
+                <BarChart data={callOverviewData}>
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
@@ -441,16 +459,10 @@ const fetchData = async (dateParams) => {
           <ChartCard title="Service Level & ACC">
             <div className="h-48">
               <ResponsiveContainer>
-                <BarChart data={[
-                  {
-                    name: serviceType,
-                    acc: activeMetrics.ACC,
-                    sl: activeMetrics.SL
-                  }
-                ]}>
+                <BarChart data={serviceMetricsData}>
                   <XAxis dataKey="name" />
                   <YAxis domain={[0, 100]} />
-                  <Tooltip formatter={(value) => `${value}%`} />
+                  <Tooltip formatter={(value) => `${Number(value).toFixed(2)}%`} />
                   <Legend />
                   <Bar dataKey="acc" name="ACC %" fill={colors.primary} />
                   <Bar dataKey="sl" name="Serviceniveau %" fill={colors.dark} />
@@ -462,17 +474,10 @@ const fetchData = async (dateParams) => {
           <ChartCard title="Bearbeitungszeiten">
             <div className="h-48">
               <ResponsiveContainer>
-                <BarChart data={[
-                  {
-                    name: serviceType,
-                    durchschnitt: activeMetrics.AHT_sec,
-                    wartezeit: activeMetrics.longest_waiting_time_sec,
-                    sprechzeit: activeMetrics.total_talk_time_sec
-                  }
-                ]}>
+                <BarChart data={handlingTimeData}>
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `${value} Sek`} />
+                  <Tooltip formatter={(value) => `${Number(value).toFixed(2)} Sek`} />
                   <Legend />
                   <Bar dataKey="durchschnitt" name="DGB (Sek)" fill={colors.primary} />
                   <Bar dataKey="wartezeit" name="Wartezeit (Sek)" fill={colors.gray} />
@@ -485,7 +490,6 @@ const fetchData = async (dateParams) => {
       </div>
     );
   };
-  
 
   const BookingTab = () => {
     if (!data.bookingData || !data.bookingSubKPIs) return <Loading />;

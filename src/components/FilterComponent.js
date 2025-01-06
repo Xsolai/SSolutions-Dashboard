@@ -126,7 +126,7 @@ const CustomDateRangeFilter = ({ onFilterChange }) => {
 
   const getDisplayText = () => {
     if (isAllTime) {
-      return 'Alle Zeit';
+      return 'Gesamt';
     }
     
     const displayRange = isOpen ? tempDateRange : dateRange;
@@ -209,7 +209,7 @@ const CustomDateRangeFilter = ({ onFilterChange }) => {
               onClick={handleAllTime}
               className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
             >
-              Alle Zeit
+              Gesamt
             </button>
             <button
               onClick={handleApply}

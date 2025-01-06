@@ -46,59 +46,6 @@ const Loading = () => {
         </div>
   );
 }
-// Color theme for consistency
-const COLORS = {
-  primary: '#002B50',    // Main Yellow
-  secondary: '#FFE55C',  // Light Yellow
-  accent: '#FFD700',     // Gold Yellow
-  dark: '#1a1a1a',       // Black
-  darkBlue: '#002B50',   // Dark Blue
-  gray: '#4a4a4a',       // Dark Gray
-  lightGray: '#94a3b8',  // Light Gray
-  chartColors: [
-    '#fdcc00',  // Primary Yellow
-    '#002B50',    // Dark Blue
-    '#fdcc00',    // Yellow
-    '#002B50',    // Dark Blue
-  ]
-};
-
-
-
-const AnimatedText = () => {
-  const titleLines = ["E-Mail", "Antworten", "Analytik"];
-  return (
-    <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-3 space-y-2 sm:space-y-0">
-      {titleLines.map((line, lineIndex) => (
-        <motion.div
-          key={lineIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: 1,
-            staggerChildren: 0.1,
-          }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-[#fdcc00] flex flex-wrap"
-        >
-          {line.split("").map((letter, index) => (
-            <motion.span
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.3,
-                delay: index * 0.1 + lineIndex * 0.5,
-              }}
-              className="block"
-            >
-              {letter}
-            </motion.span>
-          ))}
-        </motion.div>
-      ))}
-    </div>
-  );
-};
 
 // Stat Card component
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
@@ -135,23 +82,6 @@ const ChartCard = ({ title, children, isWideChart = false }) => (
   </div>
 );
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-xl">
-        <p className="text-gray-900 font-medium mb-1">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm text-gray-600">
-            {entry.name}: {entry.value}
-            {entry.dataKey === 'sla' ? '%' : ''}
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
-
 const EmailAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('uebersicht');
   const [dateRange, setDateRange] = useState({
@@ -160,6 +90,7 @@ const EmailAnalysisDashboard = () => {
     isAllTime: false
   });
   const [selectedCompany, setSelectedCompany] = useState('');
+
   const [overviewData, setOverviewData] = useState(null);
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
@@ -172,21 +103,17 @@ const EmailAnalysisDashboard = () => {
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
 
-  // Add handleCompanyChange function
   const handleCompanyChange = (company) => {
     setSelectedCompany(company);
-    // The data will be refetched automatically due to the useEffect dependency
   };
 
-  // Initialize with default date range (yesterday)
   useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
     
     setDateRange({
-      startDate: yesterday,
-      endDate: yesterday,
+      startDate: currentDate,
+      endDate: currentDate,
       isAllTime: false
     });
   }, []);
@@ -197,19 +124,26 @@ const EmailAnalysisDashboard = () => {
         setLoading(true);
         const access_token = localStorage.getItem('access_token');
         
-        // Format dates for API query
-        const formatDate = (date) => {
-          if (!date) return null;
-          return date.toISOString().split('T')[0];
-        };
+    // Modified date formatting to preserve exact date
+    const formatDate = (date) => {
+      if (!date) return null;
+      
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    };
+    
 
         // Build query parameters including company filter
         const queryString = new URLSearchParams({
           ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
           ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
           include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany }) // Add company parameter
-        }).toString();
+          ...(selectedCompany && { company: selectedCompany })
+                }).toString();
 
         const config = {
           headers: {
@@ -239,7 +173,8 @@ const EmailAnalysisDashboard = () => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData();
     }
-  }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
+  }, [dateRange, selectedCompany]);
+
 
   const handleDateRangeChange = (newRange) => {
     setDateRange({

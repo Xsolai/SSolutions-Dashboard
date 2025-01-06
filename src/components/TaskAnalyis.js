@@ -104,30 +104,34 @@ const TaskAnalysisDashboard = () => {
     // The data will be refetched automatically due to the useEffect dependency
   };
 
-  // Initialize with default date range (yesterday)
   useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
     setDateRange({
-      startDate: yesterday,
-      endDate: yesterday,
+      startDate: currentDate,
+      endDate: currentDate,
       isAllTime: false
     });
   }, []);
-
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const access_token = localStorage.getItem('access_token');
 
-        // Format dates for API query
-        const formatDate = (date) => {
-          if (!date) return null;
-          return date.toISOString().split('T')[0];
-        };
+    // Modified date formatting to preserve exact date
+    const formatDate = (date) => {
+      if (!date) return null;
+      
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    };
 
         // Build query parameters including company filter
         const queryString = new URLSearchParams({
@@ -176,7 +180,7 @@ const TaskAnalysisDashboard = () => {
       isAllTime: newRange.isAllTime
     });
   };
-
+  
 
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;
