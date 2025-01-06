@@ -48,6 +48,7 @@ const Loading = () => {
 }
 
 
+
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
   <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
     <div className="flex items-center justify-between mb-1">
@@ -103,7 +104,6 @@ const CallAnalysisDashboard = () => {
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
@@ -117,63 +117,7 @@ const CallAnalysisDashboard = () => {
     // The data will be refetched automatically due to the useEffect dependency
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const access_token = localStorage.getItem('access_token');
-        
-    // Modified date formatting to preserve exact date
-    const formatDate = (date) => {
-      if (!date) return null;
-      
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}`;
-    };
-
-        // Build query parameters including company filter
-        const queryString = new URLSearchParams({
-          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany }) // Add company parameter
-        }).toString();
-
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        };
-
-        const responses = await Promise.all([
-          fetch(`https://app.saincube.com/app2/call_overview?${queryString}`, config),
-          fetch(`https://app.saincube.com/app2/calls_sub_kpis?${queryString}`, config),
-          fetch(`https://app.saincube.com/app2/call_performance?${queryString}`, config)
-        ]);
-
-        const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
-          responses.map(res => res.json())
-        );
-
-        setOverviewData(overviewRes);
-        setSubKPIs(subKPIsRes);
-        setPerformanceData(performanceRes);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      fetchData();
-    }
-  }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
-
+  // Initialize with current date
   useEffect(() => {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
@@ -184,6 +128,73 @@ const CallAnalysisDashboard = () => {
       isAllTime: false
     });
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const access_token = localStorage.getItem('access_token');
+      
+      const formatDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const queryString = new URLSearchParams({
+        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+        include_all: dateRange.isAllTime || false,
+        ...(selectedCompany && { company: selectedCompany })
+      }).toString();
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${access_token}`
+        }
+      };
+
+      const responses = await Promise.all([
+        fetch(`https://app.saincube.com/app2/call_overview?${queryString}`, config),
+        fetch(`https://app.saincube.com/app2/calls_sub_kpis?${queryString}`, config),
+        fetch(`https://app.saincube.com/app2/call_performance?${queryString}`, config)
+      ]);
+
+      const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
+        responses.map(res => res.json())
+      );
+
+      setOverviewData(overviewRes);
+      setSubKPIs(subKPIsRes);
+      setPerformanceData(performanceRes);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Initialize with default date range
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
+  
+  
+  useEffect(() => {
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      fetchData();
+    }
+  }, [dateRange, selectedCompany]);
+
 
   const handleDateRangeChange = (newRange) => {
     setDateRange({

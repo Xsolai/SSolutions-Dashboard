@@ -174,7 +174,19 @@ const EmailAnalysisDashboard = () => {
       fetchData();
     }
   }, [dateRange, selectedCompany]);
-
+  // Initialize with default date range
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
+  
 
   const handleDateRangeChange = (newRange) => {
     setDateRange({
