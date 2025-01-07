@@ -28,9 +28,9 @@ def parse_date_to_weekday(date_str):
             date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
             return date_obj.strftime('%A')
         
-        return None  # Return None for unrecognized input types
+        return None 
     except ValueError:
-        return None  # Return None if the date string is invalid
+        return None 
     
 
 def run_task():
@@ -56,11 +56,15 @@ def run_task():
         files = {
             "call_reason": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
-                if "Guru_CallReason" in file and (file.endswith('.xlsx') or file.endswith('.xls'))
+                if "Guru_CallReason" in file and (file.endswith('.csv'))
             )),
             "daily_5vF_SB": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "1915_daily_5vF_SB" in file and (file.endswith('.csv'))
+            )),
+            "daily_BILD_SB": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "1972_daily_BILD_SB" in file and (file.endswith('.csv'))
             )),
             "daily_SB_Guru_KF": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
@@ -77,6 +81,10 @@ def run_task():
             "5vFlug_sales": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "5vFlugSales_daily" in file and (file.endswith('.csv'))
+            )),
+            "Bild_sales": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "BildSales_daily" in file and (file.endswith('.csv'))
             )),
             "Guru_sales_daily": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
@@ -125,15 +133,16 @@ def run_task():
             try:
                 data = None  # Initialize data to None
                 if file_type == "call_reason":
-                    data = load_excel_data(path, skiprows=[0])
-                elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKF_daily", "Guru_service_daily", "Guru_sales_daily"]:
+                    data = load_csv_data(path)
+                    # print(data)
+                elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKF_daily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales"]:
                     data = load_csv_data(path)
                 elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
                     data = load_excel_data(path, skiprows=[0, 1, 2, 3])
                     # print(data)
                 elif file_type == "guru_task":
                     data = load_csv_data(path)
-                elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB"]:
+                elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:
                     data = load_csv_data(path)
 
                 # Populate database only if data is not None and not empty
@@ -141,7 +150,7 @@ def run_task():
                     if file_type == "call_reason":
                         populate_guru_call_reason(data=data, db=db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename="Guru_CallReason", status="added")
-                    elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKF_daily", "Guru_service_daily", "Guru_sales_daily"]:
+                    elif file_type in ["5vFlug_service", "5vFlug_sales", "Bild_sales", "GuruKF_daily", "Guru_service_daily", "Guru_sales_daily"]:
                         populate_queue_statistics(data, db, date=YESTERDAY_DATE, day=weeday_name)
                         add_file_record(db=db, filename=file_type, status="added")
                     elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
@@ -150,7 +159,7 @@ def run_task():
                     elif file_type == "guru_task":
                         populate_guru_task_data(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")
-                    elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB"]:
+                    elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:
                         populate_soft_booking_data(data, db)
                         add_file_record(db=db, filename=file_type, status="added")
                     logging.info(f"Successfully processed {file_type}")

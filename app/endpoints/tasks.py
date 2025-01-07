@@ -50,13 +50,15 @@ async def get_tasks_kpis(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     # if is_admin_or_employee:
     #     query = db.query(OrderJoin).join(
     #         GuruTask, OrderJoin.order_number == GuruTask.order_number
     #     ).distinct()
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -65,6 +67,10 @@ async def get_tasks_kpis(
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
             ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        elif "bild" in company:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).filter(OrderJoin.customer.like("%BILD%")).distinct()
         else:
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -74,6 +80,11 @@ async def get_tasks_kpis(
         query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
         ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+        ).filter(OrderJoin.customer.like("%BILD%")).distinct()
     else:
         print("executing else containss")
         query = db.query(OrderJoin).join(
@@ -130,9 +141,11 @@ async def get_tasks_overview(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -141,6 +154,10 @@ async def get_tasks_overview(
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
             ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        elif "bild" in company:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).filter(OrderJoin.customer.like("%BILD%")).distinct()
         else:
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -150,6 +167,11 @@ async def get_tasks_overview(
         query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
         ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+        ).filter(OrderJoin.customer.like("%BILD%")).distinct()
     else:
         print("executing else containss")
         query = db.query(OrderJoin).join(
@@ -219,8 +241,6 @@ async def get_tasks_overview(
         "Tasks created by date": status_by_date_data,
         "Tasks created by weekday": status_by_weekday,
     }
-
-    
     
 @router.get("/tasks_performance")
 async def get_tasks_performance(
@@ -249,9 +269,11 @@ async def get_tasks_performance(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -260,6 +282,10 @@ async def get_tasks_performance(
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
             ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        elif "bild" in company:
+            query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+            ).filter(OrderJoin.customer.like("%BILD%")).distinct()
         else:
             query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -269,6 +295,11 @@ async def get_tasks_performance(
         query = db.query(OrderJoin).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
         ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(OrderJoin).join(
+            GuruTask, OrderJoin.order_number == GuruTask.order_number
+        ).filter(OrderJoin.customer.like("%BILD%")).distinct()
     else:
         print("executing else containss")
         query = db.query(OrderJoin).join(

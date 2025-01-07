@@ -74,9 +74,11 @@ async def get_anaytics_email_data(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -85,12 +87,21 @@ async def get_anaytics_email_data(
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%") 
+        )
         else:
             query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+            WorkflowReportGuruKF.customer.like("%5vorFlug%") 
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%") 
         )
     else:
         print("executing else containss")
@@ -242,9 +253,11 @@ async def get_anaytics_email_data_sub_kpis(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -253,12 +266,21 @@ async def get_anaytics_email_data_sub_kpis(
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%")  
+        )
         else:
             query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+            WorkflowReportGuruKF.customer.like("%5vorFlug%") 
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%") 
         )
     else:
         print("executing else containss")
@@ -344,12 +366,14 @@ async def get_sales_and_service(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     db = SessionLocal()
     
     # Apply filtering logic
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
@@ -358,12 +382,21 @@ async def get_sales_and_service(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%BILD%")  
+        )
         else:
             query = db.query(QueueStatistics)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%BILD%")  # Replace `special_field` with the relevant field
         )
     else:
         print("executing else containss")
@@ -512,9 +545,11 @@ async def get_booking_data(time_input: float = 6*60,
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
@@ -523,12 +558,21 @@ async def get_booking_data(time_input: float = 6*60,
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.notlike("%5vF%")  
         )
+        elif "bild" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%BILD%")  
+        )
         else:
             query = db.query(SoftBookingKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%BILD%")
         )
     else:
         print("executing else containss")
@@ -612,9 +656,11 @@ async def get_booking_data_sub_kpis(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
@@ -623,12 +669,21 @@ async def get_booking_data_sub_kpis(
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.notlike("%5vF%")  
         )
+        elif "bild" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%BILD%")  
+        )
         else:
             query = db.query(SoftBookingKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%BILD%")
         )
     else:
         print("executing else containss")
@@ -700,9 +755,11 @@ async def get_conversion_data(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vorFlug%")  
@@ -711,10 +768,23 @@ async def get_conversion_data(
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%BILD%")  
+        )
         else:
             query = db.query(SoftBookingKF)
     elif email_contains_5vflug:
         print("containss")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": f"You don't have a permission.",
+            }
+        )
+    elif email_contains_bild:
+        print("containss bild")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={

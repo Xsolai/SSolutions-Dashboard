@@ -57,7 +57,7 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
             # Check user permissions for this specific API
             api_name = request.url.path.strip("/")  # Remove the leading slash
             api_name = api_name+"_api"
-            print("api_name: ", api_name)
+            # print("api_name: ", api_name)
             # print("user id: ", user.id)
              # Map API path to the corresponding permission column in Permission table
             api_permission_map = {

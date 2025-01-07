@@ -70,8 +70,8 @@ def validate_user_and_date_permissions(
     # Validate the requested date range using get_date_range function
     start_date, end_date = get_date_range(start_date, end_date)
     
-    print("Allowed: ", allowed_start, allowed_end)
-    print("current: ", start_date, end_date)
+    # print("Allowed: ", allowed_start, allowed_end)
+    # print("current: ", start_date, end_date)
 
     # Ensure the requested date range is within the allowed range
     if start_date < allowed_start or end_date > allowed_end:

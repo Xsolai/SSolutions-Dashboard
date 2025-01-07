@@ -80,7 +80,8 @@ def get_date_subkpis_booking(filter_type: str):
     if filter_type == "all":
         start_date, end_date = None, None
     elif filter_type == "yesterday":
-        start_date = end_date = (today - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = (today - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = (today - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=999999)
     elif filter_type == "last_week":
         start_date = (today - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
         end_date = (today - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -152,7 +153,7 @@ def get_date_range_booking(
     if not start_date and not end_date:
         # Default to "yesterday"
         end_date = (today - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=999999)
-        start_date = (end_date - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = (today - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     elif not end_date:
         # Single date scenario
         start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)

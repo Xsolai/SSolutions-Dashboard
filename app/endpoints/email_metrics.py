@@ -99,9 +99,11 @@ async def get_email_overview(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -110,12 +112,21 @@ async def get_email_overview(
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%")  
+        )
         else:
             query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+            WorkflowReportGuruKF.customer.like("%5vorFlug%") 
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%") 
         )
     else:
         print("executing else containss")
@@ -244,9 +255,11 @@ async def get_email_overview_sub_kpis(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -255,12 +268,21 @@ async def get_email_overview_sub_kpis(
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%")  
+        )
         else:
             query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%")  # Replace `special_field` with the relevant field
         )
     else:
         print("executing else containss")
@@ -379,9 +401,11 @@ async def get_mailbox_SL(
     # Determine user access level
     email_filter = current_user.get("email")
     email_contains_5vflug = "5vorflug" in email_filter
+    email_contains_bild = "bild" in email_filter
+    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee:
+    if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -390,12 +414,21 @@ async def get_mailbox_SL(
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
         )
+        elif "bild" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%")  
+        )
         else:
             query = db.query(WorkflowReportGuruKF)
     elif email_contains_5vflug:
         print("containss")
         query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+        )
+    elif email_contains_bild:
+        print("containss bild")
+        query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%bild%")  
         )
     else:
         print("executing else containss")

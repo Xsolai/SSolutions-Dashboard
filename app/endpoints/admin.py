@@ -219,19 +219,24 @@ def get_companies(
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
     if not current_user or current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Only admins can access this resource.")
-    companies = db.query(models.WorkflowReportGuruKF.customer).distinct().all()
+    companies = db.query(models.SoftBookingKF.customer).distinct().all()
     if not companies:
         raise HTTPException(status_code=404, detail="No customer found.")
     # return [{"company": company.customer.lower()} for company in companies]
     result_set = set()
     for company in companies:
         company_name = company.customer.lower()
-        if "5vorflug" in company_name:
+        if "5vf" in company_name:
+            # print(company_name)
             result_set.add("5vorflug")
         elif "guru" in company_name:
+            # print(company_name)
             result_set.add("guru")
+        elif "bild" in company_name:
+            # print(company_name)
+            result_set.add("bild")
     
-    result = [{"company": name} for name in result_set]
+    result = [{"company": name} for name in result_set] 
     if not result:
         raise HTTPException(status_code=404, detail="No exact matches found.")
     

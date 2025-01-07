@@ -87,7 +87,7 @@ def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
     try:
         # Verify the token
         token_data = verify_token(token, credentials_exception)
-        print("Token data: ", token_data)
+        # print("Token data: ", token_data)
         
         # Return the decoded token data (e.g., user email or ID)
         return {"isAuthenticated": True, "email": token_data.email}

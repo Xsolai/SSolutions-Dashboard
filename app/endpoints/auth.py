@@ -26,7 +26,7 @@ router = APIRouter(
 # Temporary in-memory storage for reset tokens
 reset_tokens: Dict[str, int] = {}
 EMPLOYEE_DOMAIN = "@solasolution.de"
-CUSTOMER_DOMAINS = ["@5vorflug.de", "@urlaubsguru.de"]
+CUSTOMER_DOMAINS = ["@5vorflug.de", "@urlaubsguru.de", "@bild.de"]
 
 
 class ForgetPasswordRequest(BaseModel):
