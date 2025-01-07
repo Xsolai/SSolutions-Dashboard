@@ -413,7 +413,7 @@ const PerformanceTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* First column: Pie chart */}
         <ChartCard title="Verteilung der Anrufgründe">
           <div className="h-[350px]">
@@ -492,8 +492,10 @@ const PerformanceTab = () => {
                 wrapperStyle={{
                     bottom: 20,
                     fontSize: '14px'
-                  }} />                <Bar dataKey="minutes" name="DGB (Min)" fill={COLORS[2]} />
+                  }} />                
+                  <Bar dataKey="minutes" name="DGB (Min)" fill={COLORS[2]} />
               </BarChart>
+
             </ResponsiveContainer>
           </div>
         </ChartCard>
