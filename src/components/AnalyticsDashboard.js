@@ -306,7 +306,7 @@ const handleCompanyChange = (company) => {
               <ResponsiveContainer>
                 <BarChart data={[
                   { name: 'Empfangen', value: data.emailData['email recieved'] || 0 },
-                  { name: 'Beantwortet', value: data.emailData['email answered'] || 0 },
+                  { name: 'Gesendet', value: data.emailData['email sent'] || 0 },
                   { name: 'Archiviert', value: data.emailData['email archived'] || 0 }
                 ]}>
                   <XAxis dataKey="name" />

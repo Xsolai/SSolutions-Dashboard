@@ -188,7 +188,7 @@ const CallAnalysisDashboard = () => {
     });
   }, []);
   
-  
+
   useEffect(() => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData();
@@ -389,74 +389,119 @@ const CallAnalysisDashboard = () => {
   };
 
 
-  const PerformanceTab = () => {
-    if (!performanceData) return <Loading />;
+const PerformanceTab = () => {
+  if (!performanceData) return <Loading />;
 
-    const anrufGruende = performanceData['Call Reasons Breakdown'] || {};
-    const warteschlangenDaten = performanceData['Call By queue'] || {};
+  const anrufGruende = performanceData['Call Reasons Breakdown'] || {};
+  const warteschlangenDaten = performanceData['Call By queue'] || {};
 
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ChartCard title="Verteilung der Anrufgründe">
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={Object.entries(anrufGruende).map(([key, value]) => ({
-                      name: key.replace(/_/g, ' ').toUpperCase(),
-                      value: value || 0
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={120}
-                    label
-                  >
-                    {Object.entries(anrufGruende).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+  // Transform data for calls per queue
+  const callsPerQueue = Object.entries(warteschlangenDaten)
+    .filter(([key]) => key.includes('Calls'))
+    .map(([key, value]) => ({
+      queue: key.replace(' Calls', ''),
+      calls: value || 0
+    }));
 
-          <ChartCard title="Anrufe nach Warteschlange">
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={Object.entries(warteschlangenDaten)
-                    .filter(([key]) => key.includes('Calls'))
-                    .map(([key, value]) => ({
-                      queue: key.replace(' Calls', ''),
-                      calls: value || 0,
-                      aht: warteschlangenDaten[`${key.replace(' Calls', '')} AHT`] || 0
-                    }))}
+  // Transform data for minutes per queue
+  const minutesPerQueue = Object.entries(warteschlangenDaten)
+    .filter(([key]) => key.includes('Calls'))
+    .map(([key, value]) => ({
+      queue: key.replace(' Calls', ''),
+      minutes: warteschlangenDaten[`${key.replace(' Calls', '')} AHT`] || 0
+    }));
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* First column: Pie chart */}
+        <ChartCard title="Verteilung der Anrufgründe">
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={Object.entries(anrufGruende).map(([key, value]) => ({
+                    name: key.replace(/_/g, ' ').toUpperCase(),
+                    value: value || 0
+                  }))}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  label
                 >
-                  <XAxis
-                    dataKey="queue"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="calls" name="Gesamtanrufe" fill={COLORS[1]} />
-                  <Bar dataKey="aht" name="DGB (Min)" fill={COLORS[2]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
+                  {Object.entries(anrufGruende).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        {/* Second column: Calls per queue */}
+        <ChartCard title="Anrufe nach Warteschlange">
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={callsPerQueue}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <XAxis
+                  dataKey="queue"
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend                   
+                wrapperStyle={{
+                    bottom: 20,
+                    fontSize: '14px'
+                  }} />
+                <Bar  dataKey="calls" name="Gesamtanrufe" fill={COLORS[1]} />
+              
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        {/* Third column: Minutes per queue */}
+        <ChartCard title="Minuten nach Warteschlange">
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={minutesPerQueue}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <XAxis
+                  dataKey="queue"
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend                   
+                wrapperStyle={{
+                    bottom: 20,
+                    fontSize: '14px'
+                  }} />                <Bar dataKey="minutes" name="DGB (Min)" fill={COLORS[2]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
       </div>
-    );
-  };
+    </div>
+  );
+};
+
 
   return (
     <div className="bg-gray-50 rounded-[50px]">
