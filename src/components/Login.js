@@ -9,11 +9,11 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 const schema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Za-z]/, 'Password must contain at least one letter')
-    .regex(/\d/, 'Password must contain at least one number')
-    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character'),
+  email: z.string().email('Ungültige E-Mail-Adresse'),
+  password: z.string().min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein')
+    .regex(/[A-Za-z]/, 'Das Passwort muss mindestens einen Buchstaben enthalten')
+    .regex(/\d/, 'Das Passwort muss mindestens eine Zahl enthalten')
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Das Passwort muss mindestens ein Sonderzeichen enthalten'),
 });
 
 const LoginForm = () => {
@@ -27,9 +27,8 @@ const LoginForm = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      // Create FormData as backend expects OAuth2PasswordRequestForm
       const formData = new FormData();
-      formData.append('username', data.email); // Backend expects username field for email
+      formData.append('username', data.email);
       formData.append('password', data.password);
 
       const response = await axios.post('https://app.saincube.com/app2/login', formData, {
@@ -39,13 +38,8 @@ const LoginForm = () => {
       });
 
       if (response.data.access_token) {
-        // Store the token
         localStorage.setItem('access_token', response.data.access_token);
-        
-        // Show success message
-        toast.success('Login successful!');
-        
-        // Redirect after a short delay
+        toast.success('Anmeldung erfolgreich!');
         setTimeout(() => {
           router.push('/dashboard');
         }, 1000);
@@ -59,19 +53,16 @@ const LoginForm = () => {
             toast.error(error.response.data.detail);
             break;
           default:
-            toast.error(error.response.data.detail || 'Server error occurred');
+            toast.error(error.response.data.detail || 'Ein Serverfehler ist aufgetreten');
         }
       } else if (error.request) {
-        // Request was made but no response received
-        toast.error('No response from server. Please check your connection.');
+        toast.error('Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung.');
       } else {
-        // Error in request setup
-        toast.error('Error in making request. Please try again.');
+        toast.error('Fehler bei der Anfrage. Bitte versuchen Sie es erneut.');
       }
     } finally {
       setIsLoading(false);
     }
-  
   };
 
   const inputClass = "mt-1 block w-full px-3 py-2 bg-white border border-yellow-400 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 hover:border-gray-400 transition-all duration-200 ease-in-out appearance-none";
@@ -81,25 +72,25 @@ const LoginForm = () => {
     <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-gray-50">
       <Toaster />
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Login</h2>
+        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Anmelden</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              E-Mail
             </label>
             <input
               id="email"
               type="email"
               {...register('email')}
               className={`${inputClass} ${errors.email ? 'border-red-500' : ''}`}
-              placeholder="your.email@example.com"
+              placeholder="ihre.email@beispiel.de"
               disabled={isLoading}
             />
             {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              Passwort
             </label>
             <div className="relative">
               <input
@@ -130,12 +121,12 @@ const LoginForm = () => {
                 disabled={isLoading}
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
+                Angemeldet bleiben
               </label>
             </div>
             <div className="text-sm">
               <a href="/reset-password" className="font-medium text-black hover:underline">
-                Forgot password?
+                Passwort vergessen?
               </a>
             </div>
           </div>
@@ -145,14 +136,14 @@ const LoginForm = () => {
               className={buttonClass}
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? 'Anmeldung läuft...' : 'Anmelden'}
             </button>
           </div>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
+          Noch kein Konto?{' '}
           <a href="/register" className="font-medium text-black hover:underline">
-            Sign up
+            Registrieren
           </a>
         </p>
       </div>

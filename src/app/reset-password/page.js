@@ -7,7 +7,7 @@ import { toast, Toaster } from 'react-hot-toast';
 import axios from 'axios';
 
 const schema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Ungültige E-Mail-Adresse'),
 });
 
 const ResetPasswordPage = () => {
@@ -23,14 +23,14 @@ const ResetPasswordPage = () => {
         email: data.email
       });
 
-      toast.success(response.data.message || 'Password reset link sent! Check your email.', {
+      toast.success(response.data.message || 'Passwort-Reset-Link gesendet! Überprüfen Sie Ihre E-Mails.', {
         duration: 5000,
       });
     } catch (error) {
-      let errorMessage = 'Failed to send reset link. Please try again.';
+      let errorMessage = 'Link konnte nicht gesendet werden. Bitte versuchen Sie es erneut.';
       
       if (error.response?.status === 404) {
-        errorMessage = "No user found with this email address.";
+        errorMessage = "Kein Benutzer mit dieser E-Mail-Adresse gefunden.";
       } else if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       }
@@ -50,18 +50,18 @@ const ResetPasswordPage = () => {
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
       <Toaster />
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Reset Password</h2>
+        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Passwort zurücksetzen</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              E-Mail-Adresse
             </label>
             <input
               id="email"
               type="email"
               {...register('email')}
               className={`${inputClass} ${errors.email ? 'border-red-500' : ''}`}
-              placeholder="your.email@example.com"
+              placeholder="ihre.email@beispiel.de"
               disabled={isLoading}
             />
             {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
@@ -72,14 +72,14 @@ const ResetPasswordPage = () => {
               className={buttonClass}
               disabled={isLoading}
             >
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
+              {isLoading ? 'Wird gesendet...' : 'Reset-Link senden'}
             </button>
           </div>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Remember your password?{' '}
+          Erinnern Sie sich an Ihr Passwort?{' '}
           <a href="/" className="font-medium text-black hover:underline">
-            Log in
+            Anmelden
           </a>
         </p>
       </div>

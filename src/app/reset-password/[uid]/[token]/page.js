@@ -10,17 +10,17 @@ import axios from 'axios';
 
 const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+  .min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein')
+  .regex(/[A-Z]/, 'Das Passwort muss mindestens einen Großbuchstaben enthalten')
+  .regex(/[a-z]/, 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten')
+  .regex(/[0-9]/, 'Das Passwort muss mindestens eine Zahl enthalten')
+  .regex(/[^A-Za-z0-9]/, 'Das Passwort muss mindestens ein Sonderzeichen enthalten');
 
 const formSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Die Passwörter stimmen nicht überein",
   path: ["confirmPassword"],
 });
 
@@ -36,18 +36,17 @@ const ResetPasswordFormPage = ({ params }) => {
   });
 
   useEffect(() => {
-    // Get token from URL params
     if (params?.token) {
       setToken(params.token);
     } else {
-      toast.error('Invalid reset token');
+      toast.error('Ungültiger Reset-Token');
       router.push('/');
     }
   }, [params, router]);
 
   const onSubmit = async (data) => {
     if (!token) {
-      toast.error('Invalid reset token');
+      toast.error('Ungültiger Reset-Token');
       return;
     }
 
@@ -59,19 +58,18 @@ const ResetPasswordFormPage = ({ params }) => {
         confirm_password: data.confirmPassword
       });
 
-      toast.success(response.data.message || 'Password reset successful!');
+      toast.success(response.data.message || 'Passwort erfolgreich zurückgesetzt!');
       
-      // Redirect to login page after success
       setTimeout(() => {
         router.push('/');
       }, 2000);
     } catch (error) {
-      let errorMessage = 'Failed to reset password. Please try again.';
+      let errorMessage = 'Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.';
       
       if (error.response?.status === 400) {
         errorMessage = error.response.data.detail;
       } else if (error.response?.status === 404) {
-        errorMessage = "Reset token is invalid or has expired.";
+        errorMessage = "Der Reset-Token ist ungültig oder abgelaufen.";
         setTimeout(() => {
           router.push('/reset-password');
         }, 2000);
@@ -90,11 +88,11 @@ const ResetPasswordFormPage = ({ params }) => {
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
       <Toaster />
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Reset Password</h2>
+        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Passwort zurücksetzen</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              New Password
+              Neues Passwort
             </label>
             <div className="relative">
               <input
@@ -119,7 +117,7 @@ const ResetPasswordFormPage = ({ params }) => {
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm New Password
+              Neues Passwort bestätigen
             </label>
             <div className="relative">
               <input
@@ -148,14 +146,14 @@ const ResetPasswordFormPage = ({ params }) => {
               className={buttonClass}
               disabled={isLoading}
             >
-              {isLoading ? 'Resetting...' : 'Reset Password'}
+              {isLoading ? 'Wird zurückgesetzt...' : 'Passwort zurücksetzen'}
             </button>
           </div>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Remember your password?{' '}
+          Erinnern Sie sich an Ihr Passwort?{' '}
           <a href="/" className="font-medium text-black hover:underline">
-            Log in
+            Anmelden
           </a>
         </p>
       </div>

@@ -203,7 +203,7 @@ const handleCompanyChange = (company) => {
         conversionData: conversionDataJson
       });
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      console.error('Fehler beim Abrufen der Analysedaten:', error);
       // Could add error state handling here
     } finally {
       setLoading(false);

@@ -10,36 +10,36 @@ import axios from 'axios';
 
 const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+  .min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein')
+  .regex(/[A-Z]/, 'Das Passwort muss mindestens einen Großbuchstaben enthalten')
+  .regex(/[a-z]/, 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten')
+  .regex(/[0-9]/, 'Das Passwort muss mindestens eine Zahl enthalten')
+  .regex(/[^A-Za-z0-9]/, 'Das Passwort muss mindestens ein Sonderzeichen enthalten');
 
 const schema = z.object({
   username: z.string()
-  .min(3, 'Username must be at least 3 characters')
-  .max(30, 'Username cannot exceed 30 characters')
-  .toLowerCase() // Convert to lowercase before validation
-  .regex(/^[a-z0-9][a-z0-9_]*[a-z0-9]$/, 'Username can only contain letters, numbers, and underscores. It must start and end with a letter or number')
-  .refine(
-    (value) => !value.includes(' '),
-    'Username cannot contain spaces'
-  )
-  .refine(
-    (value) => !/__/.test(value),
-    'Username cannot contain consecutive underscores'
-  )
-  .refine(
-    (value) => !/[^a-z0-9_]/.test(value),
-    'Username can only contain letters, numbers, and single underscores'
-  ),
-  email: z.string().email('Invalid email address'),
-  role: z.enum(['customer', 'employee'], { required_error: 'Please select a role' }),
+    .min(3, 'Der Benutzername muss mindestens 3 Zeichen lang sein')
+    .max(30, 'Der Benutzername darf nicht länger als 30 Zeichen sein')
+    .toLowerCase()
+    .regex(/^[a-z0-9][a-z0-9_]*[a-z0-9]$/, 'Der Benutzername darf nur Buchstaben, Zahlen und Unterstriche enthalten. Er muss mit einem Buchstaben oder einer Zahl beginnen und enden')
+    .refine(
+      (value) => !value.includes(' '),
+      'Der Benutzername darf keine Leerzeichen enthalten'
+    )
+    .refine(
+      (value) => !/__/.test(value),
+      'Der Benutzername darf keine aufeinanderfolgenden Unterstriche enthalten'
+    )
+    .refine(
+      (value) => !/[^a-z0-9_]/.test(value),
+      'Der Benutzername darf nur Buchstaben, Zahlen und einzelne Unterstriche enthalten'
+    ),
+  email: z.string().email('Ungültige E-Mail-Adresse'),
+  role: z.enum(['customer', 'employee'], { required_error: 'Bitte wählen Sie eine Rolle aus' }),
   password: passwordSchema,
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Die Passwörter stimmen nicht überein",
   path: ["confirmPassword"],
 });
 
@@ -66,12 +66,11 @@ const SignupForm = () => {
       });
 
       if (response.data) {
-        toast.success('Registration successful! Please check your email for OTP.');
-        // Redirect to OTP verification page with email
+        toast.success('Registrierung erfolgreich! Bitte prüfen Sie Ihre E-Mails für den OTP-Code.');
         router.push(`/verify-otp?email=${encodeURIComponent(data.email)}`);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Registration failed. Please try again.';
+      const errorMessage = error.response?.data?.detail || 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -85,38 +84,38 @@ const SignupForm = () => {
     <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-gray-50">
       <Toaster />
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Create Account</h2>
+        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Konto erstellen</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-              Username
+              Benutzername
             </label>
             <input
               id="username"
               {...register('username')}
               className={`${inputClass} ${errors.username ? 'border-red-500' : ''}`}
-              placeholder="johndoe123"
+              placeholder="maxmustermann123"
             />
             {errors.username && <p className="mt-1 text-xs text-red-500">{errors.username.message}</p>}
           </div>
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              E-Mail
             </label>
             <input
               id="email"
               type="email"
               {...register('email')}
               className={`${inputClass} ${errors.email ? 'border-red-500' : ''}`}
-              placeholder="john.doe@example.com"
+              placeholder="max.mustermann@beispiel.de"
             />
             {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              Passwort
             </label>
             <div className="relative">
               <input
@@ -139,7 +138,7 @@ const SignupForm = () => {
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
+              Passwort bestätigen
             </label>
             <div className="relative">
               <input
@@ -166,14 +165,14 @@ const SignupForm = () => {
               className={buttonClass}
               disabled={isLoading}
             >
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              {isLoading ? 'Konto wird erstellt...' : 'Registrieren'}
             </button>
           </div>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{' '}
+          Haben Sie bereits ein Konto?{' '}
           <a href="/" className="font-medium text-black hover:underline">
-            Sign in
+            Anmelden
           </a>
         </p>
       </div>

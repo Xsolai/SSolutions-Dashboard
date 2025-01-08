@@ -31,9 +31,9 @@ import {
   PhoneCall, Mail, ListTodo, BarChart3,
   Calendar, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';  // Add this import
+import { toast } from 'react-hot-toast';
 
-
+// Theme configuration remains the same as original
 const theme = createTheme({
   palette: {
     primary: {
@@ -67,7 +67,6 @@ const theme = createTheme({
     },
   },
 });
-
 
 const StyledButton = styled(Button)(({ theme }) => ({
   borderRadius: '8px',
@@ -110,25 +109,23 @@ const SearchBox = styled(TextField)({
 const getRoleColors = (role) => {
   const roleColors = {
     admin: { bg: '#f8fafc', text: '#1e293b' },
-    customer: { bg: '#fff7ed', text: '#9a3412' },
-    employee: { bg: '#f0f9ff', text: '#0369a1' },
+    kunde: { bg: '#fff7ed', text: '#9a3412' },
+    mitarbeiter: { bg: '#f0f9ff', text: '#0369a1' },
   };
   return roleColors[role] || { bg: '#f1f5f9', text: '#64748b' };
 };
 
-
 const getStatusColors = (status) => {
   const statusColors = {
-    active: { bg: '#f0fdf4', text: '#15803d' },
-    pending: { bg: '#fff7ed', text: '#9a3412' },
-    inactive: { bg: '#fef2f2', text: '#991b1b' },
+    aktiv: { bg: '#f0fdf4', text: '#15803d' },
+    ausstehend: { bg: '#fff7ed', text: '#9a3412' },
+    inaktiv: { bg: '#fef2f2', text: '#991b1b' },
   };
   return statusColors[status] || { bg: '#f1f5f9', text: '#64748b' };
 };
 
-
 const AnimatedText = () => {
-  const titleLines = ["Admin", "Panel"];
+  const titleLines = ["Admin", "Bereich"];
   return (
     <div className="inline-flex">
       {titleLines.map((line, lineIndex) => (
@@ -162,18 +159,60 @@ const AnimatedText = () => {
   );
 };
 
+const dateFilters = [
+  { key: 'all', label: 'Alle Zeit' },
+  { key: 'yesterday', label: 'Gestern' },
+  { key: 'last_week', label: 'Letzte Woche' },
+  { key: 'last_month', label: 'Letzter Monat' },
+  { key: 'last_year', label: 'Letztes Jahr' }
+];
+
+const permissionGroups = [
+  {
+    title: "Analytik",
+    icon: <BarChart3 className="h-5 w-5" />,
+    permissions: [
+      { key: 'analytics_email_api', label: 'E-Mail-Analytik' },
+      { key: 'analytics_email_subkpis_api', label: 'E-Mail-Unterkennzahlen' },
+      { key: 'analytics_sales_service_api', label: 'Verkaufsservice-Analytik' },
+      { key: 'analytics_booking_api', label: 'Buchungs-Analytik' },
+      { key: 'analytics_booking_subkpis_api', label: 'Buchungs-Unterkennzahlen' },
+      { key: 'analytics_conversion_api', label: 'Konversions-Analytik' },
+    ],
+  },
+  {
+    title: "Anrufverwaltung",
+    icon: <PhoneCall className="h-5 w-5" />,
+    permissions: [
+      { key: 'call_overview_api', label: 'Anrufübersicht' },
+      { key: 'call_performance_api', label: 'Anrufleistung' },
+      { key: 'call_sub_kpis_api', label: 'Anruf-Unterkennzahlen' },
+    ],
+  },
+  {
+    title: "E-Mail-Verwaltung",
+    icon: <Mail className="h-5 w-5" />,
+    permissions: [
+      { key: 'email_overview_api', label: 'E-Mail-Übersicht' },
+      { key: 'email_performance_api', label: 'E-Mail-Leistung' },
+      { key: 'email_sub_kpis_api', label: 'E-Mail-Unterkennzahlen' },
+    ],
+  },
+  {
+    title: "Aufgabenverwaltung",
+    icon: <ListTodo className="h-5 w-5" />,
+    permissions: [
+      { key: 'task_overview_api', label: 'Aufgabenübersicht' },
+      { key: 'task_performance_api', label: 'Aufgabenleistung' },
+      { key: 'task_sub_kpis_api', label: 'Aufgaben-Unterkennzahlen' },
+    ],
+  },
+];
+
 const PermissionForm = ({ open, onClose, user }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-
-  const dateFilters = [
-    { key: 'all', label: 'All Time' },
-    { key: 'yesterday', label: 'Yesterday' },
-    { key: 'last_week', label: 'Last Week' },
-    { key: 'last_month', label: 'Last Month' },
-    { key: 'last_year', label: 'Last Year' }
-  ];
 
   const [permissions, setPermissions] = useState({
     call_overview_api: false,
@@ -189,53 +228,10 @@ const PermissionForm = ({ open, onClose, user }) => {
     analytics_email_subkpis_api: false,
     analytics_sales_service_api: false,
     analytics_booking_api: false,
-    analytics_booking_subkpis_api: false, // Fixed name to match API
+    analytics_booking_subkpis_api: false,
     analytics_conversion_api: false,
     date_filter: ''
   });
-  
-  // Update permission groups to match the exact API naming
-  const permissionGroups = [
-    {
-      title: "Analytics",
-      icon: <BarChart3 className="h-5 w-5" />,
-      permissions: [
-        { key: 'analytics_email_api', label: 'Email Analytics' },
-        { key: 'analytics_email_subkpis_api', label: 'Email Sub KPIs Analytics' },
-        { key: 'analytics_sales_service_api', label: 'Sales Service Analytics' },
-        { key: 'analytics_booking_api', label: 'Booking Analytics' },
-        { key: 'analytics_booking_subkpis_api', label: 'Booking Sub KPIs Analytics' }, // Fixed name
-        { key: 'analytics_conversion_api', label: 'Conversion Analytics' },
-      ],
-    },
-    {
-      title: "Call Management",
-      icon: <PhoneCall className="h-5 w-5" />,
-      permissions: [
-        { key: 'call_overview_api', label: 'Call Overview' },
-        { key: 'call_performance_api', label: 'Call Performance' },
-        { key: 'call_sub_kpis_api', label: 'Call Sub KPIs' },
-      ],
-    },
-    {
-      title: "Email Management",
-      icon: <Mail className="h-5 w-5" />,
-      permissions: [
-        { key: 'email_overview_api', label: 'Email Overview' },
-        { key: 'email_performance_api', label: 'Email Performance' },
-        { key: 'email_sub_kpis_api', label: 'Email Sub KPIs' },
-      ],
-    },
-    {
-      title: "Task Management",
-      icon: <ListTodo className="h-5 w-5" />,
-      permissions: [
-        { key: 'task_overview_api', label: 'Task Overview' },
-        { key: 'task_performance_api', label: 'Task Performance' },
-        { key: 'task_sub_kpis_api', label: 'Task Sub KPIs' },
-      ],
-    },
-  ];
 
   useEffect(() => {
     if (open && user?.['user id']) {
@@ -256,7 +252,7 @@ const PermissionForm = ({ open, onClose, user }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch permissions');
+        throw new Error('Fehler beim Abrufen der Berechtigungen');
       }
 
       const data = await response.json();
@@ -264,8 +260,6 @@ const PermissionForm = ({ open, onClose, user }) => {
 
       if (userPermissions) {
         const { permissions: userPerms } = userPermissions;
-
-        // Ensure date_filter string is properly formatted with spaces
         const formattedDateFilter = userPerms.date_filter ?
           userPerms.date_filter.split(',')
             .map(f => f.trim())
@@ -279,8 +273,8 @@ const PermissionForm = ({ open, onClose, user }) => {
         });
       }
     } catch (err) {
-      console.error('Error fetching permissions:', err);
-      setError('Failed to load permissions');
+      console.error('Fehler beim Abrufen der Berechtigungen:', err);
+      setError('Berechtigungen konnten nicht geladen werden');
     } finally {
       setLoading(false);
     }
@@ -292,7 +286,6 @@ const PermissionForm = ({ open, onClose, user }) => {
       setError(null);
       const access_token = localStorage.getItem('access_token');
   
-      // Convert boolean values to strings and use correct naming
       const queryParams = new URLSearchParams({
         user_id: user['user id'],
         call_overview_api: String(permissions.call_overview_api || false),
@@ -308,7 +301,7 @@ const PermissionForm = ({ open, onClose, user }) => {
         analytics_email_subkpis_api: String(permissions.analytics_email_subkpis_api || false),
         analytics_sales_service_api: String(permissions.analytics_sales_service_api || false),
         analytics_booking_api: String(permissions.analytics_booking_api || false),
-        analytics_booking_subkpis_api: String(permissions.analytics_booking_subkpis_api || false), // Fixed name
+        analytics_booking_subkpis_api: String(permissions.analytics_booking_subkpis_api || false),
         analytics_conversion_api: String(permissions.analytics_conversion_api || false),
         date_filter: permissions.date_filter || ''
       });
@@ -323,52 +316,42 @@ const PermissionForm = ({ open, onClose, user }) => {
       const data = await response.json();
   
       if (!response.ok) {
-        const errorMessage = data.detail?.[0]?.msg || data.detail || 'Failed to save permissions';
+        const errorMessage = data.detail?.[0]?.msg || data.detail || 'Fehler beim Speichern der Berechtigungen';
         throw new Error(errorMessage);
       }
   
-      toast.success('Permissions saved successfully');
+      toast.success('Berechtigungen erfolgreich gespeichert');
       onClose();
     } catch (err) {
-      console.error('Error saving permissions:', err);
-      const errorMessage = err.message || 'Failed to save permissions';
+      console.error('Fehler beim Speichern der Berechtigungen:', err);
+      const errorMessage = err.message || 'Fehler beim Speichern der Berechtigungen';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
   };
-  
+
   const handleToggle = (key) => {
     setPermissions(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
   };
-  
+
   const handleDateFilterToggle = (filterKey) => {
     setPermissions(prev => {
-      // Split and trim each filter
       const currentFilters = prev.date_filter ? prev.date_filter.split(',').map(f => f.trim()) : [];
-      let newFilters;
-  
-      if (currentFilters.includes(filterKey)) {
-        // Remove the filter
-        newFilters = currentFilters.filter(f => f !== filterKey);
-      } else {
-        // Add the filter
-        newFilters = [...currentFilters, filterKey];
-      }
-  
-      // Join with commas, no spaces for API compatibility
+      let newFilters = currentFilters.includes(filterKey) 
+        ? currentFilters.filter(f => f !== filterKey)
+        : [...currentFilters, filterKey];
       return {
         ...prev,
         date_filter: newFilters.join(',')
       };
     });
   };
-  
-  
+
   const handleGroupToggle = (group) => {
     const groupKeys = group.permissions.map(p => p.key);
     const allEnabled = groupKeys.every(key => permissions[key]);
@@ -381,7 +364,6 @@ const PermissionForm = ({ open, onClose, user }) => {
       return newPermissions;
     });
   };
-
 
   if (!open) return null;
 
@@ -400,13 +382,13 @@ const PermissionForm = ({ open, onClose, user }) => {
 
         <div className="bg-white rounded-[30px] h-[95vh] overflow-hidden sm:mx-5">
           <div className="p-4 sm:p-8 h-full flex flex-col">
-            <motion.div
+          <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="text-3xl font-bold text-[#fdcc00] mb-4"
             >
-              Manage Permissions
+              Berechtigungen verwalten
             </motion.div>
 
             {error && (
@@ -423,12 +405,12 @@ const PermissionForm = ({ open, onClose, user }) => {
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">Username:</span>
+                  <span className="text-gray-500">Benutzername:</span>
                   <span className="font-semibold">@{user?.username}</span>
                 </div>
                 <div className="hidden sm:block text-gray-300">|</div>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">Email:</span>
+                  <span className="text-gray-500">E-Mail:</span>
                   <span className="font-semibold break-all">{user?.email}</span>
                 </div>
               </div>
@@ -460,7 +442,7 @@ const PermissionForm = ({ open, onClose, user }) => {
                         <Calendar className="h-5 w-5" />
                       </div>
                       <h3 className="font-semibold text-lg text-gray-800">
-                        Date Filters
+                        Datumsfilter
                       </h3>
                     </div>
                   </div>
@@ -547,7 +529,7 @@ const PermissionForm = ({ open, onClose, user }) => {
                 disabled={saving}
                 className="px-6 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                Abbrechen
               </button>
               <button
                 onClick={handleSavePermissions}
@@ -562,9 +544,9 @@ const PermissionForm = ({ open, onClose, user }) => {
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
                     />
-                    Saving...
+                    Speichern...
                   </div>
-                ) : 'Save Changes'}
+                ) : 'Änderungen speichern'}
               </button>
             </div>
           </div>
@@ -792,7 +774,7 @@ const Page = () => {
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                   <SearchBox
                     size="small"
-                    placeholder="Search by username, email or status..."
+                    placeholder="Suche nach Benutzername, E-Mail oder Status..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
@@ -802,12 +784,12 @@ const Page = () => {
                         </InputAdornment>
                       ),
                       style: {
-                        fontSize: '0.875rem' // This makes the placeholder text smaller
+                        fontSize: '0.875rem'
                       }
                     }}
                     sx={{
                       '& .MuiInputBase-input::placeholder': {
-                        fontSize: '0.78rem', // This ensures placeholder is also smaller
+                        fontSize: '0.65rem',
                       }
                     }}
                   />
@@ -823,13 +805,13 @@ const Page = () => {
                   }}>
                     <Select
                       value={roleFilter}
-                      label="Role"
+                      label="Rolle"
                       onChange={handleRoleChange}
                     >
-                      <MenuItem value="all">All Roles</MenuItem>
-                      <MenuItem value="admin">Admin</MenuItem>
-                      <MenuItem value="employee">Employee</MenuItem>
-                      <MenuItem value="customer">Customer</MenuItem>
+                      <MenuItem value="all">Alle Rollen</MenuItem>
+                      <MenuItem value="admin">Administrator</MenuItem>
+                      <MenuItem value="employee">Mitarbeiter</MenuItem>
+                      <MenuItem value="customer">Kunde</MenuItem>
                     </Select>
                   </FormControl>
                 </Box>
@@ -862,11 +844,11 @@ const Page = () => {
                 <Table sx={{ minWidth: 800 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Username</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Role</TableCell>
+                      <TableCell>Benutzername</TableCell>
+                      <TableCell>E-Mail</TableCell>
+                      <TableCell>Rolle</TableCell>
                       <TableCell>Status</TableCell>
-                      <TableCell align="right">Actions</TableCell>
+                      <TableCell align="right">Aktionen</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -904,7 +886,9 @@ const Page = () => {
                               <TableCell sx={{ color: '#475569' }}>{user.email}</TableCell>
                               <TableCell>
                                 <Chip
-                                  label={user.role}
+                                  label={user.role === 'admin' ? 'Administrator' : 
+                                         user.role === 'employee' ? 'Mitarbeiter' : 
+                                         user.role === 'customer' ? 'Kunde' : user.role}
                                   size="small"
                                   sx={{
                                     backgroundColor: roleColor.bg,
@@ -925,7 +909,7 @@ const Page = () => {
                                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                                           className="w-4 h-4 border-2 border-[#fdcc00] border-t-transparent rounded-full"
                                         />
-                                        Processing...
+                                        Verarbeitung...
                                       </div>
                                     }
                                     size="small"
@@ -944,7 +928,9 @@ const Page = () => {
                                   />
                                 ) : (
                                   <Chip
-                                    label={user.status}
+                                    label={user.status === 'active' ? 'Aktiv' :
+                                           user.status === 'pending' ? 'Ausstehend' :
+                                           user.status === 'inactive' ? 'Inaktiv' : user.status}
                                     size="small"
                                     sx={{
                                       backgroundColor: statusColor.bg,
@@ -972,7 +958,7 @@ const Page = () => {
                                     }}
                                     onClick={() => handleApprove(user['user id'])}
                                   >
-                                    Approve
+                                    Genehmigen
                                   </StyledButton>
                                   <StyledButton
                                     variant="outlined"
@@ -987,7 +973,7 @@ const Page = () => {
                                     }}
                                     onClick={() => handleReject(user['user id'])}
                                   >
-                                    Reject
+                                    Ablehnen
                                   </StyledButton>
                                   <StyledButton
                                     variant="outlined"
@@ -1002,7 +988,7 @@ const Page = () => {
                                     }}
                                     onClick={() => handlePermissionClick(user)}
                                   >
-                                    Permissions
+                                    Berechtigungen
                                   </StyledButton>
                                 </Box>
                               </TableCell>
@@ -1019,6 +1005,9 @@ const Page = () => {
                   onPageChange={handleChangePage}
                   rowsPerPage={rowsPerPage}
                   onRowsPerPageChange={handleChangeRowsPerPage}
+                  labelRowsPerPage="Zeilen pro Seite:"
+                  labelDisplayedRows={({ from, to, count }) => 
+                    `${from}-${to} von ${count}`}
                   sx={{
                     borderTop: '1px solid #e2e8f0',
                     '.MuiTablePagination-select': {

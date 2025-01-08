@@ -72,10 +72,17 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
 );
 
 
-const ChartCard = ({ title, children }) => (
+// Updated ChartCard component with reduced height
+const ChartCard = ({ title, children, isWideChart = false }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
-    <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
-    {children}
+    <h3 className="text-base font-medium text-gray-700 mb-6">{title}</h3>
+    <div className={isWideChart ? "overflow-x-auto overflow-y-hidden scrollbar-hide" : ""}>
+      <div className={isWideChart ? "min-w-[1000px] lg:min-w-full" : "w-full"}>
+        <div className="h-[300px]">
+          {children}
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -413,9 +420,8 @@ const PerformanceTab = () => {
 
   return (
     <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* First column: Pie chart */}
-        <ChartCard title="Verteilung der Anrufgründe">
+              {/* First column: Pie chart */}
+              <ChartCard title="Verteilung der Anrufgründe">
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -436,14 +442,18 @@ const PerformanceTab = () => {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
-              </PieChart>
+                <Legend                   
+                wrapperStyle={{
+                    bottom: 35,
+                    fontSize: '14px'
+                  }} />              </PieChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
         {/* Second column: Calls per queue */}
-        <ChartCard title="Anrufe nach Warteschlange">
+        <ChartCard isWideChart={true} title="Anrufe nach Warteschlange">
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -453,7 +463,7 @@ const PerformanceTab = () => {
                 <XAxis
                   dataKey="queue"
                   tick={{ fontSize: 12 }}
-                  angle={-45}
+                  angle={-60}
                   textAnchor="end"
                   height={80}
                 />
@@ -472,7 +482,7 @@ const PerformanceTab = () => {
         </ChartCard>
 
         {/* Third column: Minutes per queue */}
-        <ChartCard title="Minuten nach Warteschlange">
+        <ChartCard isWideChart={true} title="Minuten nach Warteschlange">
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -482,7 +492,7 @@ const PerformanceTab = () => {
                 <XAxis
                   dataKey="queue"
                   tick={{ fontSize: 12 }}
-                  angle={-45}
+                  angle={-60}
                   textAnchor="end"
                   height={80}
                 />
