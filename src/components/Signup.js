@@ -172,7 +172,7 @@ const SignupForm = () => {
         <p className="mt-4 text-center text-sm text-gray-600">
           Haben Sie bereits ein Konto?{' '}
           <a href="/" className="font-medium text-black hover:underline">
-            Anmelden
+          einloggen
           </a>
         </p>
       </div>

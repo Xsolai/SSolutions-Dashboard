@@ -72,7 +72,7 @@ const LoginForm = () => {
     <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-gray-50">
       <Toaster />
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">Anmelden</h2>
+        <h2 className="text-4xl font-extrabold mb-6 text-center text-gray-800">einloggen</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
