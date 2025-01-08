@@ -18,8 +18,8 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
         "/auth/resend-otp",
         "/login",
         "auth/verify-token",
-        "/forget-password/",
-        "/reset-password/",
+        "/auth/forget-password/",
+        "/auth/reset-password/",
         "/history"
     ]
     async def dispatch(self, request: Request, call_next):
