@@ -374,7 +374,7 @@ const EmailAnalysisDashboard = () => {
                 <Line
                   type="monotone"
                   dataKey="processing_time_sec"
-                  name="Bearbeitungszeit (Sek)"
+                  name="Bearbeitungszeit (Minuten)"
                   stroke="#fdcc00"
                   strokeWidth={2}
                   dot={{ fill: '#fdcc00', r: 3 }}
