@@ -244,9 +244,9 @@ async def get_calls(
                 },
                 "Time metrics":{
                     "weekday": row.weekday,
-                    "avg_wait_time_sec": round(row.avg_wait_time or 0, 2),
-                    "max_wait_time_sec": round(row.max_wait_time or 0, 2),
-                    "avg_handling_time": round(row.avg_handling_time or 0, 2),
+                    "avg_wait_time_sec": round((row.avg_wait_time)/60 or 0, 2),
+                    "max_wait_time_sec": round((row.max_wait_time)/60 or 0, 2),
+                    "avg_handling_time": round((row.avg_handling_time)/60 or 0, 2),
                 },
                 "% metrics":{
                     "weekday": row.weekday,
