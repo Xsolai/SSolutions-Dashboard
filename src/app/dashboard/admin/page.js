@@ -29,14 +29,218 @@ import FormControl from '@mui/material/FormControl';
 import CloseIcon from '@mui/icons-material/Close';
 import { toast, Toaster } from 'react-hot-toast';
 import {
-  Eye, EyeOff, PhoneCall, Mail, ListTodo, BarChart3,
-  Calendar, ChevronDown, ChevronUp, UserPlus
+  Eye, EyeOff, PhoneCall, Mail, ListTodo, BarChart3, Phone, CheckSquare, 
+  Calendar, ChevronDown, ChevronUp, UserPlus , Building2 , BarChart2
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { toast } from 'react-hot-toast';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+
+
+const schema = z.object({
+  username: z.string()
+    .min(3, 'Der Benutzername muss mindestens 3 Zeichen lang sein')
+    .max(30, 'Der Benutzername darf nicht länger als 30 Zeichen sein')
+    .toLowerCase()
+    .regex(/^[a-z0-9][a-z0-9_]*[a-z0-9]$/, 'Der Benutzername darf nur Buchstaben, Zahlen und Unterstriche enthalten')
+    .refine(val => !val.includes(' '), 'Der Benutzername darf keine Leerzeichen enthalten'),
+  email: z.string()
+    .email('Ungültige E-Mail-Adresse')
+    .toLowerCase(),
+  password: z.string()
+    .min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein')
+    .regex(/[A-Z]/, 'Das Passwort muss mindestens einen Großbuchstaben enthalten')
+    .regex(/[a-z]/, 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten')
+    .regex(/[0-9]/, 'Das Passwort muss mindestens eine Zahl enthalten')
+    .regex(/[^A-Za-z0-9]/, 'Das Passwort muss mindestens ein Sonderzeichen enthalten'),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Die Passwörter stimmen nicht überein",
+  path: ["confirmPassword"],
+});
+
+const CreateUserForm = ({ open, onClose, onUserCreated }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(schema)
+  });
+
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    try {
+      const access_token = localStorage.getItem('access_token');
+      const response = await fetch('https://app.saincube.com/app2/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${access_token}`,
+        },
+        body: JSON.stringify({
+          username: data.username,
+          email: data.email,
+          password: data.password
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Fehler beim Erstellen des Benutzers');
+      }
+
+      const newUser = await response.json();
+      toast.success('Benutzer erfolgreich erstellt');
+      onUserCreated(newUser);
+      reset();
+      onClose();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-20"
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="relative w-[90vw] max-w-2xl">
+        <button
+          onClick={onClose}
+          className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#fdcc00] hover:bg-[#eab308] rounded-full p-1 px-2 transition-all shadow-lg"
+        >
+          <span className="sr-only">Schließen</span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="bg-white rounded-[30px] overflow-hidden sm:mx-5">
+          <div className="p-4 sm:p-8">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-3xl font-bold text-[#fdcc00] mb-6"
+            >
+              Benutzer erstellen
+            </motion.div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Benutzername
+                </label>
+                <input
+                  {...register('username')}
+                  type="text"
+                  className={`w-full px-3 py-2 border ${errors.username ? 'border-red-500' : 'border-yellow-400'} rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400`}
+                  placeholder="maxmustermann123"
+                />
+                {errors.username && (
+                  <p className="mt-1 text-xs text-red-500">{errors.username.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-Mail
+                </label>
+                <input
+                  {...register('email')}
+                  type="email"
+                  className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-yellow-400'} rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400`}
+                  placeholder="max.mustermann@beispiel.de"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Passwort
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('password')}
+                    type={showPassword ? "text" : "password"}
+                    className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-yellow-400'} rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400`}
+                    placeholder="********"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Passwort bestätigen
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('confirmPassword')}
+                    type={showConfirmPassword ? "text" : "password"}
+                    className={`w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-yellow-400'} rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400`}
+                    placeholder="********"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-500">{errors.confirmPassword.message}</p>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="px-6 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-6 py-2 rounded-lg bg-[#fdcc00] hover:bg-[#eab308] text-black font-medium transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
+                      />
+                      Wird erstellt...
+                    </div>
+                  ) : 'Benutzer erstellen'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 // Theme configuration
@@ -114,76 +318,173 @@ const SearchBox = styled(TextField)({
 
 const dateFilters = [
   { key: 'all', label: 'Alle Zeit' },
+  { key: 'today', label: 'Heute' },
   { key: 'yesterday', label: 'Gestern' },
   { key: 'last_week', label: 'Letzte Woche' },
   { key: 'last_month', label: 'Letzter Monat' },
   { key: 'last_year', label: 'Letztes Jahr' }
 ];
 
+const callCenterCompanies = [
+  { key: 'company1', label: 'Teleperformance Deutschland' },
+  { key: 'company2', label: 'Arvato Customer Services' },
+  { key: 'company3', label: 'Walter Services GmbH' },
+  { key: 'company4', label: 'Capita Customer Services' },
+  { key: 'company5', label: 'Condor Group' },
+  { key: 'company6', label: 'D+S 360° GmbH' },
+  { key: 'company7', label: 'Majorel Deutschland' },
+  { key: 'company8', label: 'Competence Call Center' },
+  { key: 'company9', label: 'Deutsche Telekom Kundenservice' },
+  { key: 'company10', label: 'Bosch Service Solutions' }
+];
+
 const permissionGroups = [
   {
-    title: "Analytik",
-    icon: <BarChart3 className="h-5 w-5" />,
+    title: 'Call Center APIs',
+    icon: <Phone className="h-5 w-5" />,
     permissions: [
-      { key: 'analytics_email_api', label: 'E-Mail-Analytik' },
-      { key: 'analytics_email_subkpis_api', label: 'E-Mail-Unterkennzahlen' },
-      { key: 'analytics_sales_service_api', label: 'Verkaufsservice-Analytik' },
-      { key: 'analytics_booking_api', label: 'Buchungs-Analytik' },
-      { key: 'analytics_booking_subkpis_api', label: 'Buchungs-Unterkennzahlen' },
-      { key: 'analytics_conversion_api', label: 'Konversions-Analytik' },
-    ],
+      { key: 'call_overview_api', label: 'Call Overview' },
+      { key: 'call_performance_api', label: 'Call Performance' },
+      { key: 'call_sub_kpis_api', label: 'Call Sub KPIs' }
+    ]
   },
   {
-    title: "Anrufverwaltung",
-    icon: <PhoneCall className="h-5 w-5" />,
-    permissions: [
-      { key: 'call_overview_api', label: 'Anrufübersicht' },
-      { key: 'call_performance_api', label: 'Anrufleistung' },
-      { key: 'call_sub_kpis_api', label: 'Anruf-Unterkennzahlen' },
-    ],
-  },
-  {
-    title: "E-Mail-Verwaltung",
+    title: 'Email APIs',
     icon: <Mail className="h-5 w-5" />,
     permissions: [
-      { key: 'email_overview_api', label: 'E-Mail-Übersicht' },
-      { key: 'email_performance_api', label: 'E-Mail-Leistung' },
-      { key: 'email_sub_kpis_api', label: 'E-Mail-Unterkennzahlen' },
-    ],
+      { key: 'email_overview_api', label: 'Email Overview' },
+      { key: 'email_performance_api', label: 'Email Performance' },
+      { key: 'email_sub_kpis_api', label: 'Email Sub KPIs' }
+    ]
   },
   {
-    title: "Aufgabenverwaltung",
-    icon: <ListTodo className="h-5 w-5" />,
+    title: 'Task APIs',
+    icon: <CheckSquare className="h-5 w-5" />,
     permissions: [
-      { key: 'task_overview_api', label: 'Aufgabenübersicht' },
-      { key: 'task_performance_api', label: 'Aufgabenleistung' },
-      { key: 'task_sub_kpis_api', label: 'Aufgaben-Unterkennzahlen' },
-    ],
+      { key: 'task_overview_api', label: 'Task Overview' },
+      { key: 'task_performance_api', label: 'Task Performance' },
+      { key: 'task_sub_kpis_api', label: 'Task Sub KPIs' }
+    ]
   },
+  {
+    title: 'Analytics APIs',
+    icon: <BarChart2 className="h-5 w-5" />,
+    permissions: [
+      { key: 'analytics_email_api', label: 'Email Analytics' },
+      { key: 'analytics_email_subkpis_api', label: 'Email Sub KPIs Analytics' },
+      { key: 'analytics_sales_service_api', label: 'Sales Service Analytics' },
+      { key: 'analytics_booking_api', label: 'Booking Analytics' },
+      { key: 'analytics_booking_subkpis_api', label: 'Booking Sub KPIs Analytics' },
+      { key: 'analytics_conversion_api', label: 'Conversion Analytics' }
+    ]
+  }
 ];
+
+const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, showAll = true, maxItems = 6 }) => {
+  const [showAllItems, setShowAllItems] = useState(false);
+  const displayItems = showAll ? items : items.slice(0, showAllItems ? items.length : maxItems);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="border border-gray-200 rounded-xl p-6 mb-6 hover:shadow-md transition-shadow"
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-[#fdcc00]/10 text-[#fdcc00]">
+          {icon}
+        </div>
+        <h3 className="font-semibold text-lg text-gray-800">{title}</h3>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+      >
+        {displayItems.map(item => (
+          <label
+            key={item.key}
+            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
+          >
+            <span className="text-sm font-medium text-gray-600">{item.label}</span>
+            <input
+              type="checkbox"
+              checked={permissions[type]?.split(',').map(f => f.trim()).includes(item.key)}
+              onChange={() => onFilterToggle(type, item.key)}
+              className="h-4 w-4 text-[#fdcc00] border-gray-300 rounded focus:ring-[#fdcc00]"
+            />
+          </label>
+        ))}
+      </motion.div>
+
+      {!showAll && items.length > maxItems && (
+        <button
+          onClick={() => setShowAllItems(!showAllItems)}
+          className="mt-4 text-sm font-medium text-[#fdcc00] hover:text-[#eab308] transition-colors flex items-center gap-2"
+        >
+          {showAllItems ? (
+            <>Weniger anzeigen <ChevronUp className="h-4 w-4" /></>
+          ) : (
+            <>Mehr anzeigen <ChevronDown className="h-4 w-4" /></>
+          )}
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
+const PermissionFilters = ({ permissions, onPermissionChange }) => {
+  const handleFilterToggle = (filterType, key) => {
+    const currentFilters = permissions[filterType]?.split(',').map(f => f.trim()) || [];
+    const newFilters = currentFilters.includes(key)
+      ? currentFilters.filter(f => f !== key)
+      : [...currentFilters, key];
+    
+    onPermissionChange({
+      ...permissions,
+      [filterType]: newFilters.join(',')
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <FilterSection
+        title="Zeitfilter"
+        icon={<Calendar />}
+        items={dateFilters}
+        type="date_filter"
+        permissions={permissions}
+        onFilterToggle={handleFilterToggle}
+        showAll={true}
+      />
+      <FilterSection
+        title="Unternehmenszugang"
+        icon={<Building2 />}
+        items={callCenterCompanies}
+        type="companies"
+        permissions={permissions}
+        onFilterToggle={handleFilterToggle}
+        showAll={false}
+        maxItems={6}
+      />
+    </div>
+  );
+};
 
 const PermissionForm = ({ open, onClose, user }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-
   const [permissions, setPermissions] = useState({
-    call_overview_api: false,
-    call_performance_api: false,
-    call_sub_kpis_api: false,
-    email_overview_api: false,
-    email_performance_api: false,
-    email_sub_kpis_api: false,
-    task_overview_api: false,
-    task_performance_api: false,
-    task_sub_kpis_api: false,
-    analytics_email_api: false,
-    analytics_email_subkpis_api: false,
-    analytics_sales_service_api: false,
-    analytics_booking_api: false,
-    analytics_booking_subkpis_api: false,
-    analytics_conversion_api: false,
-    date_filter: ''
+    date_filter: '',
+    companies: '',
+    // Initialize all API permissions
+    ...Object.fromEntries(
+      permissionGroups.flatMap(group => 
+        group.permissions.map(p => [p.key, false])
+      )
+    )
   });
 
   useEffect(() => {
@@ -196,38 +497,29 @@ const PermissionForm = ({ open, onClose, user }) => {
     try {
       setLoading(true);
       setError(null);
-      const access_token = localStorage.getItem('access_token');
-
-      const response = await fetch(`https://app.saincube.com/app2/admin/view-role-permissions`, {
+      const response = await fetch('https://app.saincube.com/app2/admin/view-role-permissions', {
         headers: {
-          'Authorization': `Bearer ${access_token}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Fehler beim Abrufen der Berechtigungen');
-      }
+      if (!response.ok) throw new Error('Fehler beim Abrufen der Berechtigungen');
 
       const data = await response.json();
       const userPermissions = data.find(p => p.user_id === user['user id']);
 
       if (userPermissions) {
         const { permissions: userPerms } = userPermissions;
-        const formattedDateFilter = userPerms.date_filter ?
-          userPerms.date_filter.split(',')
-            .map(f => f.trim())
-            .filter(Boolean)
-            .join(', ')
-          : '';
-
         setPermissions({
           ...userPerms,
-          date_filter: formattedDateFilter
+          date_filter: userPerms.date_filter?.split(',').filter(Boolean).join(',') || '',
+          companies: userPerms.companies?.split(',').filter(Boolean).join(',') || ''
         });
       }
     } catch (err) {
       console.error('Fehler beim Abrufen der Berechtigungen:', err);
       setError('Berechtigungen konnten nicht geladen werden');
+      toast.error('Fehler beim Laden der Berechtigungen');
     } finally {
       setLoading(false);
     }
@@ -237,91 +529,39 @@ const PermissionForm = ({ open, onClose, user }) => {
     try {
       setSaving(true);
       setError(null);
-      const access_token = localStorage.getItem('access_token');
-  
+      
       const queryParams = new URLSearchParams({
         user_id: user['user id'],
-        call_overview_api: String(permissions.call_overview_api || false),
-        call_performance_api: String(permissions.call_performance_api || false),
-        call_sub_kpis_api: String(permissions.call_sub_kpis_api || false),
-        email_overview_api: String(permissions.email_overview_api || false),
-        email_performance_api: String(permissions.email_performance_api || false),
-        email_sub_kpis_api: String(permissions.email_sub_kpis_api || false),
-        task_overview_api: String(permissions.task_overview_api || false),
-        task_performance_api: String(permissions.task_performance_api || false),
-        task_sub_kpis_api: String(permissions.task_sub_kpis_api || false),
-        analytics_email_api: String(permissions.analytics_email_api || false),
-        analytics_email_subkpis_api: String(permissions.analytics_email_subkpis_api || false),
-        analytics_sales_service_api: String(permissions.analytics_sales_service_api || false),
-        analytics_booking_api: String(permissions.analytics_booking_api || false),
-        analytics_booking_subkpis_api: String(permissions.analytics_booking_subkpis_api || false),
-        analytics_conversion_api: String(permissions.analytics_conversion_api || false),
-        date_filter: permissions.date_filter || ''
+        ...permissions
       });
-  
+
       const response = await fetch(`https://app.saincube.com/app2/assign-permission?${queryParams.toString()}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${access_token}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
         },
       });
-  
-      const data = await response.json();
-  
+
       if (!response.ok) {
-        const errorMessage = data.detail?.[0]?.msg || data.detail || 'Fehler beim Speichern der Berechtigungen';
-        throw new Error(errorMessage);
+        const data = await response.json();
+        throw new Error(data.detail || 'Fehler beim Speichern der Berechtigungen');
       }
-  
+
       toast.success('Berechtigungen erfolgreich gespeichert');
       onClose();
     } catch (err) {
       console.error('Fehler beim Speichern der Berechtigungen:', err);
-      const errorMessage = err.message || 'Fehler beim Speichern der Berechtigungen';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      setError(err.message || 'Fehler beim Speichern der Berechtigungen');
+      toast.error(err.message || 'Fehler beim Speichern der Berechtigungen');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggle = (key) => {
-    setPermissions(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  const handleDateFilterToggle = (filterKey) => {
-    setPermissions(prev => {
-      const currentFilters = prev.date_filter ? prev.date_filter.split(',').map(f => f.trim()) : [];
-      let newFilters = currentFilters.includes(filterKey) 
-        ? currentFilters.filter(f => f !== filterKey)
-        : [...currentFilters, filterKey];
-      return {
-        ...prev,
-        date_filter: newFilters.join(',')
-      };
-    });
-  };
-
-  const handleGroupToggle = (group) => {
-    const groupKeys = group.permissions.map(p => p.key);
-    const allEnabled = groupKeys.every(key => permissions[key]);
-  
-    setPermissions(prev => {
-      const newPermissions = { ...prev };
-      groupKeys.forEach(key => {
-        newPermissions[key] = !allEnabled;
-      });
-      return newPermissions;
-    });
-  };
-
   if (!open) return null;
 
   return (
-    <div
+    <div 
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-20"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -335,10 +575,9 @@ const PermissionForm = ({ open, onClose, user }) => {
 
         <div className="bg-white rounded-[30px] h-[95vh] overflow-hidden sm:mx-5">
           <div className="p-4 sm:p-8 h-full flex flex-col">
-          <motion.div
+            <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
               className="text-3xl font-bold text-[#fdcc00] mb-4"
             >
               Berechtigungen verwalten
@@ -353,7 +592,6 @@ const PermissionForm = ({ open, onClose, user }) => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
               className="bg-gray-50 rounded-lg mb-6 p-4"
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -369,59 +607,26 @@ const PermissionForm = ({ open, onClose, user }) => {
               </div>
             </motion.div>
 
-            {loading ? (
-              <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded-lg mb-4 w-1/3" />
-                    <div className="space-y-3">
-                      {[1, 2, 3].map(j => (
-                        <div key={j} className="h-12 bg-gray-100 rounded-lg" />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex-grow overflow-y-auto pr-2 modern-scrollbar">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="border border-gray-200 rounded-xl p-6 mb-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-[#fdcc00]/10 text-[#fdcc00]">
-                        <Calendar className="h-5 w-5" />
+            <div className="flex-grow overflow-y-auto pr-2 modern-scrollbar">
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-8 bg-gray-200 rounded-lg mb-4 w-1/3" />
+                      <div className="space-y-3">
+                        {[1, 2, 3].map(j => (
+                          <div key={j} className="h-12 bg-gray-100 rounded-lg" />
+                        ))}
                       </div>
-                      <h3 className="font-semibold text-lg text-gray-800">
-                        Datumsfilter
-                      </h3>
                     </div>
-                  </div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
-                  >
-                    {dateFilters.map(filter => (
-                      <label
-                        key={filter.key}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
-                      >
-                        <span className="text-sm font-medium text-gray-600">{filter.label}</span>
-                        <input
-                          type="checkbox"
-                          checked={permissions.date_filter.split(',').map(f => f.trim()).includes(filter.key)}
-                          onChange={() => handleDateFilterToggle(filter.key)}
-                          className="h-4 w-4 text-[#fdcc00] border-gray-300 rounded focus:ring-[#fdcc00]"
-                        />
-                      </label>
-                    ))}
-                  </motion.div>
-                </motion.div>
-
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <PermissionFilters 
+                    permissions={permissions}
+                    onPermissionChange={setPermissions}
+                  />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {permissionGroups.map((group, idx) => (
                     <motion.div
@@ -473,14 +678,14 @@ const PermissionForm = ({ open, onClose, user }) => {
                     </motion.div>
                   ))}
                 </div>
-              </div>
+              </>
             )}
 
             <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-4">
               <button
                 onClick={onClose}
                 disabled={saving}
-                className="px-6 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Abbrechen
               </button>
@@ -492,7 +697,7 @@ const PermissionForm = ({ open, onClose, user }) => {
               >
                 {saving ? (
                   <div className="flex items-center gap-2">
-                    <motion.div
+                  <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
@@ -505,6 +710,7 @@ const PermissionForm = ({ open, onClose, user }) => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };
@@ -553,6 +759,32 @@ const Page = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
+  // Add new state for delete confirmation
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, userId: null, username: '' });
+
+  // Update the delete handler
+  const handleDeleteUser = async (userId) => {
+    const access_token = localStorage.getItem('access_token');
+
+    try {
+      const response = await fetch(`https://app.saincube.com/app2/admin/delete-user/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Fehler beim Löschen des Benutzers');
+      }
+
+      setUsers(prevUsers => prevUsers.filter(user => user['user id'] !== userId));
+      toast.success('Benutzer erfolgreich gelöscht');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Fehler beim Löschen des Benutzers');
+    }
+  };
 
   const handlePermissionClick = (user) => {
     setSelectedUser(user);
@@ -699,7 +931,7 @@ const Page = () => {
           {/* Header with logo */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex-shrink-0">
-            <img src={logo.src} alt="Dashboard Logo" className="w-auto h-8" />
+              <img src={logo.src} alt="Dashboard Logo" className="w-auto h-8" />
             </div>
           </div>
 
@@ -712,33 +944,29 @@ const Page = () => {
               <Box sx={{
                 mb: 4,
                 display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 3
+                alignItems: { xs: 'stretch', md: 'center' },
+                gap: 2
               }}>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#fdcc00' }}>
+                <Typography variant="h4" sx={{
+                  fontWeight: 'bold',
+                  color: '#fdcc00',
+                  fontSize: { xs: '1.5rem', md: '2rem' }
+                }}>
                   Admin Bereich
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <StyledButton
-                    variant="contained"
-                    size="small"
-                    startIcon={<UserPlus size={18} />}
-                    sx={{
-                      backgroundColor: '#fdcc00',
-                      color: '#000000',
-          
-                    }}
-                    onClick={() => setCreateUserModal(true)}
-                  >
-                    Benutzer erstellen
-                  </StyledButton>
+                <Box sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: 2,
+                  width: { xs: '100%', md: 'auto' }
+                }}>
 
                   <SearchBox
                     size="small"
-                    placeholder="Suche nach Benutzername, E-Mail oder Status..."
+                    placeholder="Suchen..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
@@ -748,21 +976,74 @@ const Page = () => {
                         </InputAdornment>
                       ),
                     }}
+                    sx={{
+                      width: { xs: '100%', sm: '200px', md: '280px' },
+                      '& .MuiOutlinedInput-root': {
+                        height: '40px',
+                        '&:hover': {
+                          '& fieldset': {
+                            borderColor: '#eab308',
+                          }
+                        },
+                        '&.Mui-focused': {
+                          '& fieldset': {
+                            borderColor: '#fdcc00',
+                          }
+                        }
+                      }
+                    }}
                   />
 
-                  <FormControl size="small" sx={{
-                    minWidth: 120,
+                  <StyledButton
+                    variant="contained"
+                    startIcon={<UserPlus size={18} />}
+                    sx={{
+                      backgroundColor: '#fdcc00',
+                      color: '#000000',
+                      width: { xs: '100%', sm: 'auto' },
+                      padding: '8px 16px',
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: '#eab308',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      },
+                      '&:active': {
+                        transform: 'translateY(0)',
+                      },
+                      transition: 'all 0.2s ease-in-out',
+                    }}
+                    onClick={() => setCreateUserModal(true)}
+                  >
+                    Benutzer erstellen
+                  </StyledButton>
+
+
+                  <FormControl sx={{
+                    minWidth: { xs: '100%', sm: 'auto' },
                     '& .MuiOutlinedInput-root': {
+                      height: '40px',
                       borderRadius: '8px',
                       border: '1.5px solid #fdcc00',
+                      backgroundColor: '#fff',
+                      '&:hover': {
+                        borderColor: '#eab308',
+                        backgroundColor: '#fffbeb',
+                      },
                       '& fieldset': {
                         border: 'none',
                       },
-                    },
+                    }
                   }}>
                     <Select
                       value={roleFilter}
-                      onChange={(e) => setRoleFilter(e.target.value)}
+                      onChange={handleRoleChange}
+                      displayEmpty
+                      sx={{
+                        '& .MuiSelect-select': {
+                          paddingY: '8px',
+                        }
+                      }}
                     >
                       <MenuItem value="all">Alle Rollen</MenuItem>
                       <MenuItem value="admin">Administrator</MenuItem>
@@ -855,6 +1136,18 @@ const Page = () => {
                                 >
                                   Berechtigungen
                                 </StyledButton>
+                                <StyledButton
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => setDeleteConfirmation({
+                                    open: true,
+                                    userId: user['user id'],
+                                    username: user.username
+                                  })}
+                                  sx={getDeleteButtonStyle()}
+                                >
+                                  Löschen
+                                </StyledButton>
                               </Box>
                             </TableCell>
                           </TableRow>
@@ -870,7 +1163,7 @@ const Page = () => {
                   rowsPerPage={rowsPerPage}
                   onRowsPerPageChange={handleChangeRowsPerPage}
                   labelRowsPerPage="Zeilen pro Seite:"
-                  labelDisplayedRows={({ from, to, count }) => 
+                  labelDisplayedRows={({ from, to, count }) =>
                     `${from}-${to} von ${count}`}
                 />
               </TableContainer>
@@ -878,6 +1171,12 @@ const Page = () => {
           </Paper>
         </div>
 
+      <DeleteConfirmationDialog
+        open={deleteConfirmation.open}
+        onClose={() => setDeleteConfirmation({ open: false, userId: null, username: '' })}
+        onConfirm={() => handleDeleteUser(deleteConfirmation.userId)}
+        username={deleteConfirmation.username}
+      />
         {/* Modals */}
         <CreateUserForm
           open={createUserModal}
@@ -891,6 +1190,62 @@ const Page = () => {
         />
       </div>
     </ThemeProvider>
+  );
+};
+
+const DeleteConfirmationDialog = ({ open, onClose, onConfirm, username }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    await onConfirm();
+    setIsLoading(false);
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-20"
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="relative w-[90vw] max-w-md">
+        <div className="bg-white rounded-[20px] overflow-hidden shadow-xl">
+          <div className="p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Benutzer löschen bestätigen
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Sind Sie sicher, dass Sie den Benutzer <span className="font-semibold">@{username}</span> löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={onClose}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                    />
+                    Löschen...
+                  </div>
+                ) : 'Löschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -919,6 +1274,15 @@ const getStatusStyle = (status) => ({
   color: status === 'active' ? '#15803d' : status === 'pending' ? '#9a3412' : '#991b1b',
   borderColor: 'transparent',
   fontWeight: 500,
+});
+
+const getDeleteButtonStyle = () => ({
+  borderColor: '#dc2626',
+  color: '#dc2626',
+  '&:hover': {
+    borderColor: '#b91c1c',
+    backgroundColor: '#fef2f2',
+  }
 });
 
 const getApproveButtonStyle = () => ({
