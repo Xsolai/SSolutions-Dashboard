@@ -238,28 +238,28 @@ const CallAnalysisDashboard = () => {
       },
       {
         title: "Durchschnittliche Wartezeit",
-        value: `${overviewData?.['avg wait time'] || 0} min`,
+        value: `${overviewData?.['avg wait time'] || 0} sek`,
         icon: Clock,
         change: subKPIs['avg wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Maximale Wartezeit",
-        value: `${overviewData?.['max. wait time'] || 0} min`,
+        value: `${overviewData?.['max. wait time'] || 0} sek`,
         icon: Clock,
         change: subKPIs['max. wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Durchschnittliche Bearbeitungszeit",
-        value: `${overviewData?.['avg handling time'] || 0} min`,
+        value: `${overviewData?.['avg handling time'] || 0} sek`,
         icon: Clock,
         change: subKPIs['avg_handling_time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Nachbearbeitungszeit",
-        value: `${overviewData?.['After call work time'] || 0} min`,
+        value: `${overviewData?.['After call work time'] || 0} sek`,
         icon: Clipboard,
         change: subKPIs['After call work time_change'],
         description: "im Vergleich zur letzten Periode"
@@ -316,7 +316,7 @@ const CallAnalysisDashboard = () => {
             </div>
           </ChartCard>
 
-          <ChartCard title="Tägliche Wartezeiten (Minuten)">
+          <ChartCard title="Tägliche Wartezeiten (Sekunden)">
             <div className="h-[300px]">
               <ResponsiveContainer>
                 <LineChart
@@ -336,14 +336,14 @@ const CallAnalysisDashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="Time metrics.avg_wait_time_sec"
-                    name="Durchschn. Wartezeit (Min)"
+                    name="Durchschn. Wartezeit (Sek)"
                     stroke={COLORS[2]}
                     strokeWidth={2}
                   />
                   <Line
                     type="monotone"
                     dataKey="Time metrics.max_wait_time_sec"
-                    name="Max. Wartezeit (Min)"
+                    name="Max. Wartezeit (Sek)"
                     stroke={COLORS[1]}
                     strokeWidth={2}
                   />
@@ -482,7 +482,7 @@ const PerformanceTab = () => {
         </ChartCard>
 
         {/* Third column: Minutes per queue */}
-        <ChartCard isWideChart={true} title="Minuten nach Warteschlange">
+        <ChartCard isWideChart={true} title="Sekunden nach Warteschlange">
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -503,7 +503,7 @@ const PerformanceTab = () => {
                     bottom: 20,
                     fontSize: '14px'
                   }} />                
-                  <Bar dataKey="minutes" name="DGB (Min)" fill={COLORS[2]} />
+                  <Bar dataKey="minutes" name="DGB (Sek)" fill={COLORS[2]} />
               </BarChart>
 
             </ResponsiveContainer>

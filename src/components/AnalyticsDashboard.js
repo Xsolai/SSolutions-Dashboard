@@ -681,7 +681,7 @@ const handleCompanyChange = (company) => {
   const tabs = [
     { id: "email", name: "E-Mail-Analyse" },
     { id: "sales", name: "Vertrieb & Service" },
-    { id: "booking", name: "Buchungsanalyse" },
+    { id: "booking", name: "Softbuchungen" },
     { id: "conversion", name: "Konversion" },
   ];
 

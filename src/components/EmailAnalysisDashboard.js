@@ -432,7 +432,7 @@ const EmailAnalysisDashboard = () => {
                 />
                 <Bar
                   dataKey="recieved"
-                  name="Empfangen"
+                  name="Vorgänge"
                   fill="#ffdb4d"
                 />
               </BarChart>
