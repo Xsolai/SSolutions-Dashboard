@@ -244,9 +244,9 @@ async def get_calls(
                 },
                 "Time metrics":{
                     "weekday": row.weekday,
-                    "avg_wait_time_sec": round((row.avg_wait_time)/60 or 0, 2),
-                    "max_wait_time_sec": round((row.max_wait_time)/60 or 0, 2),
-                    "avg_handling_time": round((row.avg_handling_time)/60 or 0, 2),
+                    "avg_wait_time_sec": round((row.avg_wait_time) or 0, 2),
+                    "max_wait_time_sec": round((row.max_wait_time) or 0, 2),
+                    "avg_handling_time": round((row.avg_handling_time) or 0, 2),
                 },
                 "% metrics":{
                     "weekday": row.weekday,
@@ -259,10 +259,10 @@ async def get_calls(
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
         "SLA":round(get_sla_percentage(query, start_date=start_date, end_date=end_date), 2),
-        "avg wait time": round(get_average_wait_time(query, start_date=start_date, end_date=end_date), 2),
-        "max. wait time": round(get_max_wait_time(query, start_date=start_date, end_date=end_date), 2),
-        "After call work time": round(get_inbound_after_call(query, start_date=start_date, end_date=end_date), 2),
-        "avg handling time": round(avg_handling_time or 0, 2),
+        "avg wait time": round(get_average_wait_time(query, start_date=start_date, end_date=end_date)/60, 2),
+        "max. wait time": round(get_max_wait_time(query, start_date=start_date, end_date=end_date)/60, 2),
+        "After call work time": round(get_inbound_after_call(query, start_date=start_date, end_date=end_date)/60, 2),
+        "avg handling time": round((avg_handling_time)/60 or 0, 2),
         "Dropped calls": int(dropped_calls or 0),
         "Daily Call Volume": result  
     }
