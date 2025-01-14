@@ -27,13 +27,19 @@ import Select from '@mui/material/Select';
 import { Skeleton } from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import CloseIcon from '@mui/icons-material/Close';
+import { toast, Toaster } from 'react-hot-toast';
 import {
-  PhoneCall, Mail, ListTodo, BarChart3,
-  Calendar, ChevronDown, ChevronUp
+  Eye, EyeOff, PhoneCall, Mail, ListTodo, BarChart3,
+  Calendar, ChevronDown, ChevronUp, UserPlus
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-// Theme configuration remains the same as original
+
+// Theme configuration
 const theme = createTheme({
   palette: {
     primary: {
@@ -48,6 +54,7 @@ const theme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: {
+          padding: '16px',
         },
         head: {
           fontWeight: 600,
@@ -68,6 +75,7 @@ const theme = createTheme({
   },
 });
 
+// Styled components remain the same as in your original code
 const StyledButton = styled(Button)(({ theme }) => ({
   borderRadius: '8px',
   padding: '6px 16px',
@@ -101,63 +109,8 @@ const SearchBox = styled(TextField)({
       boxShadow: '0 0 0 2px rgba(251, 191, 36, 0.1)',
     },
   },
-  '& .MuiInputBase-input': {
-    padding: '10px 2px',
-  },
 });
 
-const getRoleColors = (role) => {
-  const roleColors = {
-    admin: { bg: '#f8fafc', text: '#1e293b' },
-    kunde: { bg: '#fff7ed', text: '#9a3412' },
-    mitarbeiter: { bg: '#f0f9ff', text: '#0369a1' },
-  };
-  return roleColors[role] || { bg: '#f1f5f9', text: '#64748b' };
-};
-
-const getStatusColors = (status) => {
-  const statusColors = {
-    aktiv: { bg: '#f0fdf4', text: '#15803d' },
-    ausstehend: { bg: '#fff7ed', text: '#9a3412' },
-    inaktiv: { bg: '#fef2f2', text: '#991b1b' },
-  };
-  return statusColors[status] || { bg: '#f1f5f9', text: '#64748b' };
-};
-
-const AnimatedText = () => {
-  const titleLines = ["Admin", "Bereich"];
-  return (
-    <div className="inline-flex">
-      {titleLines.map((line, lineIndex) => (
-        <motion.div
-          key={lineIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: 1,
-            staggerChildren: 0.1,
-          }}
-          className="text-2xl sm:text-4xl md:text-4xl px-1 sm:px-1.5 lg:text-5xl font-bold text-[#fdcc00] flex"
-        >
-          {line.split("").map((letter, index) => (
-            <motion.span
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.3,
-                delay: index * 0.1 + lineIndex * 0.5,
-              }}
-              className="block"
-            >
-              {letter}
-            </motion.span>
-          ))}
-        </motion.div>
-      ))}
-    </div>
-  );
-};
 
 const dateFilters = [
   { key: 'all', label: 'Alle Zeit' },
@@ -589,17 +542,17 @@ const TableSkeleton = () => {
   );
 };
 
+// Main Page Component
 const Page = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [permissionPopup, setPermissionPopup] = useState(false);
+  const [createUserModal, setCreateUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
-  const [processingStates, setProcessingStates] = useState({});
-
 
   const handlePermissionClick = (user) => {
     setSelectedUser(user);
@@ -682,39 +635,37 @@ const Page = () => {
   };
 
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const access_token = localStorage.getItem('access_token');
+      const response = await fetch('https://app.saincube.com/app2/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+        },
+      });
 
-  // Fetch all users and update status concurrently using Promise.all
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const access_token = localStorage.getItem('access_token');
-
-        // Fetching users concurrently using Promise.all
-        const [usersResponse] = await Promise.all([
-          fetch('https://app.saincube.com/app2/admin/users', {
-            headers: {
-              'Authorization': `Bearer ${access_token}`,
-            },
-          }),
-        ]);
-
-        if (!usersResponse.ok) {
-          throw new Error('Failed to fetch users');
-        }
-
-        const usersData = await usersResponse.json();
-        setUsers(usersData);
-
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
       }
-    };
 
+      const usersData = await response.json();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Fehler beim Laden der Benutzer');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUsers();
   }, []);
+
+  const handleUserCreated = (newUser) => {
+    setUsers(prevUsers => [...prevUsers, newUser]);
+  };
 
   const filteredUsers = users.filter(user => {
     const roleMatch = roleFilter === 'all' || user.role === roleFilter;
@@ -743,25 +694,21 @@ const Page = () => {
   return (
     <ThemeProvider theme={theme}>
       <div className="min-h-screen bg-white/50 text-black">
+        <Toaster />
         <div className="py-8 px-4 sm:px-6 lg:px-8">
+          {/* Header with logo */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex-shrink-0">
-              <img
-                src={logo.src}
-                alt="Dashboard Logo"
-                className="w-auto h-8"
-              />
+            <img src={logo.src} alt="Dashboard Logo" className="w-auto h-8" />
             </div>
           </div>
-          <Paper
-            elevation={0}
-            sx={{
-              overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            }}
-            className='bg-gray-50 rounded-[50px]'
-          >
+
+          <Paper elevation={0} sx={{
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          }} className='bg-gray-50 rounded-[50px]'>
             <Box sx={{ maxWidth: '100%', mx: 'auto', p: { xs: 3, sm: 4 } }}>
+              {/* Header with controls */}
               <Box sx={{
                 mb: 4,
                 display: 'flex',
@@ -770,8 +717,25 @@ const Page = () => {
                 flexWrap: 'wrap',
                 gap: 3
               }}>
-                <AnimatedText />
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#fdcc00' }}>
+                  Admin Bereich
+                </Typography>
+
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <StyledButton
+                    variant="contained"
+                    size="small"
+                    startIcon={<UserPlus size={18} />}
+                    sx={{
+                      backgroundColor: '#fdcc00',
+                      color: '#000000',
+          
+                    }}
+                    onClick={() => setCreateUserModal(true)}
+                  >
+                    Benutzer erstellen
+                  </StyledButton>
+
                   <SearchBox
                     size="small"
                     placeholder="Suche nach Benutzername, E-Mail oder Status..."
@@ -783,16 +747,9 @@ const Page = () => {
                           <SearchIcon sx={{ color: '#94a3b8' }} />
                         </InputAdornment>
                       ),
-                      style: {
-                        fontSize: '0.875rem'
-                      }
-                    }}
-                    sx={{
-                      '& .MuiInputBase-input::placeholder': {
-                        fontSize: '0.65rem',
-                      }
                     }}
                   />
+
                   <FormControl size="small" sx={{
                     minWidth: 120,
                     '& .MuiOutlinedInput-root': {
@@ -805,8 +762,7 @@ const Page = () => {
                   }}>
                     <Select
                       value={roleFilter}
-                      label="Rolle"
-                      onChange={handleRoleChange}
+                      onChange={(e) => setRoleFilter(e.target.value)}
                     >
                       <MenuItem value="all">Alle Rollen</MenuItem>
                       <MenuItem value="admin">Administrator</MenuItem>
@@ -817,30 +773,12 @@ const Page = () => {
                 </Box>
               </Box>
 
-              <TableContainer
-                component={Paper}
-                elevation={0}
-                sx={{
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  overflow: 'auto',
-                  '&::-webkit-scrollbar': {
-                    height: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    backgroundColor: '#f1f5f9',
-                    borderRadius: '4px',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: '#e2e8f0',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: '#cbd5e1',
-                    },
-                  },
-                }}
-                className='md:mt-10'
-              >
+              {/* Users Table */}
+              <TableContainer component={Paper} elevation={0} sx={{
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                overflow: 'auto',
+              }}>
                 <Table sx={{ minWidth: 800 }}>
                   <TableHead>
                     <TableRow>
@@ -857,144 +795,70 @@ const Page = () => {
                     ) : (
                       filteredUsers
                         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                        .map((user) => {
-                          const roleColor = getRoleColors(user.role);
-                          const statusColor = getStatusColors(user.status);
-                          return (
-                            <TableRow key={user['user id']}>
-                              <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                  <Avatar sx={{
-                                    bgcolor: roleColor.bg,
-                                    color: roleColor.text,
-                                    border: `2px solid ${roleColor.border}`,
-                                    fontWeight: 600,
-                                    width: 40,
-                                    height: 40
-                                  }}>
-                                    {user.username[0].toUpperCase()}
-                                  </Avatar>
-                                  <Typography variant="subtitle2" sx={{
-                                    fontWeight: 600,
-                                    color: '#1e293b',
-                                    fontSize: '0.95rem'
-                                  }}>
-                                    @{user.username}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell sx={{ color: '#475569' }}>{user.email}</TableCell>
-                              <TableCell>
-                                <Chip
-                                  label={user.role === 'admin' ? 'Administrator' : 
-                                         user.role === 'employee' ? 'Mitarbeiter' : 
-                                         user.role === 'customer' ? 'Kunde' : user.role}
+                        .map((user) => (
+                          <TableRow key={user['user id']}>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar sx={{
+                                  bgcolor: '#f0f9ff',
+                                  color: '#0369a1',
+                                  fontWeight: 600
+                                }}>
+                                  {user.username[0].toUpperCase()}
+                                </Avatar>
+                                <Typography variant="subtitle2" sx={{
+                                  fontWeight: 600,
+                                  color: '#1e293b'
+                                }}>
+                                  @{user.username}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={getRoleLabel(user.role)}
+                                size="small"
+                                sx={getRoleStyle(user.role)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={getStatusLabel(user.status)}
+                                size="small"
+                                sx={getStatusStyle(user.status)}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                                <StyledButton
+                                  variant="outlined"
                                   size="small"
-                                  sx={{
-                                    backgroundColor: roleColor.bg,
-                                    color: roleColor.text,
-                                    border: `1px solid ${roleColor.border}`,
-                                    fontWeight: 500,
-                                    padding: '4px 0',
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {processingStates[user['user id']] === 'processing' ? (
-                                  <Chip
-                                    label={
-                                      <div className="flex items-center gap-2">
-                                        <motion.div
-                                          animate={{ rotate: 360 }}
-                                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                          className="w-4 h-4 border-2 border-[#fdcc00] border-t-transparent rounded-full"
-                                        />
-                                        Verarbeitung...
-                                      </div>
-                                    }
-                                    size="small"
-                                    sx={{
-                                      backgroundColor: '#fef9c3',
-                                      color: '#854d0e',
-                                      border: '1px solid #fcd34d',
-                                      fontWeight: 500,
-                                      padding: '4px 0',
-                                      '& .MuiChip-label': {
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                      }
-                                    }}
-                                  />
-                                ) : (
-                                  <Chip
-                                    label={user.status === 'active' ? 'Aktiv' :
-                                           user.status === 'pending' ? 'Ausstehend' :
-                                           user.status === 'inactive' ? 'Inaktiv' : user.status}
-                                    size="small"
-                                    sx={{
-                                      backgroundColor: statusColor.bg,
-                                      color: statusColor.text,
-                                      border: `1px solid ${statusColor.border}`,
-                                      fontWeight: 500,
-                                      padding: '4px 0',
-                                    }}
-                                  />
-                                )}
-                              </TableCell>
-
-                              <TableCell align="right">
-                                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                                  <StyledButton
-                                    variant="outlined"
-                                    size="small"
-                                    sx={{
-                                      borderColor: '#22c55e',
-                                      color: '#16a34a',
-                                      '&:hover': {
-                                        borderColor: '#16a34a',
-                                        backgroundColor: '#f0fdf4',
-                                      }
-                                    }}
-                                    onClick={() => handleApprove(user['user id'])}
-                                  >
-                                    Genehmigen
-                                  </StyledButton>
-                                  <StyledButton
-                                    variant="outlined"
-                                    size="small"
-                                    sx={{
-                                      borderColor: '#f43f5e',
-                                      color: '#e11d48',
-                                      '&:hover': {
-                                        borderColor: '#e11d48',
-                                        backgroundColor: '#fef2f2',
-                                      }
-                                    }}
-                                    onClick={() => handleReject(user['user id'])}
-                                  >
-                                    Ablehnen
-                                  </StyledButton>
-                                  <StyledButton
-                                    variant="outlined"
-                                    size="small"
-                                    sx={{
-                                      borderColor: '#fdcc00',
-                                      color: '#000000',
-                                      '&:hover': {
-                                        borderColor: '#eab308',
-                                        backgroundColor: '#fef9c3',
-                                      }
-                                    }}
-                                    onClick={() => handlePermissionClick(user)}
-                                  >
-                                    Berechtigungen
-                                  </StyledButton>
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
+                                  onClick={() => handleApprove(user['user id'])}
+                                  sx={getApproveButtonStyle()}
+                                >
+                                  Genehmigen
+                                </StyledButton>
+                                <StyledButton
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => handleReject(user['user id'])}
+                                  sx={getRejectButtonStyle()}
+                                >
+                                  Ablehnen
+                                </StyledButton>
+                                <StyledButton
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => handlePermissionClick(user)}
+                                  sx={getPermissionButtonStyle()}
+                                >
+                                  Berechtigungen
+                                </StyledButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))
                     )}
                   </TableBody>
                 </Table>
@@ -1008,29 +872,80 @@ const Page = () => {
                   labelRowsPerPage="Zeilen pro Seite:"
                   labelDisplayedRows={({ from, to, count }) => 
                     `${from}-${to} von ${count}`}
-                  sx={{
-                    borderTop: '1px solid #e2e8f0',
-                    '.MuiTablePagination-select': {
-                      borderRadius: '6px',
-                      border: '1px solid #e2e8f0',
-                      '&:hover': {
-                        borderColor: '#6366f1',
-                      }
-                    }
-                  }}
                 />
               </TableContainer>
             </Box>
           </Paper>
         </div>
+
+        {/* Modals */}
+        <CreateUserForm
+          open={createUserModal}
+          onClose={() => setCreateUserModal(false)}
+          onUserCreated={handleUserCreated}
+        />
+        <PermissionForm
+          open={permissionPopup}
+          onClose={() => setPermissionPopup(false)}
+          user={selectedUser}
+        />
       </div>
-      <PermissionForm
-        open={permissionPopup}
-        onClose={() => setPermissionPopup(false)}
-        user={selectedUser}
-      />
     </ThemeProvider>
   );
 };
+
+// Utility functions for styles
+const getRoleLabel = (role) => ({
+  admin: 'Administrator',
+  employee: 'Mitarbeiter',
+  customer: 'Kunde',
+}[role] || role);
+
+const getStatusLabel = (status) => ({
+  active: 'Aktiv',
+  pending: 'Ausstehend',
+  inactive: 'Inaktiv',
+}[status] || status);
+
+const getRoleStyle = (role) => ({
+  backgroundColor: role === 'admin' ? '#f8fafc' : role === 'employee' ? '#f0f9ff' : '#fff7ed',
+  color: role === 'admin' ? '#1e293b' : role === 'employee' ? '#0369a1' : '#9a3412',
+  borderColor: 'transparent',
+  fontWeight: 500,
+});
+
+const getStatusStyle = (status) => ({
+  backgroundColor: status === 'active' ? '#f0fdf4' : status === 'pending' ? '#fff7ed' : '#fef2f2',
+  color: status === 'active' ? '#15803d' : status === 'pending' ? '#9a3412' : '#991b1b',
+  borderColor: 'transparent',
+  fontWeight: 500,
+});
+
+const getApproveButtonStyle = () => ({
+  borderColor: '#22c55e',
+  color: '#16a34a',
+  '&:hover': {
+    borderColor: '#16a34a',
+    backgroundColor: '#f0fdf4',
+  }
+});
+
+const getRejectButtonStyle = () => ({
+  borderColor: '#f43f5e',
+  color: '#e11d48',
+  '&:hover': {
+    borderColor: '#e11d48',
+    backgroundColor: '#fef2f2',
+  }
+});
+
+const getPermissionButtonStyle = () => ({
+  borderColor: '#fdcc00',
+  color: '#000000',
+  '&:hover': {
+    borderColor: '#eab308',
+    backgroundColor: '#fef9c3',
+  }
+});
 
 export default Page;

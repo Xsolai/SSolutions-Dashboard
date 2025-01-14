@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
-import { motion } from 'framer-motion';
 import CustomDateRangeFilter from './FilterComponent';
 import CompanyDropdown from './Company';
 
@@ -238,28 +237,28 @@ const CallAnalysisDashboard = () => {
       },
       {
         title: "Durchschnittliche Wartezeit",
-        value: `${overviewData?.['avg wait time'] || 0} sek`,
+        value: `${overviewData?.['avg wait time'] || 0} min`,
         icon: Clock,
         change: subKPIs['avg wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Maximale Wartezeit",
-        value: `${overviewData?.['max. wait time'] || 0} sek`,
+        value: `${overviewData?.['max. wait time'] || 0} min`,
         icon: Clock,
         change: subKPIs['max. wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Durchschnittliche Bearbeitungszeit",
-        value: `${overviewData?.['avg handling time'] || 0} sek`,
+        value: `${overviewData?.['avg handling time'] || 0} min`,
         icon: Clock,
         change: subKPIs['avg_handling_time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Nachbearbeitungszeit",
-        value: `${overviewData?.['After call work time'] || 0} sek`,
+        value: `${overviewData?.['After call work time'] || 0} min`,
         icon: Clipboard,
         change: subKPIs['After call work time_change'],
         description: "im Vergleich zur letzten Periode"
