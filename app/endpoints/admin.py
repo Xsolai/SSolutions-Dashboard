@@ -188,7 +188,7 @@ def assign_permission(
         permission.analytics_booking_subkpis_api = analytics_booking_subkpis_api
         permission.analytics_conversion_api = analytics_conversion_api
         permission.date_filter = date_filter
-        permission.domains = domains
+        permission.domains = domains.lower()
 
         # Commit the changes to the database
         db.commit()
