@@ -12,14 +12,15 @@ class User(Base):
     role = Column(String, default="user")  # Default role is 'user'
     status = Column(String, default="pending")
     password = Column(String, nullable=False)
+    is_active = Column(Boolean)
     created_at = Column(DateTime, default=datetime.utcnow)
     permissions = relationship("Permission", back_populates="user")
     
-    def __init__(self, username, email, password, role="user"):
-        self.username = username
-        self.email = email
-        self.password = password
-        self.role = role
+    # def __init__(self, username, email, password, role="user"):
+    #     self.username = username
+    #     self.email = email
+    #     self.password = password
+    #     self.role = role
 
 
 
@@ -62,6 +63,24 @@ class GuruCallReason(Base):
     
 class WorkflowReportGuruKF(Base):
     __tablename__ = 'workflow_report_gurukf'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    customer = Column(String, nullable=True)
+    date = Column(Date)
+    interval = Column(String)  # Time period during which the data was recorded
+    mailbox = Column(String(255))  # Specific mailbox or category of received emails
+    received = Column(Integer)  # Number of emails received
+    new_cases = Column(Integer)  # Number of new cases initiated
+    sent = Column(Integer)  # Number of emails sent
+    archived = Column(Integer)  # Number of cases archived
+    # trashed = Column(Integer)  # Number of cases moved to trash
+    dwell_time_net = Column(String)  # Average dwell time of a case
+    processing_time = Column(String)  # Average processing time of a case
+    service_level_gross = Column(Float)  # Service-level adherence percentage
+    service_level_gross_reply = Column(Float)  # Service-level adherence for sent replies
+    
+class EmailData(Base):
+    __tablename__ = 'email_data'
     
     id = Column(Integer, primary_key=True, index=True)
     customer = Column(String, nullable=True)
@@ -206,6 +225,7 @@ class Permission(Base):
     analytics_booking_subkpis_api = Column(Boolean, default=False, nullable=False)
     analytics_conversion_api = Column(Boolean, default=False, nullable=False)
     date_filter = Column(String, nullable=True)
+    domains = Column(String, nullable=True)
     
     user = relationship("User", back_populates="permissions")
     

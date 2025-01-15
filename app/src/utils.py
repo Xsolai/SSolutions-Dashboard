@@ -1,4 +1,7 @@
-from app.database.models.models import FileProcessingHistory, User, Permission
+from app.database.models.models import (FileProcessingHistory, User, 
+                                        Permission, QueueStatistics, 
+                                        WorkflowReportGuruKF, EmailData,
+                                        OrderJoin, SoftBookingKF)
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
@@ -219,3 +222,252 @@ def get_combined_date_range(filters):
     combined_end = max(range_end for _, range_end in selected_ranges)
     
     return combined_start, combined_end
+
+def get_date_rng_subkpis(
+    db, 
+    current_user,
+    start_date: Optional[datetime],
+    end_date: Optional[datetime]):
+    # Validate date range
+    start_date, end_date = validate_user_and_date_permissions_subkpis(db, current_user, start_date, end_date)
+    # print("current: ", start_date, end_date)
+    
+    date_diff = (end_date - start_date).days
+    
+    # print("date difference: ", date_diff)
+    
+    prev_start_date = start_date - timedelta(days=date_diff+1)
+    prev_end_date = end_date - timedelta(days=date_diff+1)
+    
+    # print("prev: ", prev_start_date, prev_end_date)
+    return start_date, end_date, prev_start_date, prev_end_date
+    
+    
+def validate_user_and_date_permissions_subkpis(
+    db, 
+    current_user, 
+    start_date: Optional[datetime], 
+    end_date: Optional[datetime]
+):
+    """
+    Validate the user's permissions and ensure the requested date range is within the allowed range.
+    
+    Args:
+        db: Database session
+        current_user: The current user object
+        start_date (Optional[datetime]): The requested start date.
+        end_date (Optional[datetime]): The requested end date.
+
+    Returns:
+        Tuple[datetime, datetime]: Validated start_date and end_date.
+    """
+    
+    # Retrieve the user from the database
+    user = db.query(User).filter(User.email == current_user.get("email")).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+    
+    # Retrieve the user permissions from the database
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    if not user_permissions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No permissions found for the user."
+        )
+
+    # Parse the comma-separated date filters
+    filters = [
+        filter_type.strip() 
+        for filter_type in user_permissions.date_filter.split(",") 
+        if filter_type.strip()
+    ]
+    
+    # Calculate the allowed date range based on the user's permissions
+    allowed_start, allowed_end = get_combined_date_range(filters)
+
+    # Validate the requested date range using get_date_range function
+    start_date, end_date = get_date_range(start_date, end_date)
+    
+    # print("Allowed: ", allowed_start, allowed_end)
+    # print("current: ", start_date, end_date)
+
+    # Ensure the requested date range is within the allowed range
+    if start_date < allowed_start or end_date > allowed_end:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Permission Denied",
+                "message": "Requested date range is not within the allowed range.",
+                "allowed_date_range": {
+                    "start_date": allowed_start.isoformat(),
+                    "end_date": allowed_end.isoformat(),
+                }
+            }
+        )
+    
+    return start_date, end_date
+
+
+def domains_checker(db, user_id, filter_5vf, filter_bild):
+    
+    # Retrieve the user permissions from the database
+    user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
+    user_domains = [
+        domain.strip()
+        for domain in user_permission.domains.split(",")
+        if domain.strip()
+    ]
+    print("Domains: ", user_domains)
+     # Determine accessible companies based on permissions
+    accessible_companies = []
+    if "urlaubsguru" in user_domains:
+        accessible_companies.append("guru")
+    if "5vorflug" in user_domains:
+        accessible_companies.append("5vorflug")
+    if "bild" in user_domains:
+        accessible_companies.append("bild")
+    
+    print("accessible_companies: ", accessible_companies)
+    
+    filters = []
+    if "5vorflug" in accessible_companies:
+        print("containss")
+        filters.append(QueueStatistics.queue_name.like(f"%{filter_5vf}%"))
+        # total_call_reasons = 0
+    if "bild" in accessible_companies:
+        print("containss bild")
+        filters.append(QueueStatistics.queue_name.like(f"%{filter_bild}%"))
+        # total_call_reasons = 0
+    if "guru" in accessible_companies:
+        print("contains guru")
+        # filters.append(QueueStatistics.queue_name.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        return []
+        
+    # print("Filters: ", filters)
+    return filters
+
+def domains_checker_email(db, user_id, filter_5vf, filter_bild):
+    
+    # Retrieve the user permissions from the database
+    user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
+    user_domains = [
+        domain.strip()
+        for domain in user_permission.domains.split(",")
+        if domain.strip()
+    ]
+    print("Domains: ", user_domains)
+     # Determine accessible companies based on permissions
+    accessible_companies = []
+    if "urlaubsguru" in user_domains:
+        accessible_companies.append("guru")
+    if "5vorflug" in user_domains:
+        accessible_companies.append("5vorflug")
+    if "bild" in user_domains:
+        accessible_companies.append("bild")
+    
+    print("accessible_companies: ", accessible_companies)
+    
+    filters = []
+    email_filters = []
+    if "5vorflug" in accessible_companies:
+        print("containss")
+        filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_5vf}%"))
+        email_filters.append(EmailData.customer.like(f"%{filter_5vf}%"))
+        # total_call_reasons = 0
+    if "bild" in accessible_companies:
+        print("containss bild")
+        filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_bild}%"))
+        email_filters.append(EmailData.customer.like(f"%{filter_bild}%"))
+        # total_call_reasons = 0
+    if "guru" in accessible_companies:
+        print("contains guru")
+        # filters.append(WorkflowReportGuruKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        # email_filters.append(EmailData.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        return [],[]
+        # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        
+    # print("Filters: ", filters)
+    return filters, email_filters
+
+def domains_checker_task(db, user_id, filter_5vf, filter_bild):
+    
+    # Retrieve the user permissions from the database
+    user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
+    user_domains = [
+        domain.strip()
+        for domain in user_permission.domains.split(",")
+        if domain.strip()
+    ]
+    print("Domains: ", user_domains)
+     # Determine accessible companies based on permissions
+    accessible_companies = []
+    if "urlaubsguru" in user_domains:
+        accessible_companies.append("guru")
+    if "5vorflug" in user_domains:
+        accessible_companies.append("5vorflug")
+    if "bild" in user_domains:
+        accessible_companies.append("bild")
+    
+    print("accessible_companies: ", accessible_companies)
+    
+    filters = []
+    if "5vorflug" in accessible_companies:
+        print("containss")
+        filters.append(OrderJoin.customer.like(f"%{filter_5vf}%"))
+        # total_call_reasons = 0
+    if "bild" in accessible_companies:
+        print("containss bild")
+        filters.append(OrderJoin.customer.like(f"%{filter_bild}%"))
+        # total_call_reasons = 0
+    if "guru" in accessible_companies:
+        print("contains guru")
+        # filters.append(OrderJoin.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        # filters.append(OrderJoin.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        return []
+        
+    # print("Filters: ", filters)
+    return filters
+
+
+def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
+    
+    # Retrieve the user permissions from the database
+    user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
+    user_domains = [
+        domain.strip()
+        for domain in user_permission.domains.split(",")
+        if domain.strip()
+    ]
+    print("Domains: ", user_domains)
+     # Determine accessible companies based on permissions
+    accessible_companies = []
+    if "urlaubsguru" in user_domains:
+        accessible_companies.append("guru")
+    if "5vorflug" in user_domains:
+        accessible_companies.append("5vorflug")
+    if "bild" in user_domains:
+        accessible_companies.append("bild")
+    
+    print("accessible_companies: ", accessible_companies)
+    
+    filters = []
+    if "5vorflug" in accessible_companies:
+        print("containss")
+        filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
+        # total_call_reasons = 0
+    if "bild" in accessible_companies:
+        print("containss bild")
+        filters.append(SoftBookingKF.customer.like(f"%{filter_bild}%"))
+        # total_call_reasons = 0
+    if "guru" in accessible_companies:
+        print("contains guru")
+        # filters.append(SoftBookingKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        return []
+        # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        
+    # print("Filters: ", filters)
+    return filters

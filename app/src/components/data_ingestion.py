@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.database.models.models import (GuruCallReason,WorkflowReportGuruKF, 
+from app.database.models.models import (GuruCallReason,WorkflowReportGuruKF, EmailData,
                                         QueueStatistics, SoftBookingKF, GuruTask, OrderJoin)
 from app.src.logger import logging
 from datetime import datetime
@@ -66,6 +66,40 @@ def populate_workflow_report(data, db: Session, date):
         db.rollback()  # Rollback the transaction in case of an error
         logging.error(f"Error populating WorkflowReportGuruKF table: {e}")
         print(f"Exception occurred while populating WorkflowReportGuruKF table data: {e}")
+
+def populate_email_data(data, db: Session, date):
+    """Populate WorkflowReportGuruKF table, skipping rows where any column contains 'Summe'."""
+    try:
+        for _, row in data.iterrows():
+            # Skip row if any value in the row contains "Summe"
+            # if any("Summe" in str(value) for value in row):
+            #     continue
+            if row.get("Mailbox")=="Summe":
+                # print("Summe found")
+                db_record = EmailData(
+                    date=date,
+                    customer=row.get('file_name', ""),
+                    interval=row.get('Intervall', ""),
+                    mailbox=row.get('Mailbox', ""),
+                    received=row.get('Empfangen [#]', 0),
+                    new_cases=row.get('Neue Vorgänge [#]', 0),
+                    sent=row.get('Gesendet [#]', 0),
+                    archived=row.get('Archiviert [#]', 0),
+                    # trashed=row.get('Papierkorb [#]', 0),
+                    dwell_time_net=row.get('Verweilzeit-Netto [∅ hh:mm:ss]', ""),
+                    processing_time=row.get('Bearbeitungszeit [∅ Min.]', ""),
+                    service_level_gross=row.get('ServiceLevel-Brutto [%]', 0.0),
+                    service_level_gross_reply=row.get('ServiceLevel-Brutto: Antwort [%]', 0.0)
+                )
+                db.add(db_record)
+            db.commit()
+            logging.info("Email Data successfully populated into the database.")
+        
+    except Exception as e:
+        db.rollback()  # Rollback the transaction in case of an error
+        logging.error(f"Error populating Email table: {e}")
+        print(f"Exception occurred while populating Email table data: {e}")
+
 
 def populate_queue_statistics(data, db: Session, date, day):
     """Populate the QueueStatistics table with data from the DataFrame."""

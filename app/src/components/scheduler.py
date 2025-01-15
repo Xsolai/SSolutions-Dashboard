@@ -5,8 +5,8 @@ from app.src.components.fetch_emails import download_attachments
 from app.database.db.db_connection import SessionLocal
 from app.src.components.data_ingestion import (
     populate_guru_call_reason,populate_workflow_report, 
-    populate_queue_statistics, populate_soft_booking_data, populate_guru_task_data, create_order_join
-)
+    populate_queue_statistics, populate_soft_booking_data, populate_guru_task_data, create_order_join,
+    populate_email_data)
 from app.src.components.data_transformation import load_excel_data, load_csv_data
 import os
 from app.src.utils import add_file_record
@@ -44,7 +44,7 @@ def run_task():
 
         # Today's date for file processing
         TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-        # TODAY_DATE = "03-Jan-2025"  # Hardcoded for now
+        # TODAY_DATE = "14-Jan-2025"  # Hardcoded for now
         YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
 
         weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
@@ -86,6 +86,10 @@ def run_task():
                 str(file) for file in all_files 
                 if "BildSales_daily" in file and (file.endswith('.csv'))
             )),
+            "Bild_service": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "BildService_daily" in file and (file.endswith('.csv'))
+            )),
             "Guru_sales_daily": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "Guru_Sales_daily" in file and (file.endswith('.csv'))
@@ -94,9 +98,9 @@ def run_task():
                 str(file) for file in all_files 
                 if "Guru_Service_daily" in file and (file.endswith('.csv'))
             )),
-            "GuruKF_daily": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+            "GuruKFdaily": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
-                if "GuruKF_daily" in file and (file.endswith('.csv'))
+                if "GuruKF_daily" in file and file.startswith("GuruKF_daily") and (file.endswith('.csv'))
             )),
             "ID_14": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
@@ -118,6 +122,10 @@ def run_task():
                 str(file) for file in all_files 
                 if "Workflow-Report-Guru_daily_service_(ID__33)" in file and (file.endswith('.csv'))
             )),
+            "ID_35": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "Workflow-Report-Bild.de_daily_(ID__35)" in file and (file.endswith('.csv'))
+            )),
             "guru_task": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "1518_daily_Guru_Aufgaben" in file and (file.endswith('.csv'))
@@ -135,11 +143,13 @@ def run_task():
                 if file_type == "call_reason":
                     data = load_csv_data(path)
                     # print(data)
-                elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKF_daily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales"]:
+                elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service"]:
                     data = load_csv_data(path)
-                elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
+                elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33", "ID_35"]:
                     data = load_excel_data(path, skiprows=[0, 1, 2, 3])
-                    # print(data)
+                # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
+                #     email_data = load_excel_data(path, skiprows=[0, 1, 2, 3])
+                    print("Found email data")
                 elif file_type == "guru_task":
                     data = load_csv_data(path)
                 elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:
@@ -150,12 +160,17 @@ def run_task():
                     if file_type == "call_reason":
                         populate_guru_call_reason(data=data, db=db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename="Guru_CallReason", status="added")
-                    elif file_type in ["5vFlug_service", "5vFlug_sales", "Bild_sales", "GuruKF_daily", "Guru_service_daily", "Guru_sales_daily"]:
+                    elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service"]:
                         populate_queue_statistics(data, db, date=YESTERDAY_DATE, day=weeday_name)
                         add_file_record(db=db, filename=file_type, status="added")
-                    elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
+                    elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33", "ID_35"]:
                         populate_workflow_report(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")
+                        populate_email_data(data, db, date=YESTERDAY_DATE)
+                        add_file_record(db=db, filename=file_type, status="added for email data")
+                    # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
+                    #     populate_email_data(data, db, date=YESTERDAY_DATE)
+                    #     add_file_record(db=db, filename=file_type, status="added for email data")
                     elif file_type == "guru_task":
                         populate_guru_task_data(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")

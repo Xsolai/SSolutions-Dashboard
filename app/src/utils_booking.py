@@ -220,3 +220,80 @@ def get_combined_date_range_booking(filters: list):
     combined_end = max(range_end for _, range_end in selected_ranges)
 
     return combined_start, combined_end
+
+def get_date_rng_subkpis_booking(
+    db, 
+    current_user,
+    start_date: Optional[datetime],
+    end_date: Optional[datetime]):
+    # Validate date range
+    start_date, end_date = validate_user_and_date_permissions_subkpis_booking(db, current_user, start_date, end_date)
+    print("current: ", start_date, end_date)
+    
+    date_diff = (end_date - start_date).days
+    
+    print("date difference: ", date_diff)
+    
+    prev_start_date = (start_date - timedelta(days=date_diff+1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    prev_end_date = (end_date - timedelta(days=date_diff+1)).replace(hour=23, minute=59, second=59, microsecond=999999)
+    
+    print("prev: ", prev_start_date, prev_end_date)
+    return start_date, end_date, prev_start_date, prev_end_date
+    
+    
+def validate_user_and_date_permissions_subkpis_booking(
+    db, 
+    current_user, 
+    start_date: Optional[datetime], 
+    end_date: Optional[datetime]
+):
+    """
+    Validate the user's permissions and ensure the requested date range is within the allowed range.
+    """    
+    # Retrieve the user from the database
+    user = db.query(User).filter(User.email == current_user.get("email")).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found." 
+        )
+    
+    # Retrieve the user's permissions
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    if not user_permissions or not user_permissions.date_filter:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No permissions found for the user."
+        )
+
+    # Parse and calculate the allowed date range
+    filters = [
+        filter_type.strip() for filter_type in user_permissions.date_filter.split(",") 
+        if filter_type.strip()
+    ]
+    allowed_start, allowed_end = get_combined_date_range_booking(filters)
+
+    # Ensure dates are `datetime` objects with time components
+    if isinstance(start_date, date) and not isinstance(start_date, datetime):
+        start_date = datetime.combine(start_date, datetime.min.time())
+    if isinstance(end_date, date) and not isinstance(end_date, datetime):
+        end_date = datetime.combine(end_date, datetime.max.time())
+
+    # start_date = start_date or allowed_start
+    # end_date = end_date or allowed_end
+    # Validate the requested date range using get_date_range function
+    start_date, end_date = get_date_range_booking(start_date, end_date)
+    # print("Final: ", start_date, end_date)
+
+    if allowed_start and start_date < allowed_start:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Start date {start_date.isoformat()} is before the allowed range starting {allowed_start.isoformat()}."
+        )
+    if allowed_end and end_date > allowed_end:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"End date {end_date.isoformat()} is after the allowed range ending {allowed_end.isoformat()}."
+        )
+    
+    return start_date, end_date

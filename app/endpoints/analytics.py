@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission
+from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta, date
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, or_
 from collections import defaultdict
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import calculate_percentage_change, validate_user_and_date_permissions, get_date_subkpis
+from app.src.utils import domains_checker_booking, domains_checker_email, domains_checker, calculate_percentage_change, validate_user_and_date_permissions, get_date_subkpis, get_date_rng_subkpis
 from typing import Optional 
-from app.src.utils_booking import get_date_subkpis_booking, validate_user_and_date_permissions_booking, calculate_percentage_change_booking
+from app.src.utils_booking import validate_user_and_date_permissions_booking, calculate_percentage_change_booking, get_date_rng_subkpis_booking
 
 
 router = APIRouter(
@@ -45,6 +45,34 @@ def time_to_seconds(time_str):
         print(f"Error converting time '{time_str}': {e}")
         return 0
 
+def time_to_minutes(time):
+    """Convert time in various formats to minutes."""
+    try:
+        if isinstance(time, tuple):
+            pass
+
+        if '.' in time[0]:
+            print("float ", time[0])
+            return float(time[0])  # Assuming this represents minutes directly
+
+        # Handle time formats
+        if ':' in time[0]:
+            if len(time[0].split(':')) == 2:
+                # Format: 'mm:ss'
+                dt = datetime.strptime(time[0], "%M:%S")
+                total_minutes = dt.minute + dt.second / 60
+                return total_minutes
+            elif len(time[0].split(':')) == 3:
+                # Format: 'hh:mm:ss'
+                dt = datetime.strptime(time[0], "%H:%M:%S")
+                total_minutes = dt.hour * 60 + dt.minute + dt.second / 60
+                return total_minutes
+
+        return 0  # Return 0 if format is unrecognized
+    except Exception as e:
+        print(f"Error converting time '{time}': {e}")
+        return 0
+
 
 @router.get("/analytics_email")
 async def get_anaytics_email_data(
@@ -73,8 +101,8 @@ async def get_anaytics_email_data(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -82,30 +110,38 @@ async def get_anaytics_email_data(
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
-        )
-        elif "guru" in company:
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like("%5vorFlug%")  
+            )
+        elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.notlike("%5vorFlug%"),
+            EmailData.customer.notlike("%Bild%")  
+            )
+        elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%") 
-        )
+            WorkflowReportGuruKF.customer.like(f"%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Bild%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%") 
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%") 
-        )
+            email_query = db.query(EmailData)
     else:
-        print("executing else containss")
-        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
+            email_query = db.query(EmailData).filter(or_(*email_filter))
+        else:
+            query = db.query(WorkflowReportGuruKF)
+            email_query = db.query(EmailData)
     
     # Retrieve data from database
     if start_date is None:
@@ -134,7 +170,7 @@ async def get_anaytics_email_data(
         #     func.sum(WorkflowReportGuruKF.sent_new_message)
         # ).scalar() or 0
 
-        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).all()
+        processing_times = email_query.with_entities(EmailData.processing_time).all()
         
 
     else:
@@ -175,13 +211,13 @@ async def get_anaytics_email_data(
         #     WorkflowReportGuruKF.date.between(start_date, end_date)
         # ).scalar() or 0
 
-        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+        processing_times = email_query.with_entities(EmailData.processing_time).filter(
+            EmailData.date.between(start_date, end_date)
         ).all()
     # Clean the data to extract values from tuples
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     
-    total_processing_time_seconds = 1
+    total_processing_time_seconds = 0.0001
     interval_data = defaultdict(float)
 
     for pt in processing_times:
@@ -244,6 +280,16 @@ async def get_anaytics_email_data(
     
 @router.get("/anaytics_email_subkpis")
 async def get_anaytics_email_data_sub_kpis(
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
     company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
@@ -252,8 +298,8 @@ async def get_anaytics_email_data_sub_kpis(
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -261,35 +307,44 @@ async def get_anaytics_email_data_sub_kpis(
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
-        )
-        elif "guru" in company:
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like("%5vorFlug%")  
+            )
+        elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.notlike("%5vorFlug%"),
+            EmailData.customer.notlike("%Bild%")  
+            )
+        elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%")  
-        )
+            WorkflowReportGuruKF.customer.like(f"%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Bild%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%") 
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%") 
-        )
+            email_query = db.query(EmailData)
     else:
-        print("executing else containss")
-        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
-        
+        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
+            email_query = db.query(EmailData).filter(or_(*email_filter))
+        else:
+            query = db.query(WorkflowReportGuruKF)
+            email_query = db.query(EmailData)
     
+    # start_date, end_date = get_date_subkpis("yesterday")
+    # prev_start_date, prev_end_date = get_date_subkpis("last_week")
+    start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
+    print("dates:", start_date, end_date, prev_start_date, prev_end_date)
     
-    start_date, end_date = get_date_subkpis("yesterday")
-    prev_start_date, prev_end_date = get_date_subkpis("last_week")
     # Filter data based on the interval (date) column
     email_recieved = query.with_entities(
         func.sum(WorkflowReportGuruKF.received)
@@ -330,10 +385,13 @@ async def get_anaytics_email_data_sub_kpis(
         
     return {
         "email recieved": email_recieved,
+        "prev email recieved": prev_email_recieved,
         "email recieved change": calculate_percentage_change(email_answered, prev_email_recieved),
         "email answered": email_answered,
+        "prev email answered": prev_email_answered,
         "email answered change": calculate_percentage_change(email_answered, prev_email_answered),
         "email archived": email_archieved,
+        "prev email archived": prev_email_archieved,
         "email archived change": calculate_percentage_change(email_archieved, prev_email_archieved),
     }
 
@@ -365,8 +423,8 @@ async def get_sales_and_service(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -378,29 +436,27 @@ async def get_sales_and_service(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            QueueStatistics.queue_name.notlike("%5vorFlug%"),
+            QueueStatistics.queue_name.notlike("%BILD%")
+            )
+        elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
         else:
             query = db.query(QueueStatistics)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%5vorFlug%")  # Replace `special_field` with the relevant field
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%BILD%")  # Replace `special_field` with the relevant field
-        )
+        total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     else:
-        print("executing else containss")
-        query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.notlike("%5vorFlug%"))
+        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(QueueStatistics).filter(or_(*filters))
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        else:
+            query = db.query(QueueStatistics)
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
 
     if start_date is None:
         avg_handling_time = query.with_entities(
@@ -544,8 +600,6 @@ async def get_booking_data(time_input: float = 6*60,
     # print("API: ", start_date, end_date)
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -554,29 +608,24 @@ async def get_booking_data(time_input: float = 6*60,
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vF%")  
+            SoftBookingKF.customer.notlike("%5vF%"),
+            SoftBookingKF.customer.notlike("%BILD%")
         )
-        elif "bild" in company:
+        elif "Bild" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%BILD%")  
         )
         else:
             query = db.query(SoftBookingKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%5vF%")
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%BILD%")
-        )
     else:
-        print("executing else containss")
-        query = db.query(SoftBookingKF).filter(SoftBookingKF.customer.notlike("%5vF%"))
+        filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(SoftBookingKF).filter(or_(*filters))
+        else:
+            query = db.query(SoftBookingKF)
     booked = "OK"
     cancelled = "XX"
     pending = "PE"
@@ -646,6 +695,16 @@ async def get_booking_data(time_input: float = 6*60,
 
 @router.get("/analytics_booking_subkpis")
 async def get_booking_data_sub_kpis(
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
     company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
@@ -655,8 +714,8 @@ async def get_booking_data_sub_kpis(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -665,32 +724,30 @@ async def get_booking_data_sub_kpis(
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vF%")  
+            SoftBookingKF.customer.notlike("%5vF%"),
+            SoftBookingKF.customer.notlike("%BILD%")
         )
-        elif "bild" in company:
+        elif "Bild" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%BILD%")  
         )
         else:
             query = db.query(SoftBookingKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%5vF%")
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%BILD%")
-        )
     else:
-        print("executing else containss")
-        query = db.query(SoftBookingKF).filter(SoftBookingKF.customer.notlike("%5vF%"))
+        filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(SoftBookingKF).filter(or_(*filters))
+        else:
+            query = db.query(SoftBookingKF)
     
-    start_date, end_date = get_date_subkpis_booking("yesterday")
-    prev_start_date, prev_end_date = get_date_subkpis_booking("last_week")
+    # start_date, end_date = get_date_subkpis_booking("yesterday")
+    # prev_start_date, prev_end_date = get_date_subkpis_booking("last_week")
+    start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis_booking(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
+    print("dates:", start_date, end_date, prev_start_date, prev_end_date)
+    
     booked = "OK"
     cancelled = "XX"
     pending = "PE"
@@ -718,7 +775,11 @@ async def get_booking_data_sub_kpis(
         
         # Return metrics as a dictionary
         return {
+            # "Total Bookings": total_bookings,
+            # "preb total bookings": prev_total_bookings,
             "Total Bookings change": calculate_percentage_change(total_bookings, prev_total_bookings),
+            # "pending count": pending_count,
+            # "prev_pending_count": prev_pending_count,
             "Pending change": calculate_percentage_change(pending_count, prev_pending_count),
             "SB Booking Rate (%) change": calculate_percentage_change(round(sb_booking_rate, 2), round(prev_sb_booking_rate, 2))
         }
@@ -751,30 +812,61 @@ async def get_conversion_data(
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Calculate the allowed date range based on the user's permissions
     start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
+    user_permission = db.query(Permission).filter(Permission.user_id == user.id).first()
+    user_domains = [
+        domain.strip()
+        for domain in user_permission.domains.split(",")
+        if domain.strip()
+    ]
+    print("Domains: ", user_domains)
+     # Determine accessible companies based on permissions
+    accessible_companies = []
+    if "guru" in user_domains:
+        accessible_companies.append("guru")
+    if "5vorflug" in user_domains:
+        accessible_companies.append("5vorflug")
+    if "bild" in user_domains:
+        accessible_companies.append("bild")
     
+    # print("accessible_companies: ", accessible_companies)
+    
+    filters = []
+    # if "5vorflug" in accessible_companies:
+    #     print("containss")
+    #     filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
+    #     # total_call_reasons = 0
+    # if "bild" in accessible_companies:
+    #     print("containss bild")
+    #     filters.append(SoftBookingKF.customer.like(f"%{filter_bild}%"))
+    #     # total_call_reasons = 0
+    # if "guru" in accessible_companies:
+    #     print("contains guru")
+    #     filters.append(SoftBookingKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
+        # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%5vorFlug%")  
+            SoftBookingKF.customer.like("%5vF%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vorFlug%")  
+            SoftBookingKF.customer.notlike("%5vF%"),
+            SoftBookingKF.customer.notlike("%BILD%")
         )
-        elif "bild" in company:
+        elif "Bild" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%BILD%")  
         )
         else:
             query = db.query(SoftBookingKF)
-    elif email_contains_5vflug:
+    if "5vorflug" in accessible_companies:
         print("containss")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -783,7 +875,7 @@ async def get_conversion_data(
                 "message": f"You don't have a permission.",
             }
         )
-    elif email_contains_bild:
+    if "bild" in accessible_companies:
         print("containss bild")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -793,9 +885,12 @@ async def get_conversion_data(
             }
         )
 
-    else:
+    if "guru" in accessible_companies:
         print("executing else containss")
-        query = db.query(SoftBookingKF).filter(SoftBookingKF.customer.notlike("%5vF%"))
+        query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.notlike("%5vF%"),
+            SoftBookingKF.customer.notlike("%BILD%")
+        )
 
     db = SessionLocal()
     if start_date is None:

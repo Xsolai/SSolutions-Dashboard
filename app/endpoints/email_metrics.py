@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from app.database.models.models import WorkflowReportGuruKF, User
+from app.database.models.models import WorkflowReportGuruKF, User, EmailData
 from app.database.db.db_connection import  get_db
 from datetime import datetime, timedelta, date
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import get_date_subkpis, calculate_percentage_change, validate_user_and_date_permissions
+from app.src.utils import get_date_rng_subkpis, calculate_percentage_change, validate_user_and_date_permissions, domains_checker_email
 from typing import Optional
-
 
 router = APIRouter(
     tags=["Email APIS"]
@@ -98,8 +97,8 @@ async def get_email_overview(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -107,32 +106,40 @@ async def get_email_overview(
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
-        )
-        elif "guru" in company:
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like("%5vorFlug%")  
+            )
+        elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.notlike("%5vorFlug%"),
+            EmailData.customer.notlike("%Bild%")  
+            )
+        elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%")  
-        )
+            WorkflowReportGuruKF.customer.like(f"%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Bild%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%") 
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%") 
-        )
+            email_query = db.query(EmailData)
     else:
-        print("executing else containss")
-        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # # print("Filters: ", filters)
+        if filters:
+            query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
+            email_query = db.query(EmailData).filter(or_(*email_filter))
+        else:
+            query = db.query(WorkflowReportGuruKF)
+            email_query = db.query(EmailData)
         
-    total_processing_time_seconds = 1
+    total_processing_time_seconds = 0.00001
     if start_date is None:
         service_level_gross = query.with_entities(
             func.avg(
@@ -140,12 +147,12 @@ async def get_email_overview(
             )
         ).scalar() or 0
         
-        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).all()
+        processing_times = email_query.with_entities(EmailData.processing_time).all()
         # Clean the data to extract values from tuples
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
             # print("Original Time:", pt)  # Debug print
-            seconds = time_to_seconds(pt)
+            seconds = time_to_minutes(pt)
             # print("Converted Seconds:", seconds)  # Debug print
             total_processing_time_seconds += seconds
             # print("Interval Data:", dict(interval_data))  # Debug print
@@ -182,12 +189,12 @@ async def get_email_overview(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
         
-        processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+        processing_times = email_query.with_entities(EmailData.processing_time).filter(
+            EmailData.date.between(start_date, end_date)
         ).all()
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
-            seconds = time_to_seconds(pt)
+            seconds = time_to_minutes(pt)
             total_processing_time_seconds += seconds
         
         total_emails = query.with_entities(
@@ -241,21 +248,19 @@ async def get_email_overview_sub_kpis(
         description="End date for the filter in 'YYYY-MM-DD' format.",
         example="2024-12-30"
     ),
-    include_all: bool = Query(
-        False, description="Set to True to retrieve all data without date filtering."
-    ),
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
     # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Calculate the allowed date range based on the user's permissions
-    start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
+    start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
+    print("dates:", start_date, end_date, prev_start_date, prev_end_date)
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -263,35 +268,43 @@ async def get_email_overview_sub_kpis(
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
-        )
-        elif "guru" in company:
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like("%5vorFlug%")  
+            )
+        elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.notlike("%5vorFlug%"),
+            EmailData.customer.notlike("%Bild%")  
+            )  
+        elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%")  
-        )
+            WorkflowReportGuruKF.customer.like(f"%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Bild%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%")  # Replace `special_field` with the relevant field
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%")  # Replace `special_field` with the relevant field
-        )
+            email_query = db.query(EmailData)
     else:
-        print("executing else containss")
-        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
+            email_query = db.query(EmailData).filter(or_(*email_filter))
+        else:
+            query = db.query(WorkflowReportGuruKF)
+            email_query = db.query(EmailData)
     
-    start_date, end_date = get_date_subkpis("yesterday")
-    prev_start_date, prev_end_date = get_date_subkpis("last_week")
-    total_processing_time_seconds = 1
-    prev_total_processing_time_seconds = 1
+    # start_date, end_date = get_date_subkpis("yesterday")
+    # prev_start_date, prev_end_date = get_date_subkpis("last_week")
+    total_processing_time_seconds = 0.00001
+    prev_total_processing_time_seconds = 0.00001
     # start_date, end_date = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
     # prev_start_date, prev_end_date = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Normal Kpis
@@ -303,12 +316,12 @@ async def get_email_overview_sub_kpis(
         WorkflowReportGuruKF.date.between(start_date, end_date)
     ).scalar() or 0
     
-    processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
+    processing_times = email_query.with_entities(EmailData.processing_time).filter(
+        EmailData.date.between(start_date, end_date)
     ).all()
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     for pt in processing_times:
-        seconds = time_to_seconds(pt)
+        seconds = time_to_minutes(pt)
         total_processing_time_seconds += seconds
     
     total_emails = query.with_entities(
@@ -336,12 +349,12 @@ async def get_email_overview_sub_kpis(
         WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
-    prev_processing_times = query.with_entities(WorkflowReportGuruKF.processing_time).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+    prev_processing_times = email_query.with_entities(EmailData.processing_time).filter(
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).all()
     prev_processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in prev_processing_times]
     for pt in prev_processing_times:
-        prev_seconds = time_to_seconds(pt)
+        prev_seconds = time_to_minutes(pt) 
         prev_total_processing_time_seconds += prev_seconds
     
     prev_total_emails = query.with_entities(
@@ -400,8 +413,8 @@ async def get_mailbox_SL(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -409,30 +422,38 @@ async def get_mailbox_SL(
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
-        )
-        elif "guru" in company:
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like("%5vorFlug%")  
+            )
+        elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.notlike("%5vorFlug%"),
+            EmailData.customer.notlike("%Bild%")  
+            )
+        elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%")  
-        )
+            WorkflowReportGuruKF.customer.like(f"%Bild%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Bild%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like("%5vorFlug%")  
-        )
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%bild%")  
-        )
+            email_query = db.query(EmailData)
     else:
-        print("executing else containss")
-        query = db.query(WorkflowReportGuruKF).filter(WorkflowReportGuruKF.customer.notlike("%5vorFlug%"))
+        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
+            email_query = db.query(EmailData).filter(or_(*email_filter))
+        else:
+            query = db.query(WorkflowReportGuruKF)
+            email_query = db.query(EmailData)
     
     if start_date is None:
         # Query the latest 6 intervals (dates) and service level gross
@@ -508,7 +529,7 @@ async def get_mailbox_SL(
             if row.mailbox not in processing_time_by_mailbox:
                 processing_time_by_mailbox[row.mailbox] = 0
             
-            print("Processing time: ", row.processing_time)    
+            # print("Processing time: ", row.processing_time)    
 
             # Convert processing_time to seconds and accumulate
             processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))

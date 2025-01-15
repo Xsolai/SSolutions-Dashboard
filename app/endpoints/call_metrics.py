@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason, QueueStatistics, Permission, User)
 from app.database.db.db_connection import SessionLocal,  get_db
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import get_date_subkpis, calculate_percentage_change, validate_user_and_date_permissions
+from app.src.utils import domains_checker, calculate_percentage_change, validate_user_and_date_permissions, get_date_rng_subkpis
 from datetime import date
 from typing import Optional
+from datetime import timedelta
 
 router = APIRouter(
     tags=["Call APIS"]
@@ -109,45 +110,41 @@ async def get_calls(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    total_call_reasons_query = 0
+    filters = []
     # Filtering Logic
     if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            QueueStatistics.queue_name.notlike("%5vorFlug%"),
+            QueueStatistics.queue_name.notlike("%BILD%")
+            )
+        elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
         else:
             query = db.query(QueueStatistics)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%5vorFlug%")  
-        )
-        total_call_reasons = 0
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%BILD%")  
-        )
-        total_call_reasons = 0
+        print("excecuted for admin or guru")
     else:
-        query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.notlike("%5vorFlug%"))
-        total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-        
+        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(QueueStatistics).filter(or_(*filters))
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        else:
+            query = db.query(QueueStatistics)
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+    
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
@@ -244,9 +241,15 @@ async def get_calls(
                 },
                 "Time metrics":{
                     "weekday": row.weekday,
+<<<<<<< Updated upstream
                     "avg_wait_time_sec": round((row.avg_wait_time) or 0, 2),
                     "max_wait_time_sec": round((row.max_wait_time) or 0, 2),
                     "avg_handling_time": round((row.avg_handling_time) or 0, 2),
+=======
+                    "avg_wait_time_sec": round((row.avg_wait_time)/60 or 0, 2),
+                    "max_wait_time_sec": round((row.max_wait_time)/60 or 0, 2),
+                    "avg_handling_time": round((row.avg_handling_time)/60 or 0, 2),
+>>>>>>> Stashed changes
                 },
                 "% metrics":{
                     "weekday": row.weekday,
@@ -259,16 +262,33 @@ async def get_calls(
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
         "SLA":round(get_sla_percentage(query, start_date=start_date, end_date=end_date), 2),
+<<<<<<< Updated upstream
         "avg wait time": round(get_average_wait_time(query, start_date=start_date, end_date=end_date), 2),
         "max. wait time": round(get_max_wait_time(query, start_date=start_date, end_date=end_date), 2),
         "After call work time": round(get_inbound_after_call(query, start_date=start_date, end_date=end_date), 2),
         "avg handling time": round((avg_handling_time) or 0, 2),
+=======
+        "avg wait time (min)": round(get_average_wait_time(query, start_date=start_date, end_date=end_date) / 60, 2),
+        "max. wait time (min)": round(get_max_wait_time(query, start_date=start_date, end_date=end_date) / 60, 2),
+        "After call work time (min)": round(get_inbound_after_call(query, start_date=start_date, end_date=end_date) / 60, 2),
+        "avg handling time (min)": round((avg_handling_time or 0) / 60, 2),
+>>>>>>> Stashed changes
         "Dropped calls": int(dropped_calls or 0),
         "Daily Call Volume": result  
     }
 
 @router.get("/calls_sub_kpis")
 async def get_calls_sub_kpis(
+    start_date: Optional[date] = Query(
+        None, 
+        description="Start date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-29"
+    ),
+    end_date: Optional[date] = Query(
+        None, 
+        description="End date for the filter in 'YYYY-MM-DD' format.",
+        example="2024-12-30"
+    ),
     company: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
@@ -276,47 +296,45 @@ async def get_calls_sub_kpis(
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
-    
-    # Apply filtering logic
+    filters = []
+    # Filtering Logic
     if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            QueueStatistics.queue_name.notlike("%5vorFlug%"),
+            QueueStatistics.queue_name.notlike("%BILD%")
+            )
+        elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
         else:
             query = db.query(QueueStatistics)
-            
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%5vorFlug%") 
-        )
-        total_call_reasons = 0
-        
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%BILD%") 
-        )
-        total_call_reasons = 0
-    else:
-        query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.notlike("%5vorFlug%"))
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        print("excecuted for admin or guru")
+    else:
+        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(QueueStatistics).filter(or_(*filters))
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        else:
+            query = db.query(QueueStatistics)
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
 
-    start_date, end_date = get_date_subkpis("yesterday")
-    prev_start_date, prev_end_date = get_date_subkpis("last_week")
+    # start_date, end_date = get_date_subkpis("yesterday")
+    # prev_start_date, prev_end_date = get_date_subkpis("last_week")
+    start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
+    # print("dates:", start_date, end_date, prev_start_date, prev_end_date)
+    # prev_start_date, prev_end_date = get_date_subkpis("last_week")
     
     # Current KPIs
     total_calls = query.with_entities(func.sum(QueueStatistics.calls)).filter(
@@ -370,12 +388,15 @@ async def get_calls_sub_kpis(
     ).scalar() or 0
     return {
         "total_calls": total_calls, 
+        # "pre_total_calls": prev_total_calls, 
         "total_calls_change": calculate_percentage_change(total_calls, prev_total_calls),
         # "total_call_reasons": total_call_reasons, 
         # "total_call_reasons_change": calculate_percentage_change(total_call_reasons, prev_total_call_reasons), 
         "asr": round(asr, 2),
+        # "prev_asr": round(prev_asr, 2),
         "asr_change": calculate_percentage_change(asr, prev_asr),
         "SLA":round(get_sla_percentage(query, start_date=start_date, end_date=end_date), 2),
+        # "Prev SLA":round(get_sla_percentage(query, start_date=prev_start_date, end_date=prev_end_date), 2),
         "SLA_change":calculate_percentage_change(get_sla_percentage(query, start_date=start_date, end_date=end_date), get_sla_percentage(query, start_date=prev_start_date, end_date=prev_end_date)),
         "avg wait time": round(get_average_wait_time(query, start_date=start_date, end_date=end_date), 2),
         "avg wait time_change":calculate_percentage_change(get_average_wait_time(query, start_date=start_date, end_date=end_date), get_average_wait_time(query, start_date=prev_start_date, end_date=prev_end_date)),
@@ -411,17 +432,15 @@ async def get_call_performance(
     """Endpoint to retrieve queue-wise calls KPIs from the database with date filtering."""
     # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
-
     # Calculate the allowed date range based on the user's permissions
     start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
-    
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
-    
+    filters=[]        
     def safe_sum_query(query, column=QueueStatistics.calls):
         """Safely execute sum query with fallback to 0"""
         try:
@@ -456,11 +475,12 @@ async def get_call_performance(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
         )
-        elif "guru" in company:
+        elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%")  
-        )
-        elif "bild" in company:
+            QueueStatistics.queue_name.notlike("%5vorFlug%"),
+            QueueStatistics.queue_name.notlike("%BILD%")
+            )
+        elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
@@ -477,80 +497,67 @@ async def get_call_performance(
         }
         
         # Prepare queue-specific queries
+        # queues = [
+        #     ("Guru_ServiceAT", "Guru ServiceAT"),
+        #     ("Guru_ServiceDE", "Guru ServiceDE"),
+        #     ("Guru_ServiceAT_CB", "Guru ServiceAT_CB"),
+        #     ("Guru_ServiceDE_CB", "Guru ServiceDECB"),
+        #     ("Guru Service_CH", "Guru ServiceCH"),
+        #     ("Urlaubsguru AT", "Urlaubsguru AT"),
+        #     ("Urlaubsguru DE", "Urlaubsguru DE"),
+        #     ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+        #     ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+        #     ("5vorFlugService", "5vorFlugService"),
+        #     ("5vorFlugSales", "5vorFlugSales"),
+        #     ("GuruBILD_Sales", "GuruBILD_Sales"),
+        #     ("GuruBILD_Service", "GuruBILD_Service")
+        # ]
         queues = [
-            ("Guru_ServiceAT", "Guru ServiceAT"),
-            ("Guru_ServiceDE", "Guru ServiceDE"),
-            ("Guru_ServiceAT_CB", "Guru ServiceAT_CB"),
-            ("Guru_ServiceDE_CB", "Guru ServiceDECB"),
-            ("Guru Service_CH", "Guru ServiceCH"),
+            ("5vorFlug Service", "5vorFlug Service"),
+            ("5vorFlug Sales", "5vorFlug Sales"),
+            ("BILD Reisen Service", "BILD Reisen Service"),
+            ("BILD Reisen Sales", "BILD Reisen Sales"),
+            ("Holidayguru_CB_CH", "Holidayguru CB CH"),
             ("Urlaubsguru AT", "Urlaubsguru AT"),
             ("Urlaubsguru DE", "Urlaubsguru DE"),
             ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
             ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
-            ("5vorFlugService", "5vorFlugService"),
-            ("5vorFlugSales", "5vorFlugSales"),
-            ("GuruBILD_Sales", "GuruBILD_Sales"),
-            ("GuruBILD_Service", "GuruBILD_Service")
+            ("UGT Notfall", "UGT Notfall"),
+            ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+            ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+            ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+            ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+            ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+            ("Holidayguru CB CH", "Holidayguru CB CH"),
+            ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH")
         ]
         
         queue_stats = {}
         for queue_name, display_name in queues:
-            queue_filter = query.filter(QueueStatistics.queue_name == queue_name)
+            print(queue_name)
+            queue_filter = query.filter(QueueStatistics.queue_name.like(queue_name))
             filtered_query = filter_query_by_date(queue_filter)
             
             queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query)
-            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query), 2)
-            if "5vorFlugService" in queue_name:
-                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")))
-                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))), 2)
+            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 2)
+            # if "5vorFlug Service" in queue_name:
+            #     queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Service")))
+            #     queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Service"))) / 60, 2)
                 
-            elif "5vorFlugSales" in queue_name:
-                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales")))
-                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))), 2)
- 
-    elif email_contains_5vflug:
-        # 5vorFlug specific access
-        query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.like("%5vorFlug%"))
-        
-        # Minimal call reasons for limited access
-        call_reasons = {
-            "cb_sales": 0,
-            "guru_sales": 0,
-            "guru_service": 0,
-            "wrong_calls": 0,
-            "others": 0
-        }
-        
-        queue_stats = {
-            "5vorFlugService Calls": safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))),
-            "5vorFlugSales Calls": safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))),
-            "5vorFlugService AHT": round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))), 2),
-            "5vorFlugSales AHT": round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))), 2)
-        }
-    elif email_contains_bild:
-        # 5vorFlug specific access
-        query = db.query(QueueStatistics).filter(QueueStatistics.queue_name.like("%BILD%"))
-        
-        # Minimal call reasons for limited access
-        call_reasons = {
-            "cb_sales": 0,
-            "guru_sales": 0,
-            "guru_service": 0,
-            "wrong_calls": 0,
-            "others": 0
-        }
-        
-        queue_stats = {
-            "GuruBILD_Service Calls": safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "GuruBILD_Service"))),
-            "GuruBILD_Sales Calls": safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "GuruBILD_Sales"))),
-            "GuruBILD_Service AHT": round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "GuruBILD_Service"))), 2),
-            "GuruBILD_Sales AHT": round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "GuruBILD_Sales"))), 2)
-        }
-    
+            # elif "5vorFlug Sales" in queue_name:
+            #     queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Sales")))
+            #     queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Sales"))) / 60, 2)
+        print("Executed admin...")
     else:
-        # Non-5vorFlug access
-        query = db.query(QueueStatistics).filter(~QueueStatistics.queue_name.like("%5vorFlug%"))
-        
+        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(QueueStatistics).filter(or_(*filters))
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        else:
+            query = db.query(QueueStatistics)
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         # Call Reasons Breakdown
         call_reasons = {
             "cb_sales": get_call_reason_sum('cb_sales', start_date=start_date, end_date=end_date),
@@ -561,16 +568,42 @@ async def get_call_performance(
         }
         
         # Prepare queue-specific queries
+        # queues = [
+        #     ("Urlaubsguru AT", "Guru ServiceAT"),
+        #     ("Urlaubsguru DE", "Guru ServiceDE"),
+        #     ("Guru_ServiceAT_CB", "Guru ServiceAT_CB"),
+        #     ("Guru_ServiceDE_CB", "Guru ServiceDECB"),
+        #     ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+        #     ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+        #     ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+        #     ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+        #     ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+        #     ("UGT Notfall","UGT Notfall"),
+        #     ("5vorFlugService", "5vorFlugService"),
+        #     ("5vorFlugSales", "5vorFlugSales"),
+        #     ("BILD Reisen Sales", "BILD Reisen Sales"),
+        #     ("GuruBILD_Service", "GuruBILD_Service")
+        # ]
         queues = [
-            ("Guru_ServiceAT", "Guru ServiceAT"),
-            ("Guru_ServiceDE", "Guru ServiceDE"),
-            ("Guru_ServiceAT_CB", "Guru ServiceAT_CB"),
-            ("Guru_ServiceDE_CB", "Guru ServiceDECB"),
-            ("Guru Service_CH", "Guru ServiceCH"),
+            ("5vorFlugService", "5vorFlug Service"),
+            ("5vorFlugSales", "5vorFlug Sales"),
+            ("Holidayguru_CB_CH", "Holidayguru CB CH"),
             ("Urlaubsguru AT", "Urlaubsguru AT"),
             ("Urlaubsguru DE", "Urlaubsguru DE"),
             ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
-            ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE")
+            ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+            ("UGT Notfall", "UGT Notfall"),
+            ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+            ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+            ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+            ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+            ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+            ("5vorFlug Service", "5vorFlug Service"),
+            ("5vorFlug Sales", "5vorFlug Sales"),
+            ("BILD Reisen Service", "BILD Reisen Service"),
+            ("BILD Reisen Sales", "BILD Reisen Sales"),
+            ("Holidayguru CB CH", "Holidayguru CB CH"),
+            ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH")
         ]
         
         queue_stats = {}
@@ -579,8 +612,15 @@ async def get_call_performance(
             filtered_query = filter_query_by_date(queue_filter)
             
             queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query)
-            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query), 2)
-    
+            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 2)
+            if "5vorFlugService" in queue_name:
+                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")))
+                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))), 2)
+                
+            elif "5vorFlugSales" in queue_name:
+                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales")))
+                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))), 2)
+        
     return {
         "Call Reasons Breakdown": call_reasons,
         "Call By queue": queue_stats

@@ -2,13 +2,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database.models.models import GuruTask, OrderJoin, User
 from app.database.db.db_connection import SessionLocal,  get_db
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from datetime import datetime, timedelta, date
-from app.src.utils import validate_user_and_date_permissions
+from app.src.utils import validate_user_and_date_permissions, domains_checker_task
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
 from typing import Optional
-
 
 router = APIRouter(
     tags=["Tasks APIS"]
@@ -49,8 +48,8 @@ async def get_tasks_kpis(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
@@ -60,52 +59,45 @@ async def get_tasks_kpis(
     #     ).distinct()
     if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.like("%5vF%")).distinct()  
-        elif "guru" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-        elif "bild" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"))
+        elif "Urlaubsguru" in company:
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+        elif "Bild" in company:
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"))
         else:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).distinct()
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            query = db.query(OrderJoin)
     else:
-        print("executing else containss")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        filters = domains_checker_task(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(OrderJoin).filter(or_(*filters))
+        else:
+            query = db.query(OrderJoin)
     
     if start_date is None:
         orders = db.query(func.count(OrderJoin.order_number)).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
         ).scalar() or 0
         
-        total_orders = query.with_entities(func.count(OrderJoin.order_number).label("total_orders")).scalar() or 0
-        assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).scalar() or 0
-        total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).scalar() or 0
+        total_orders = query.with_entities(func.count(OrderJoin.order_number).label("total_orders")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
+        assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
+        total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
     else:
         orders = db.query(func.count(OrderJoin.order_number)).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
         ).filter(OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        total_orders = query.with_entities(func.count(OrderJoin.order_number).label("total_orders")).filter(OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.date.between(start_date, end_date)).scalar() or 0
+        total_orders = query.with_entities(func.count(OrderJoin.order_number).label("total_orders")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
+        assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
+        total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
     return {
         "orders": orders,
         "Total orders": total_orders,
@@ -140,65 +132,59 @@ async def get_tasks_overview(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.like("%5vF%")).distinct()  
-        elif "guru" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-        elif "bild" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"))
+        elif "Urlaubsguru" in company:
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+        elif "Bild" in company:
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"))
         else:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).distinct()
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            query = db.query(OrderJoin)
     else:
-        print("executing else containss")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        filters = domains_checker_task(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(OrderJoin).filter(or_(*filters))
+        else:
+            query = db.query(OrderJoin)
 
     if start_date is None:
         # No date filter applied
         status_by_cat_data = query.with_entities(
             OrderJoin.task_type.label("tasks"),
             func.count(OrderJoin.task_type).label("count"),
-        ).group_by(OrderJoin.task_type).all()
+        ).filter(OrderJoin.task_type.isnot(None)).group_by(OrderJoin.task_type).all()
 
         status_by_date_data = query.with_entities(
             func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
             func.count(OrderJoin.task_type).label("count"),
-        ).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
+        ).filter(OrderJoin.task_created.isnot(None)).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
 
         status_by_day_data = query.with_entities(
             func.strftime('%w', OrderJoin.task_created).label('weekday'),
             func.count(OrderJoin.order_number).label("count"),
-        ).group_by(func.strftime('%w', OrderJoin.task_created)).all()
+        ).filter(OrderJoin.task_created.isnot(None)).group_by(func.strftime('%w', OrderJoin.task_created)).all()
     else:
         status_by_cat_data = query.with_entities(
             OrderJoin.task_type.label("tasks"),
             func.count(OrderJoin.task_type).label("count"),
         ).filter(
+            OrderJoin.task_type.isnot(None),
             OrderJoin.date.between(start_date, end_date)
         ).group_by(OrderJoin.task_type).all()
 
@@ -206,6 +192,7 @@ async def get_tasks_overview(
             func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
             func.count(OrderJoin.task_type).label("count"),
         ).filter(
+            OrderJoin.task_created.isnot(None),
             OrderJoin.date.between(start_date, end_date)
         ).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
 
@@ -213,8 +200,10 @@ async def get_tasks_overview(
             func.strftime('%w', OrderJoin.task_created).label('weekday'),
             func.count(OrderJoin.order_number).label("count"),
         ).filter(
+            OrderJoin.task_created.isnot(None),
             OrderJoin.date.between(start_date, end_date)
         ).group_by(func.strftime('%w', OrderJoin.task_created)).all()
+
 
     # Convert query results to a list of dictionaries
     status_by_cat_data = [{"tasks": row.tasks, "count": row.count} for row in status_by_cat_data]
@@ -235,7 +224,9 @@ async def get_tasks_overview(
         {"weekday": weekday_map[row.weekday], "count": row.count}
         for row in status_by_day_data
     ]
-
+    # print("status_by_cat_data: ", status_by_cat_data)
+    # print("status_by_date_data: ", status_by_date_data)
+    # print("status_by_weekday: ", status_by_weekday)
     return {
         "Tasks by categories": status_by_cat_data,
         "Tasks created by date": status_by_date_data,
@@ -268,43 +259,39 @@ async def get_tasks_performance(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    email_contains_5vflug = "5vorflug" in email_filter
-    email_contains_bild = "bild" in email_filter
+    # email_contains_5vflug = "5vorflug" in email_filter
+    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee or is_guru_email:
         if "5vorflug" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.like("%5vF%")).distinct()  
-        elif "guru" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-        elif "bild" in company:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.like("%5vF%")).distinct() 
+            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"))
+        elif "Urlaubsguru" in company:
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.notlike("%5vF%"))
+            query = db.query(OrderJoin).filter(OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+        elif "Bild" in company:
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"))
         else:
-            query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-            ).distinct()
-    elif email_contains_5vflug:
-        print("containss")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-    elif email_contains_bild:
-        print("containss bild")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+            # query = db.query(OrderJoin).join(
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number
+            # ).distinct()
+            query = db.query(OrderJoin)
     else:
-        print("executing else containss")
-        query = db.query(OrderJoin).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+        filters = domains_checker_task(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        # print("Filters: ", filters)
+        if filters:
+            query = db.query(OrderJoin).filter(or_(*filters))
+        else:
+            query = db.query(OrderJoin)
     
     if start_date is None:
         assign_users_by_tasks = [

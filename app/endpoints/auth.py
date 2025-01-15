@@ -86,9 +86,9 @@ async def forget_password(request: ForgetPasswordRequest, db: Session = Depends(
     reset_tokens[reset_token] = user.id  # Map token to user ID
 
     # Construct reset link with uid/token format
-    reset_link = f"http://localhost:3000/reset-password/{user.id}/{reset_token}"
+    reset_link = f"https://frontend.d1qj820rqysre7.amplifyapp.com/reset-password/{user.id}/{reset_token}"
 
-    # Send the reset password email
+    # Send the reset password email 
     subject = "Reset Your Password"
     body = (
         f"Hello {user.email},\n\n"

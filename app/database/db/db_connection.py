@@ -5,7 +5,8 @@ from sqlalchemy.orm import sessionmaker
 # Create SQLite engine and session
 DATABASE_URL = "sqlite:///./guru_call_data.db"
 # DATABASE_URL = "sqlite:///./example.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False},pool_size=500,max_overflow=1000,pool_timeout=60)
+# ,pool_size=500,max_overflow=1000,pool_timeout=60
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
