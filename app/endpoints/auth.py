@@ -286,6 +286,7 @@ def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
             email=user_data["email"],
             password=hashed_password,
             role=user_data["role"],  # Role assigned during registration
+            is_active=True
         )
         db.add(new_user)
         db.commit()

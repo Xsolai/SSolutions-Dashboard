@@ -57,7 +57,7 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
             # Check user permissions for this specific API
             api_name = request.url.path.strip("/")  # Remove the leading slash
             api_name = api_name+"_api"
-            # print("api_name: ", api_name)
+            print("api_name: ", api_name)
             # print("user id: ", user.id)
              # Map API path to the corresponding permission column in Permission table
             api_permission_map = {
@@ -67,9 +67,9 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
                 "email_overview_api": "email_overview_api",
                 "email_performance_api": "email_performance_api",
                 "email_sub_kpis_api": "email_sub_kpis_api",
-                "task_overview_api": "task_overview_api",
-                "task_performance_api": "task_performance_api",
-                "task_sub_kpis_api": "task_sub_kpis_api",
+                "tasks_overview_api": "tasks_overview_api",
+                "tasks_performance_api": "tasks_performance_api",
+                "tasks_kpis_api": "tasks_kpis_api",
                 "analytics_email_api": "analytics_email_api",
                 "analytics_email_subkpis_api": "analytics_email_subkpis_api",
                 "analytics_sales_service_api": "analytics_sales_service_api",
