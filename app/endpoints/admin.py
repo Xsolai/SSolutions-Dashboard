@@ -58,6 +58,7 @@ def view_role_permissions(db: Session = Depends(get_db),
                 "analytics_booking_subkpis_api": permission.analytics_booking_subkpis_api,
                 "analytics_conversion_api": permission.analytics_conversion_api,
                 "date_filter": permission.date_filter,
+                "domains":permission.domains
             }
         }
         for user_id, email, permission in permissions
