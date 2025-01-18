@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import logo from "@/assets/images/logo.png";
+import { CircularProgress } from '@mui/material';
 import {
   Box,
   Typography,
@@ -26,11 +27,10 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import { Skeleton } from '@mui/material';
 import FormControl from '@mui/material/FormControl';
-import CloseIcon from '@mui/icons-material/Close';
 import { toast, Toaster } from 'react-hot-toast';
 import {
-  Eye, EyeOff, PhoneCall, Mail, ListTodo, BarChart3, Phone, CheckSquare, 
-  Calendar, ChevronDown, ChevronUp, UserPlus , Building2 , BarChart2
+  Eye, EyeOff, PhoneCall, Mail, ListTodo, BarChart3, Phone, CheckSquare,
+  Calendar, ChevronDown, ChevronUp, UserPlus, Building2, BarChart2, X
 } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -72,7 +72,7 @@ const CreateUserForm = ({ open, onClose, onUserCreated }) => {
     setIsLoading(true);
     try {
       const access_token = localStorage.getItem('access_token');
-      const response = await fetch('https://app.saincube.com/app2/admin/create-user', {
+      const response = await fetch('https://app.saincube.com/app2/admin/create_user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,26 +90,43 @@ const CreateUserForm = ({ open, onClose, onUserCreated }) => {
         throw new Error(errorData.detail || 'Fehler beim Erstellen des Benutzers');
       }
 
-      const newUser = await response.json();
-      toast.success('Benutzer erfolgreich erstellt');
+      const responseData = await response.json();
+
+      // Create a user object that matches the structure expected by the table
+      const newUser = {
+        'user id': responseData.user_id, // Adjust if backend provides different structure
+        username: data.username,
+        email: data.email,
+        role: responseData.role || 'customer', // Default to customer if not provided
+        status: 'approved' // Default status for newly created users
+      };
+
+      toast.success(responseData.message || 'Benutzer erfolgreich erstellt');
       onUserCreated(newUser);
       reset();
       onClose();
     } catch (error) {
-      toast.error(error.message);
+      console.error('Error creating user:', error);
+      toast.error(error.message || 'Fehler beim Erstellen des Benutzers');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle modal close
+  const handleClose = () => {
+    reset(); // Reset form when closing
+    onClose();
   };
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-20"
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      onClick={(e) => e.target === e.currentTarget && handleClose()}>
       <div className="relative w-[90vw] max-w-2xl">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#fdcc00] hover:bg-[#eab308] rounded-full p-1 px-2 transition-all shadow-lg"
         >
           <span className="sr-only">Schließen</span>
@@ -211,7 +228,7 @@ const CreateUserForm = ({ open, onClose, onUserCreated }) => {
               <div className="pt-4 border-t border-gray-200 flex justify-end gap-4">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   disabled={isLoading}
                   className="px-6 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
@@ -316,27 +333,6 @@ const SearchBox = styled(TextField)({
 });
 
 
-const dateFilters = [
-  { key: 'all', label: 'Alle Zeit' },
-  { key: 'today', label: 'Heute' },
-  { key: 'yesterday', label: 'Gestern' },
-  { key: 'last_week', label: 'Letzte Woche' },
-  { key: 'last_month', label: 'Letzter Monat' },
-  { key: 'last_year', label: 'Letztes Jahr' }
-];
-
-const callCenterCompanies = [
-  { key: 'company1', label: 'Teleperformance Deutschland' },
-  { key: 'company2', label: 'Arvato Customer Services' },
-  { key: 'company3', label: 'Walter Services GmbH' },
-  { key: 'company4', label: 'Capita Customer Services' },
-  { key: 'company5', label: 'Condor Group' },
-  { key: 'company6', label: 'D+S 360° GmbH' },
-  { key: 'company7', label: 'Majorel Deutschland' },
-  { key: 'company8', label: 'Competence Call Center' },
-  { key: 'company9', label: 'Deutsche Telekom Kundenservice' },
-  { key: 'company10', label: 'Bosch Service Solutions' }
-];
 
 const permissionGroups = [
   {
@@ -361,9 +357,9 @@ const permissionGroups = [
     title: 'Task APIs',
     icon: <CheckSquare className="h-5 w-5" />,
     permissions: [
-      { key: 'task_overview_api', label: 'Task Overview' },
-      { key: 'task_performance_api', label: 'Task Performance' },
-      { key: 'task_sub_kpis_api', label: 'Task Sub KPIs' }
+      { key: 'tasks_overview_api', label: 'Task Overview' },
+      { key: 'tasks_performance_api', label: 'Task Performance' },
+      { key: 'tasks_kpis_api', label: 'Task Sub KPIs' }
     ]
   },
   {
@@ -380,11 +376,22 @@ const permissionGroups = [
   }
 ];
 
-const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, showAll = true, maxItems = 6 }) => {
+
+// In FilterSection component
+const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, showAll = true, maxItems = 6, loading = false }) => {
   const [showAllItems, setShowAllItems] = useState(false);
   const displayItems = showAll ? items : items.slice(0, showAllItems ? items.length : maxItems);
 
-  return (
+  // Helper function to check if item is selected
+  const isItemSelected = (itemKey) => {
+    if (type === 'domains') {
+      const selectedDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
+      return selectedDomains.includes(itemKey.toLowerCase());
+    } else {
+      const selectedItems = permissions[type]?.split(',').map(d => d.trim()).filter(Boolean) || [];
+      return selectedItems.includes(itemKey);
+    }
+  }; return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -410,7 +417,7 @@ const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, 
             <span className="text-sm font-medium text-gray-600">{item.label}</span>
             <input
               type="checkbox"
-              checked={permissions[type]?.split(',').map(f => f.trim()).includes(item.key)}
+              checked={isItemSelected(item.key)}
               onChange={() => onFilterToggle(type, item.key)}
               className="h-4 w-4 text-[#fdcc00] border-gray-300 rounded focus:ring-[#fdcc00]"
             />
@@ -435,16 +442,82 @@ const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, 
 };
 
 const PermissionFilters = ({ permissions, onPermissionChange }) => {
+  const [allPermissions, setAllPermissions] = useState({
+    dates: [
+      { key: 'all', label: 'Alle Zeit' },
+      { key: 'yesterday', label: 'Gestern' },
+      { key: 'last_week', label: 'Letzte Woche' },
+      { key: 'last_month', label: 'Letzter Monat' },
+      { key: 'last_year', label: 'Letztes Jahr' }
+    ],
+    companies: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchCompanies = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('https://app.saincube.com/app2/admin/companies', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch companies');
+
+      const data = await response.json();
+      const companyList = data.map(item => ({
+        key: item.company.toLowerCase(),
+        label: item.company
+      }));
+
+      setAllPermissions(prev => ({
+        ...prev,
+        companies: companyList
+      }));
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+      toast.error('Error loading companies');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  // In PermissionFilters component
   const handleFilterToggle = (filterType, key) => {
-    const currentFilters = permissions[filterType]?.split(',').map(f => f.trim()) || [];
-    const newFilters = currentFilters.includes(key)
-      ? currentFilters.filter(f => f !== key)
-      : [...currentFilters, key];
-    
-    onPermissionChange({
-      ...permissions,
-      [filterType]: newFilters.join(',')
-    });
+    if (filterType === 'domains') {
+      const currentDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
+      let newDomains;
+
+      if (currentDomains.includes(key.toLowerCase())) {
+        newDomains = currentDomains.filter(d => d !== key.toLowerCase());
+      } else {
+        newDomains = [...currentDomains, key.toLowerCase()];
+      }
+
+      onPermissionChange({
+        ...permissions,
+        domains: newDomains.join(',')
+      });
+    } else {
+      const currentSelections = permissions[filterType]?.split(',').map(d => d.trim()).filter(Boolean) || [];
+      let newSelections;
+
+      if (currentSelections.includes(key)) {
+        newSelections = currentSelections.filter(f => f !== key);
+      } else {
+        newSelections = [...currentSelections, key];
+      }
+
+      onPermissionChange({
+        ...permissions,
+        [filterType]: newSelections.join(',')
+      });
+    }
   };
 
   return (
@@ -452,7 +525,7 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
       <FilterSection
         title="Zeitfilter"
         icon={<Calendar />}
-        items={dateFilters}
+        items={allPermissions.dates}
         type="date_filter"
         permissions={permissions}
         onFilterToggle={handleFilterToggle}
@@ -461,37 +534,34 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
       <FilterSection
         title="Unternehmenszugang"
         icon={<Building2 />}
-        items={callCenterCompanies}
-        type="companies"
+        items={allPermissions.companies}
+        type="domains"
         permissions={permissions}
         onFilterToggle={handleFilterToggle}
         showAll={false}
         maxItems={6}
+        loading={loading}
       />
     </div>
   );
 };
 
+
+
 const PermissionForm = ({ open, onClose, user }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  // In the PermissionForm component, update the initial state and permission handling:
   const [permissions, setPermissions] = useState({
     date_filter: '',
-    companies: '',
-    // Initialize all API permissions
+    domains: '',  // Use domains consistently
     ...Object.fromEntries(
-      permissionGroups.flatMap(group => 
+      permissionGroups.flatMap(group =>
         group.permissions.map(p => [p.key, false])
       )
     )
   });
-
-  useEffect(() => {
-    if (open && user?.['user id']) {
-      fetchUserPermissions();
-    }
-  }, [open, user]);
 
   const fetchUserPermissions = async () => {
     try {
@@ -512,8 +582,8 @@ const PermissionForm = ({ open, onClose, user }) => {
         const { permissions: userPerms } = userPermissions;
         setPermissions({
           ...userPerms,
-          date_filter: userPerms.date_filter?.split(',').filter(Boolean).join(',') || '',
-          companies: userPerms.companies?.split(',').filter(Boolean).join(',') || ''
+          date_filter: userPerms.date_filter || '',
+          domains: userPerms.domains || ''
         });
       }
     } catch (err) {
@@ -529,10 +599,10 @@ const PermissionForm = ({ open, onClose, user }) => {
     try {
       setSaving(true);
       setError(null);
-      
+
       const queryParams = new URLSearchParams({
         user_id: user['user id'],
-        ...permissions
+        ...permissions,
       });
 
       const response = await fetch(`https://app.saincube.com/app2/assign-permission?${queryParams.toString()}`, {
@@ -558,10 +628,36 @@ const PermissionForm = ({ open, onClose, user }) => {
     }
   };
 
+  useEffect(() => {
+    if (open && user?.['user id']) {
+      fetchUserPermissions();
+    }
+  }, [open, user]);
+
+  const handleToggle = (key) => {
+    setPermissions(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleGroupToggle = (group) => {
+    const allEnabled = group.permissions.every(p => permissions[p.key]);
+    const newValue = !allEnabled;
+
+    const updatedPermissions = { ...permissions };
+    group.permissions.forEach(p => {
+      updatedPermissions[p.key] = newValue;
+    });
+
+    setPermissions(updatedPermissions);
+  };
+
+
   if (!open) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-20"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -570,7 +666,7 @@ const PermissionForm = ({ open, onClose, user }) => {
           onClick={onClose}
           className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#fdcc00] hover:bg-[#eab308] rounded-full p-1 px-2 transition-all shadow-lg"
         >
-          <CloseIcon className="h-5 w-5" />
+          <X className="h-5 w-5" />
         </button>
 
         <div className="bg-white rounded-[30px] h-[95vh] overflow-hidden sm:mx-5">
@@ -623,63 +719,64 @@ const PermissionForm = ({ open, onClose, user }) => {
                 </div>
               ) : (
                 <>
-                  <PermissionFilters 
+                  <PermissionFilters
                     permissions={permissions}
                     onPermissionChange={setPermissions}
                   />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {permissionGroups.map((group, idx) => (
-                    <motion.div
-                      key={group.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-[#fdcc00]/10 text-[#fdcc00]">
-                            {group.icon}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                    {permissionGroups.map((group, idx) => (
+                      <motion.div
+                        key={group.title}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-[#fdcc00]/10 text-[#fdcc00]">
+                              {group.icon}
+                            </div>
+                            <h3 className="font-semibold text-lg text-gray-800">
+                              {group.title}
+                            </h3>
                           </div>
-                          <h3 className="font-semibold text-lg text-gray-800">
-                            {group.title}
-                          </h3>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={group.permissions.every(p => permissions[p.key])}
+                              onChange={() => handleGroupToggle(group)}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fdcc00]"></div>
+                          </label>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={group.permissions.every(p => permissions[p.key])}
-                            onChange={() => handleGroupToggle(group)}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fdcc00]"></div>
-                        </label>
-                      </div>
 
-                      <div className="space-y-3">
-                        {group.permissions.map(permission => (
-                          <div
-                            key={permission.key}
-                            className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
-                          >
-                            <span className="text-sm text-gray-600">{permission.label}</span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={permissions[permission.key]}
-                                onChange={() => handleToggle(permission.key)}
-                              />
-                              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fdcc00]"></div>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </>
-            )}
+                        <div className="space-y-3">
+                          {group.permissions.map(permission => (
+                            <div
+                              key={permission.key}
+                              className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="text-sm text-gray-600">{permission.label}</span>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={permissions[permission.key]}
+                                  onChange={() => handleToggle(permission.key)}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fdcc00]"></div>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-4">
               <button
@@ -697,7 +794,7 @@ const PermissionForm = ({ open, onClose, user }) => {
               >
                 {saving ? (
                   <div className="flex items-center gap-2">
-                  <motion.div
+                    <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
@@ -710,7 +807,6 @@ const PermissionForm = ({ open, onClose, user }) => {
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };
@@ -748,7 +844,6 @@ const TableSkeleton = () => {
   );
 };
 
-// Main Page Component
 const Page = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -759,45 +854,21 @@ const Page = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
-  // Add new state for delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, userId: null, username: '' });
+  // Add new state for tracking loading states per user
+  const [loadingStates, setLoadingStates] = useState({
+    approve: new Set(),
+    reject: new Set()
+  });
 
-  // Update the delete handler
-  const handleDeleteUser = async (userId) => {
-    const access_token = localStorage.getItem('access_token');
-
-    try {
-      const response = await fetch(`https://app.saincube.com/app2/admin/delete-user/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Fehler beim Löschen des Benutzers');
-      }
-
-      setUsers(prevUsers => prevUsers.filter(user => user['user id'] !== userId));
-      toast.success('Benutzer erfolgreich gelöscht');
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error('Fehler beim Löschen des Benutzers');
-    }
-  };
-
-  const handlePermissionClick = (user) => {
-    setSelectedUser(user);
-    setPermissionPopup(true);
-  };
-
-
-  // Function to approve user
   const handleApprove = async (userId) => {
     const access_token = localStorage.getItem('access_token');
 
-    // Set processing state for this user
-    setProcessingStates(prev => ({ ...prev, [userId]: 'processing' }));
+    // Set loading state for this specific user's approve action
+    setLoadingStates(prev => ({
+      ...prev,
+      approve: new Set([...prev.approve, userId])
+    }));
 
     try {
       const response = await fetch(`https://app.saincube.com/app2/admin/approve/${userId}`, {
@@ -808,33 +879,58 @@ const Page = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to approve user');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to approve user');
       }
 
-      // Update users state
+      // Optimistically update the UI
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user['user id'] === userId ? { ...user, status: 'approved' } : user
+          user['user id'] === userId 
+            ? { 
+                ...user, 
+                status: 'approved',
+              } 
+            : user
         )
       );
+      
+      toast.success('Benutzer erfolgreich genehmigt', {
+        duration: 3000,
+        position: 'top-right',
+      });
     } catch (error) {
       console.error('Error approving user:', error);
+      toast.error(error.message || 'Fehler bei der Genehmigung des Benutzers');
+      
+      // Revert the optimistic update on error
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user['user id'] === userId 
+            ? { 
+                ...user, 
+                status: 'pending' // or whatever the previous status was
+              } 
+            : user
+        )
+      );
     } finally {
-      // Clear processing state
-      setProcessingStates(prev => {
-        const newState = { ...prev };
-        delete newState[userId];
-        return newState;
-      });
+      // Remove loading state
+      setLoadingStates(prev => ({
+        ...prev,
+        approve: new Set([...prev.approve].filter(id => id !== userId))
+      }));
     }
   };
 
-  // Function to reject user
   const handleReject = async (userId) => {
     const access_token = localStorage.getItem('access_token');
 
-    // Set processing state for this user
-    setProcessingStates(prev => ({ ...prev, [userId]: 'processing' }));
+    // Set loading state for this specific user's reject action
+    setLoadingStates(prev => ({
+      ...prev,
+      reject: new Set([...prev.reject, userId])
+    }));
 
     try {
       const response = await fetch(`https://app.saincube.com/app2/admin/reject/${userId}`, {
@@ -845,27 +941,81 @@ const Page = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to reject user');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to reject user');
       }
 
-      // Update users state
+      // Optimistically update the UI
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user['user id'] === userId ? { ...user, status: 'rejected' } : user
+          user['user id'] === userId 
+            ? { 
+                ...user, 
+                status: 'rejected'
+              } 
+            : user
         )
       );
+      
+      toast.success('Benutzer erfolgreich abgelehnt', {
+        duration: 3000,
+        position: 'top-right',
+      });
     } catch (error) {
       console.error('Error rejecting user:', error);
+      toast.error(error.message || 'Fehler bei der Ablehnung des Benutzers');
+      
+      // Revert the optimistic update on error
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user['user id'] === userId 
+            ? { 
+                ...user, 
+                status: 'pending' // or whatever the previous status was
+              } 
+            : user
+        )
+      );
     } finally {
-      // Clear processing state
-      setProcessingStates(prev => {
-        const newState = { ...prev };
-        delete newState[userId];
-        return newState;
-      });
+      // Remove loading state
+      setLoadingStates(prev => ({
+        ...prev,
+        reject: new Set([...prev.reject].filter(id => id !== userId))
+      }));
     }
   };
 
+  // Updated delete handler to match POST endpoint
+  const handleDeleteUser = async (userId) => {
+    const access_token = localStorage.getItem('access_token');
+
+    try {
+      const response = await fetch(`https://app.saincube.com/app2/admin/delete_user/${userId}`, {
+        method: 'POST', // Changed from DELETE to POST
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Fehler beim Löschen des Benutzers');
+      }
+
+      // Update users state to remove the deleted user
+      setUsers(prevUsers => prevUsers.filter(user => user['user id'] !== userId));
+      toast.success('Benutzer erfolgreich gelöscht');
+      setDeleteConfirmation({ open: false, userId: null, username: '' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Fehler beim Löschen des Benutzers');
+    }
+  };
+
+  const handlePermissionClick = (user) => {
+    setSelectedUser(user);
+    setPermissionPopup(true);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -878,14 +1028,15 @@ const Page = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch users');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch users');
       }
 
       const usersData = await response.json();
       setUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Fehler beim Laden der Benutzer');
+      toast.error(error.message || 'Fehler beim Laden der Benutzer');
     } finally {
       setLoading(false);
     }
@@ -894,6 +1045,7 @@ const Page = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
 
   const handleUserCreated = (newUser) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
@@ -1116,16 +1268,24 @@ const Page = () => {
                                   variant="outlined"
                                   size="small"
                                   onClick={() => handleApprove(user['user id'])}
+                                  disabled={loadingStates.approve.has(user['user id']) || loadingStates.reject.has(user['user id'])}
                                   sx={getApproveButtonStyle()}
                                 >
+                                  {loadingStates.approve.has(user['user id']) ? (
+                                    <CircularProgress size={16} sx={{ color: '#4caf50', mr: 1 }} />
+                                  ) : null}
                                   Genehmigen
                                 </StyledButton>
                                 <StyledButton
                                   variant="outlined"
                                   size="small"
                                   onClick={() => handleReject(user['user id'])}
+                                  disabled={loadingStates.approve.has(user['user id']) || loadingStates.reject.has(user['user id'])}
                                   sx={getRejectButtonStyle()}
                                 >
+                                  {loadingStates.reject.has(user['user id']) ? (
+                                    <CircularProgress size={16} sx={{ color: '#f44336', mr: 1 }} />
+                                  ) : null}
                                   Ablehnen
                                 </StyledButton>
                                 <StyledButton
@@ -1171,12 +1331,12 @@ const Page = () => {
           </Paper>
         </div>
 
-      <DeleteConfirmationDialog
-        open={deleteConfirmation.open}
-        onClose={() => setDeleteConfirmation({ open: false, userId: null, username: '' })}
-        onConfirm={() => handleDeleteUser(deleteConfirmation.userId)}
-        username={deleteConfirmation.username}
-      />
+        <DeleteConfirmationDialog
+          open={deleteConfirmation.open}
+          onClose={() => setDeleteConfirmation({ open: false, userId: null, username: '' })}
+          onConfirm={() => handleDeleteUser(deleteConfirmation.userId)}
+          username={deleteConfirmation.username}
+        />
         {/* Modals */}
         <CreateUserForm
           open={createUserModal}
@@ -1270,8 +1430,8 @@ const getRoleStyle = (role) => ({
 });
 
 const getStatusStyle = (status) => ({
-  backgroundColor: status === 'active' ? '#f0fdf4' : status === 'pending' ? '#fff7ed' : '#fef2f2',
-  color: status === 'active' ? '#15803d' : status === 'pending' ? '#9a3412' : '#991b1b',
+  backgroundColor: status === 'approved' ? '#f0fdf4' : status === 'pending' ? '#fff7ed' : '#fef2f2',
+  color: status === 'approved' ? '#15803d' : status === 'pending' ? '#9a3412' : '#991b1b',
   borderColor: 'transparent',
   fontWeight: 500,
 });
