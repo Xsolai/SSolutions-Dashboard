@@ -237,28 +237,28 @@ const CallAnalysisDashboard = () => {
       },
       {
         title: "Durchschnittliche Wartezeit",
-        value: `${overviewData?.['avg wait time'] || 0} min`,
+        value: `${overviewData?.['max. wait time (min)'] || 0} min`,
         icon: Clock,
         change: subKPIs['avg wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Maximale Wartezeit",
-        value: `${overviewData?.['max. wait time'] || 0} min`,
+        value: `${overviewData?.['max. wait time (min)'] || 0} min`,
         icon: Clock,
         change: subKPIs['max. wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Durchschnittliche Bearbeitungszeit",
-        value: `${overviewData?.['avg handling time'] || 0} min`,
+        value: `${overviewData?.['avg handling time (min)'] || 0} min`,
         icon: Clock,
         change: subKPIs['avg_handling_time_change'],
         description: "im Vergleich zur letzten Periode"
       },
       {
         title: "Nachbearbeitungszeit",
-        value: `${overviewData?.['After call work time'] || 0} min`,
+        value: `${overviewData?.['After call work time (min)'] || 0} min`,
         icon: Clipboard,
         change: subKPIs['After call work time_change'],
         description: "im Vergleich zur letzten Periode"

@@ -219,7 +219,7 @@ const EmailAnalysisDashboard = () => {
       },
       { 
         title: "Bearbeitungszeit", 
-        value: `${bearbeitungszeitMinuten}m`, 
+        value: `${overviewData['Total Processing Time (sec)'] || 0} min`, 
         icon: Timer,
         change: subKPIs['Total Processing Time (sec) change'],
         description: "im Vergleich zur letzten Periode"
