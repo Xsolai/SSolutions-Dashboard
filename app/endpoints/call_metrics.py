@@ -117,7 +117,7 @@ async def get_calls(
     
     filters = []
     # Filtering Logic
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee :
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
@@ -289,7 +289,7 @@ async def get_calls_sub_kpis(
     is_admin_or_employee = user.role in ["admin", "employee"]
     filters = []
     # Filtering Logic
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee :
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
@@ -457,7 +457,7 @@ async def get_call_performance(
         return query.filter(QueueStatistics.date.between(start_date, end_date)) if date_filter and start_date and end_date else query
     
     # Base query setup
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
@@ -602,11 +602,11 @@ async def get_call_performance(
             queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 2)
             if "5vorFlugService" in queue_name:
                 queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")))
-                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))), 2)
+                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))) / 60, 2)
                 
             elif "5vorFlugSales" in queue_name:
                 queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales")))
-                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))), 2)
+                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))) / 60, 2)
         
     return {
         "Call Reasons Breakdown": call_reasons,

@@ -316,7 +316,7 @@ def domains_checker(db, user_id, filter_5vf, filter_bild):
     # Retrieve the user permissions from the database
     user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
     user_domains = [
-        domain.strip()
+        domain.strip().lower()
         for domain in user_permission.domains.split(",")
         if domain.strip()
     ]
@@ -355,7 +355,7 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild):
     # Retrieve the user permissions from the database
     user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
     user_domains = [
-        domain.strip()
+        domain.strip().lower()
         for domain in user_permission.domains.split(",")
         if domain.strip()
     ]
@@ -363,10 +363,13 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild):
      # Determine accessible companies based on permissions
     accessible_companies = []
     if "urlaubsguru" in user_domains:
+        print(f"contains urlaubsguru")
         accessible_companies.append("guru")
     if "5vorflug" in user_domains:
+        print(f"contains 5vorflug")
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
+        print(f"contains bild")
         accessible_companies.append("bild")
     
     print("accessible_companies: ", accessible_companies)
@@ -398,7 +401,7 @@ def domains_checker_task(db, user_id, filter_5vf, filter_bild):
     # Retrieve the user permissions from the database
     user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
     user_domains = [
-        domain.strip()
+        domain.strip().lower()
         for domain in user_permission.domains.split(",")
         if domain.strip()
     ]
@@ -438,7 +441,7 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
     # Retrieve the user permissions from the database
     user_permission = db.query(Permission).filter(Permission.user_id == user_id).first()
     user_domains = [
-        domain.strip()
+        domain.strip().lower()
         for domain in user_permission.domains.split(",")
         if domain.strip()
     ]

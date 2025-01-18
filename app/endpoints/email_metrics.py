@@ -102,7 +102,7 @@ async def get_email_overview(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -264,7 +264,7 @@ async def get_email_overview_sub_kpis(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -418,7 +418,7 @@ async def get_mailbox_SL(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  

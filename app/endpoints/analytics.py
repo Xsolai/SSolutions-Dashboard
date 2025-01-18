@@ -106,7 +106,7 @@ async def get_anaytics_email_data(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -162,8 +162,8 @@ async def get_anaytics_email_data(
             func.sum(WorkflowReportGuruKF.archived)
         ).scalar() or 0
 
-        service_level_gross = query.with_entities(
-            func.avg(WorkflowReportGuruKF.service_level_gross)
+        service_level_gross = email_query.with_entities(
+            func.avg(EmailData.service_level_gross)
         ).scalar() or 0
 
         # new_sent = db.query(
@@ -199,10 +199,10 @@ async def get_anaytics_email_data(
             WorkflowReportGuruKF.date.between(start_date, end_date)
         ).scalar() or 0
 
-        service_level_gross = query.with_entities(
-            func.avg(WorkflowReportGuruKF.service_level_gross)
+        service_level_gross = email_query.with_entities(
+            func.avg(EmailData.service_level_gross)
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
 
         # new_sent = db.query(
@@ -303,7 +303,7 @@ async def get_anaytics_email_data_sub_kpis(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(WorkflowReportGuruKF).filter(
             WorkflowReportGuruKF.customer.like("%5vorFlug%")  
@@ -431,7 +431,7 @@ async def get_sales_and_service(
     db = SessionLocal()
     
     # Apply filtering logic
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
@@ -463,13 +463,13 @@ async def get_sales_and_service(
         func.avg(
             QueueStatistics.avg_handling_time_inbound
         )
-        ).scalar()*60 or 0
+        ).scalar() or 0
         
         total_talk_time = query.with_entities(
             func.sum(
                 QueueStatistics.total_outbound_talk_time_destination
             )
-        ).scalar()*60 or 0
+        ).scalar() or 0
         
         total_outbound_calls = query.with_entities(
             func.sum(
@@ -603,7 +603,7 @@ async def get_booking_data(time_input: float = 6*60,
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
@@ -719,7 +719,7 @@ async def get_booking_data_sub_kpis(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
@@ -814,23 +814,21 @@ async def get_conversion_data(
     start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     user_permission = db.query(Permission).filter(Permission.user_id == user.id).first()
     user_domains = [
-        domain.strip()
+        domain.strip().lower()
         for domain in user_permission.domains.split(",")
         if domain.strip()
     ]
     print("Domains: ", user_domains)
      # Determine accessible companies based on permissions
     accessible_companies = []
-    if "guru" in user_domains:
+    if "urlaubsguru" in user_domains:
         accessible_companies.append("guru")
     if "5vorflug" in user_domains:
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
         accessible_companies.append("bild")
     
-    # print("accessible_companies: ", accessible_companies)
-    
-    filters = []
+    print("accessible_companies: ", accessible_companies)
     # if "5vorflug" in accessible_companies:
     #     print("containss")
     #     filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
@@ -850,7 +848,7 @@ async def get_conversion_data(
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
-    if is_admin_or_employee or is_guru_email:
+    if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
@@ -866,31 +864,57 @@ async def get_conversion_data(
         )
         else:
             query = db.query(SoftBookingKF)
-    if "5vorflug" in accessible_companies:
-        print("containss")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"You don't have a permission.",
-            }
-        )
-    if "bild" in accessible_companies:
-        print("containss bild")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "Permission Denied",
-                "message": f"You don't have a permission.",
-            }
-        )
+    # if "5vorflug" in accessible_companies:
+    #     print("containss")
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail={
+    #             "error": "Permission Denied",
+    #             "message": f"You don't have a permission.",
+    #         }
+    #     )
+    # if "bild" in accessible_companies:
+    #     print("containss bild")
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail={
+    #             "error": "Permission Denied",
+    #             "message": f"You don't have a permission.",
+    #         }
+    #     )
 
+    # if "urlaubsguru" in accessible_companies:
+    #     print("executing else containss")
+    #     query = db.query(SoftBookingKF).filter(
+    #         SoftBookingKF.customer.notlike("%5vF%"),
+    #         SoftBookingKF.customer.notlike("%BILD%")
+    #     )
+
+    # List of companies to check for raising exceptions
+    else:
+        restricted_companies = ["5vorflug", "bild"]
+
+        # Check if all three companies are in accessible_companies
+        if "5vorflug" in accessible_companies and "bild" in accessible_companies and "urlaubsguru" in accessible_companies:
+            print("All companies found, prioritizing 'urlaubsguru'")
+            query = db.query(SoftBookingKF)
+        else:
+            # Iterate through the restricted companies
+            for company in restricted_companies:
+                if company in accessible_companies:
+                    print(f"contains {company}")
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail={
+                            "error": "Permission Denied",
+                            "message": f"You don't have permission to access {company}.",
+                        }
+                    )
+
+    # Handle "urlaubsguru" separately if present and not already handled
     if "guru" in accessible_companies:
         print("executing else containss")
-        query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vF%"),
-            SoftBookingKF.customer.notlike("%BILD%")
-        )
+        query = db.query(SoftBookingKF)
 
     db = SessionLocal()
     if start_date is None:
