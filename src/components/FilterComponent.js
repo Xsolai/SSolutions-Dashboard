@@ -152,36 +152,36 @@ const CustomDateRangeFilter = ({ onFilterChange }) => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-        style={{ backgroundColor: '#FFF9E6' }}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg text-[17px] leading-[27px] font-nexa-book transition-all"
+        style={{ backgroundColor: '#F0B72F10' }}
       >
-        <Calendar className="h-4 w-4 text-[#FDB022]" />
+        <Calendar className="h-4 w-4 text-[#F0B72F]" />
         {getDisplayText()}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 bg-white rounded-lg shadow-lg p-4 z-50 min-w-[300px]">
+        <div className="absolute top-full mt-2 bg-white rounded-lg shadow-lg p-4 z-50 min-w-[300px] border border-[#E6E2DF]">
           <div className="flex items-center justify-between mb-4">
             <button 
               onClick={() => navigateMonth(-1)}
-              className="p-1 hover:bg-gray-100 rounded-full"
+              className="p-1 hover:bg-[#E6E2DF]/10 rounded-full transition-all"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 text-[#001E4A]" />
             </button>
-            <span className="font-medium">
+            <span className="font-nexa-black text-[#001E4A]">
               {selectedMonth.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
             </span>
             <button 
               onClick={() => navigateMonth(1)}
-              className="p-1 hover:bg-gray-100 rounded-full"
+              className="p-1 hover:bg-[#E6E2DF]/10 rounded-full transition-all"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 text-[#001E4A]" />
             </button>
           </div>
 
           <div className="grid grid-cols-7 gap-1 mb-4">
             {['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'].map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 py-1">
+              <div key={day} className="text-center text-[14px] font-nexa-book text-[#001E4A]/70 py-1">
                 {day}
               </div>
             ))}
@@ -190,12 +190,12 @@ const CustomDateRangeFilter = ({ onFilterChange }) => {
                 key={index}
                 onClick={() => date && handleDateClick(date)}
                 className={`
-                  p-2 text-sm rounded-lg transition-colors
-                  ${!date || isDateDisabled(date) ? 'invisible' : 'hover:bg-yellow-200'}
-                  ${isDateInRange(date) ? 'bg-yellow-100' : ''}
-                  ${date && date.toDateString() === tempDateRange.start?.toDateString() ? 'bg-yellow-300' : ''}
-                  ${date && date.toDateString() === tempDateRange.end?.toDateString() ? 'bg-yellow-300' : ''}
-                  ${isDateDisabled(date) ? 'opacity-50 cursor-not-allowed' : ''}
+                  p-2 text-[14px] font-nexa-book rounded-lg transition-all
+                  ${!date || isDateDisabled(date) ? 'invisible' : 'hover:bg-[#F0B72F]/20'}
+                  ${isDateInRange(date) ? 'bg-[#F0B72F]/10' : ''}
+                  ${date && date.toDateString() === tempDateRange.start?.toDateString() ? 'bg-[#F0B72F] text-[#001E4A]' : ''}
+                  ${date && date.toDateString() === tempDateRange.end?.toDateString() ? 'bg-[#F0B72F] text-[#001E4A]' : ''}
+                  ${isDateDisabled(date) ? 'opacity-50 cursor-not-allowed' : 'text-[#001E4A]'}
                 `}
                 disabled={!date || isDateDisabled(date)}
               >
@@ -204,16 +204,16 @@ const CustomDateRangeFilter = ({ onFilterChange }) => {
             ))}
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E6E2DF]">
             <button
               onClick={handleAllTime}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              className="px-3 py-1 text-[14px] font-nexa-book bg-[#E6E2DF]/10 text-[#001E4A] rounded-lg hover:bg-[#E6E2DF]/20 transition-all"
             >
               Gesamt
             </button>
             <button
               onClick={handleApply}
-              className="px-6 py-1 text-sm bg-yellow-400 text-gray-900 rounded hover:bg-yellow-500"
+              className="px-6 py-1 text-[14px] font-nexa-black bg-[#F0B72F] text-[#001E4A] rounded-lg hover:bg-[#F0B72F]/90 transition-all"
             >
               Anwenden
             </button>
@@ -223,5 +223,4 @@ const CustomDateRangeFilter = ({ onFilterChange }) => {
     </div>
   );
 };
-
 export default CustomDateRangeFilter;

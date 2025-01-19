@@ -1,78 +1,75 @@
 "use client";
-import React, { useState , useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart } from 'recharts';
-import { Mail, PhoneCall, Phone, TrendingUp,TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Mail, PhoneCall, Phone, TrendingUp, TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity, CreditCard } from 'lucide-react';
 import CustomDateRangeFilter from './FilterComponent';
 import CompanyDropdown from './Company';
 
+// Brand Colors
+const colors = {
+  primary: '#F0B72F',    // SolaGelb
+  dark: '#001E4A',       // SolaBlau
+  gray: '#E6E2DF',       // SolaGrau
+  lightGray: '#E6E2DF/50', 
+  white: '#ffffff',
+  success: '#001E4A',    // Using SolaBlau for success
+  danger: '#F0B72F',     // Using SolaGelb for danger
+  accent: '#001E4A'      // Using SolaBlau for accent
+};
+
+// Skeleton Components
 const SkeletonStatCard = () => (
-  <div className="bg-white p-4 rounded-lg border border-gray-100">
+  <div className="bg-white p-4 rounded-lg border border-[#E6E2DF]">
     <div className="flex items-center justify-between mb-1">
-      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-      <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+      <div className="h-4 bg-[#E6E2DF] rounded w-1/3"></div>
+      <div className="h-8 w-8 bg-[#E6E2DF] rounded-lg"></div>
     </div>
-    <div className="h-8 bg-gray-200 rounded w-2/3 mb-2"></div>
-    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+    <div className="h-8 bg-[#E6E2DF] rounded w-2/3 mb-2"></div>
+    <div className="h-3 bg-[#E6E2DF] rounded w-1/2"></div>
   </div>
 );
 
 const SkeletonChartCard = () => (
-  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100">
-    <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
-    <div className="h-60 bg-gray-200 rounded"></div>
+  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-[#E6E2DF]">
+    <div className="h-6 bg-[#E6E2DF] rounded w-1/4 mb-6"></div>
+    <div className="h-60 bg-[#E6E2DF] rounded"></div>
   </div>
 );
 
-const Loading = () => {
-  return (
+// Loading Component
+const Loading = () => (
+  <div className="space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      {[...Array(5)].map((_, i) => (
+        <SkeletonStatCard key={i} />
+      ))}
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+      {[...Array(2)].map((_, i) => (
+        <SkeletonStatCard key={i} />
+      ))}
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {[...Array(2)].map((_, i) => (
+        <SkeletonChartCard key={i} />
+      ))}
+    </div>
+  </div>
+);
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {[...Array(5)].map((_, i) => (
-              <SkeletonStatCard key={i} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {[...Array(2)].map((_, i) => (
-              <SkeletonStatCard key={i} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[...Array(2)].map((_, i) => (
-              <SkeletonChartCard key={i} />
-            ))}
-          </div>
-        </div>
-  );
-}
-
-// Color theme
-const colors = {
-  primary: '#fdcc00',    // yellow
-  dark: '#1a1a1a',      // black
-  gray: '#4a4a4a',      // medium gray
-  lightGray: '#e5e5e5', // light gray
-  white: '#ffffff',     // white
-  success: '#2225C5FF', // blue
-  danger: '#fdcc00',    // yellow
-  accent: '#4299e1'     // bright blue
-};
-
-
-// Stat Card component
+// Stat Card Component
 const StatCard = ({ title, value, icon: Icon, change, description }) => (
-  <div className="bg-white p-4 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
+  <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
-      <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-      <div className="p-2 bg-yellow-50 rounded-lg">
-        <Icon className="h-5 w-5 text-yellow-400" />
+      <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
+      <div className="p-2 bg-[#F0B72F]/10 rounded-lg">
+        <Icon className="h-5 w-5 text-[#F0B72F]" />
       </div>
     </div>
-    <div className="text-2xl font-bold text-gray-900 mb-2">{value}</div>
+    <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] mb-2">{value}</div>
     {change && description && (
-      <p className="text-xs text-gray-500">
-        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-blue-500' : 'text-blue-500'}`}>
+      <p className="text-[15px] leading-[27px] font-nexa-book text-[#001E4A]/70">
+        <span className={`inline-block mr-2 ${change.includes('-') ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>
           {change}
         </span>
         {description}
@@ -81,12 +78,57 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
   </div>
 );
 
+// Chart Card Component
 const ChartCard = ({ title, children }) => (
-  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-gray-100 hover:border-yellow-400 transition-all">
-    <h3 className="text-lg font-medium text-gray-900 mb-6">{title}</h3>
+  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
+    <h3 className="text-[20px] leading-[36px] font-nexa-black text-[#001E4A] mb-6">{title}</h3>
     {children}
   </div>
 );
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  // Helper function to format value based on type and name
+  const formatValue = (value, name) => {
+    if (typeof value !== 'number') return value;
+
+    // Handle percentage values
+    if (name?.toLowerCase().includes('%') || name?.toLowerCase().includes('rate') || 
+        name?.toLowerCase().includes('niveau') || name?.toLowerCase().includes('acc')) {
+      return `${Number(value).toFixed(2)}%`;
+    }
+
+    // Handle time values
+    if (name?.toLowerCase().includes('zeit') || name?.toLowerCase().includes('time') || 
+        name?.toLowerCase().includes('sec') || name?.toLowerCase().includes('sek')) {
+      return `${Number(value).toFixed(2)} Sek`;
+    }
+
+    // Default number formatting
+    return value.toLocaleString();
+  };
+
+  return (
+    <div className="bg-white border border-[#E6E2DF] rounded-lg shadow-sm p-3">
+      <p className="font-nexa-black text-[#001E4A] mb-2 text-sm">{label}</p>
+      {payload.map((item, index) => (
+        <div key={index} className="flex items-center gap-2 py-1">
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: item.fill || item.color || item.stroke }}
+          />
+          <span className="text-[#001E4A]/70 font-nexa-book text-sm">
+            {item.name || item.dataKey}:
+          </span>
+          <span className="text-[#001E4A] font-nexa-black text-sm">
+            {formatValue(item.value, item.name || item.dataKey)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const AnalyticsDashboard = () => {
   const [dateRange, setDateRange] = useState({
@@ -240,443 +282,611 @@ const handleCompanyChange = (company) => {
   };
 
   
-  const EmailTab = () => {
-    if (!data.emailData || !data.emailSubKPIs) return <Loading />;
-    
-    const processedTimeData = data.emailData['Processing Time Trend in seconds'] || [];
-    
-    const emailMetrics = [
-      {
-        title: "Empfangene E-Mails",
-        value: data.emailData['email recieved'] || 0,
-        icon: Mail,
-        change: data.emailSubKPIs['email recieved change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Gesendete E-Mails",
-        value: data.emailData['email sent'] || 0,
-        icon: Mail,
-        change: data.emailSubKPIs['email sent change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Neue Fälle",
-        value: data.emailData['email new cases'] || 0,
-        icon: Send,
-        change: data.emailSubKPIs['email new cases change'],
-        description: "im Vergleich zur letzten Periode"
-      }
-    ];
-    
-    const slGross = data.emailData['SL Gross'] || 0;
-    const processingTime = data.emailData['Total Processing Time (sec)'] || 0;
   
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {emailMetrics.map((metric, index) => (
-            <StatCard
-              key={index}
-              title={metric.title}
-              value={metric.value}
-              icon={metric.icon}
-              change={metric.change}
-              description={metric.description}
-            />
-          ))}
-        </div>
-    
-        <div className="grid grid-cols-2 gap-3">
+const EmailTab = () => {
+  if (!data.emailData || !data.emailSubKPIs) return <Loading />;
+  
+  const processedTimeData = data.emailData['Processing Time Trend in seconds'] || [];
+  
+  const emailMetrics = [
+    {
+      title: "Empfangene E-Mails",
+      value: data.emailData['email recieved'] || 0,
+      icon: Mail,
+      change: data.emailSubKPIs['email recieved change'],
+      description: "im Vergleich zur letzten Periode"
+    },
+    {
+      title: "Gesendete E-Mails",
+      value: data.emailData['email sent'] || 0,
+      icon: Mail,
+      change: data.emailSubKPIs['email sent change'],
+      description: "im Vergleich zur letzten Periode"
+    },
+    {
+      title: "Neue Fälle",
+      value: data.emailData['email new cases'] || 0,
+      icon: Send,
+      change: data.emailSubKPIs['email new cases change'],
+      description: "im Vergleich zur letzten Periode"
+    }
+  ];
+  
+  const slGross = data.emailData['SL Gross'] || 0;
+  const processingTime = data.emailData['Total Processing Time (sec)'] || 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {emailMetrics.map((metric, index) => (
           <StatCard
-            title="SL Brutto"
-            value={`${slGross.toFixed(2)}%`}
-            icon={TrendingUp}
+            key={index}
+            title={metric.title}
+            value={metric.value}
+            icon={metric.icon}
+            change={metric.change}
+            description={metric.description}
           />
-          <StatCard
-            title="Bearbeitungszeit"
-            value={`${Math.round(processingTime / 60)}m`}
-            icon={Clock}
-          />
-        </div>
-    
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ChartCard title="E-Mail-Bearbeitungsübersicht">
-            <div className="h-60">
-              <ResponsiveContainer>
-                <BarChart data={[
-                  { name: 'Empfangen', value: data.emailData['email recieved'] || 0 },
-                  { name: 'Gesendet', value: data.emailData['email sent'] || 0 },
-                  { name: 'Archiviert', value: data.emailData['email archived'] || 0 }
-                ]}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill={colors.primary} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-    
-          <ChartCard title="Bearbeitungszeit-Trend">
-            <div className="h-60">
-              <ResponsiveContainer>
-                <LineChart data={processedTimeData}>
-                  <XAxis dataKey="interval_start" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="total_processing_time_sec" 
-                    stroke={colors.primary}
-                    name="Bearbeitungszeit (Sek.)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
+        ))}
       </div>
-    );
-  };
-    
-  const SalesServiceTab = () => {
-    const [showSales, setShowSales] = useState(true);
-    if (!data.salesServiceData) return <Loading />;
   
-    // Add safe default values for both sales and service metrics
-    const defaultMetrics = {
-      calls_offered: 0,
-      calls_handled: 0,
-      ACC: 0,
-      SL: 0,
-      AHT_sec: 0,
-      longest_waiting_time_sec: 0,
-      total_talk_time_sec: 0
-    };
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatCard
+          title="SL Brutto"
+          value={`${slGross.toFixed(2)}%`}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Bearbeitungszeit"
+          value={`${Math.round(processingTime / 60)}m`}
+          icon={Clock}
+        />
+      </div>
   
-    const salesMetrics = {
-      ...defaultMetrics,
-      ...(data.salesServiceData?.sales_metrics || {})
-    };
-    
-    const serviceMetrics = {
-      ...defaultMetrics,
-      ...(data.salesServiceData?.service_metrics || {})
-    };
-    
-    const activeMetrics = showSales ? salesMetrics : serviceMetrics;
-    const serviceType = showSales ? 'Vertrieb' : 'Service';
-  
-    // Create safe chart data
-    const callOverviewData = [{
-      name: serviceType,
-      angeboten: activeMetrics.calls_offered || 0,
-      bearbeitet: activeMetrics.calls_handled || 0
-    }];
-  
-    const serviceMetricsData = [{
-      name: serviceType,
-      acc: Number(activeMetrics.ACC) || 0,
-      sl: Number(activeMetrics.SL) || 0
-    }];
-  
-    const handlingTimeData = [{
-      name: serviceType,
-      durchschnitt: Number(activeMetrics.AHT_sec) || 0,
-      wartezeit: Number(activeMetrics.longest_waiting_time_sec) || 0,
-      sprechzeit: Number(activeMetrics.total_talk_time_sec) || 0
-    }];
-  
-    return (
-      <div className="space-y-4">
-        {/* Toggle Button */}
-        <div className="flex justify-end mb-4">
-          <div className="inline-flex rounded-md shadow-sm" role="group">
-            <button
-              onClick={() => setShowSales(true)}
-              className={`px-4 py-2 text-sm font-medium border rounded-l-lg ${
-                showSales 
-                  ? 'bg-yellow-400 text-black border-yellow-400' 
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setShowSales(false)}
-              className={`px-4 py-2 text-sm font-medium border-t border-b border-r rounded-r-lg ${
-                !showSales 
-                  ? 'bg-yellow-400 text-black border-yellow-400' 
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              Service
-            </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="E-Mail-Bearbeitungsübersicht">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={[
+                { name: 'Empfangen', value: data.emailData['email recieved'] || 0 },
+                { name: 'Gesendet', value: data.emailData['email sent'] || 0 },
+                { name: 'Archiviert', value: data.emailData['email archived'] || 0 }
+              ]}>
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <Tooltip content={<CustomTooltip />} />
+
+                <Bar 
+                  dataKey="value" 
+                  fill="#F0B72F"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
+        </ChartCard>
   
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            title={`${serviceType} Anrufe Angeboten`}
-            value={activeMetrics.calls_offered || 0}
-            icon={PhoneCall}
-          />
-          <StatCard
-            title={`${serviceType} Anrufe Bearbeitet`}
-            value={activeMetrics.calls_handled || 0}
-            icon={Phone}
-          />
-          <StatCard
-            title={`${serviceType} ACC`}
-            value={`${Number(activeMetrics.ACC).toFixed(2)}%`}
-            icon={CheckCircle}
-          />
-          <StatCard
-            title={`${serviceType} Serviceniveau`}
-            value={`${Number(activeMetrics.SL).toFixed(2)}%`}
-            icon={TrendingUp}
-          />
-        </div>
-  
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <ChartCard title="Anruf Übersicht">
-            <div className="h-48">
-              <ResponsiveContainer>
-                <BarChart data={callOverviewData}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="angeboten" name="Angebotene Anrufe" fill={colors.primary} />
-                  <Bar dataKey="bearbeitet" name="Bearbeitete Anrufe" fill={colors.gray} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-  
-          <ChartCard title="Service Level & ACC">
-            <div className="h-48">
-              <ResponsiveContainer>
-                <BarChart data={serviceMetricsData}>
-                  <XAxis dataKey="name" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip formatter={(value) => `${Number(value).toFixed(2)}%`} />
-                  <Legend />
-                  <Bar dataKey="acc" name="ACC %" fill={colors.primary} />
-                  <Bar dataKey="sl" name="Serviceniveau %" fill={colors.dark} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-  
-          <ChartCard title="Bearbeitungszeiten">
-            <div className="h-48">
-              <ResponsiveContainer>
-                <BarChart data={handlingTimeData}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `${Number(value).toFixed(2)} Sek`} />
-                  <Legend />
-                  <Bar dataKey="durchschnitt" name="DGB (Sek)" fill={colors.primary} />
-                  <Bar dataKey="wartezeit" name="Wartezeit (Sek)" fill={colors.gray} />
-                  <Bar dataKey="sprechzeit" name="Sprechzeit (Sek)" fill={colors.dark} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
+        <ChartCard title="Bearbeitungszeit-Trend">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <LineChart data={processedTimeData}>
+                <XAxis 
+                  dataKey="interval_start"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+              <Tooltip content={<CustomTooltip />} />
+                <Line 
+                  type="monotone" 
+                  dataKey="total_processing_time_sec" 
+                  stroke="#F0B72F"
+                  strokeWidth={2}
+                  dot={{ fill: '#F0B72F' }}
+                  name="Bearbeitungszeit (Sek.)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
       </div>
-    );
+    </div>
+  );
+};
+
+    
+const SalesServiceTab = () => {
+  const [showSales, setShowSales] = useState(true);
+  if (!data.salesServiceData) return <Loading />;
+
+  const defaultMetrics = {
+    calls_offered: 0,
+    calls_handled: 0,
+    ACC: 0,
+    SL: 0,
+    AHT_sec: 0,
+    longest_waiting_time_sec: 0,
+    total_talk_time_sec: 0
   };
 
-  const BookingTab = () => {
-    if (!data.bookingData || !data.bookingSubKPIs) return <Loading />;
-  
-    const bookingData = data.bookingData || {};
-    const bookingSubKPIs = data.bookingSubKPIs || {};
-    const bookingStatus = bookingData['Booking status'] || {};
-  
-    const bookingMetrics = [
-      {
-        title: "Gesamtbuchungen",
-        value: bookingData['Total Bookings'] || 0,
-        icon: Users,
-        change: bookingSubKPIs['Total Bookings change']
-      },
-      {
-        title: "Gebucht",
-        value: bookingData['Booked'] || 0,
-        icon: CheckCircle,
-        change: bookingSubKPIs['Booked change']
-      },
-      {
-        title: "Storniert",
-        value: bookingData['Cancelled count'] || 0,
-        icon: XCircle,
-        change: bookingSubKPIs['Cancelled count change']
-      },
-      {
-        title: "SB Buchungsrate",
-        value: `${bookingData['SB Booking Rate (%)'] || 0}%`,
-        icon: Activity,
-        change: bookingSubKPIs['SB Booking Rate (%) change']
-      },
-      {
-        title: "Ausstehend",
-        value: bookingData['Pending'] || 0,
-        icon: Clock,
-        change: bookingSubKPIs['Pending change']
-      },
-      {
-        title: "OP Anzahl",
-        value: bookingData['OP'] || 0,
-        icon: TrendingUp,
-        change: bookingSubKPIs['OP change']
-      },
-      {
-        title: "RQ Anzahl",
-        value: bookingData['RQ'] || 0,
-        icon: TrendingDown,
-        change: bookingSubKPIs['RQ change']
-      }
-    ];
-  
-    const bookingStatusData = Object.entries(bookingStatus || {}).map(([key, value]) => ({
-      category: key,
-      value: value || 0
-    }));
-  
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-2">
-          {bookingMetrics.map((metric, index) => (
-            <StatCard
-              key={index}
-              title={metric.title}
-              value={metric.value}
-              icon={metric.icon}
-              change={metric.change}
-              description="im Vergleich zur letzten Periode"
-            />
-          ))}
-        </div>
-  
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ChartCard title="Buchungsstatus">
-            <div className="h-60">
-              <ResponsiveContainer>
-                <BarChart data={bookingStatusData}>
-                  <XAxis dataKey="category" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill={colors.primary} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-  
-          <ChartCard title="OP/RQ Verteilung">
-            <div className="h-60">
-              <ResponsiveContainer>
-                <BarChart data={[
-                  { name: 'OP', value: bookingData['OP'] || 0 },
-                  { name: 'RQ', value: bookingData['RQ'] || 0 }
-                ]}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill={colors.primary} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-      </div>
-    );
+  const salesMetrics = {
+    ...defaultMetrics,
+    ...(data.salesServiceData?.sales_metrics || {})
   };
   
-  const ConversionTab = () => {
-    if (!data.conversionData) return <Loading />;
+  const serviceMetrics = {
+    ...defaultMetrics,
+    ...(data.salesServiceData?.service_metrics || {})
+  };
   
-    const conversionData = data.conversionData || {};
-    const cbData = conversionData?.['Conversion Performance']?.CB || {};
-    const salesData = conversionData?.['Conversion Performance']?.Sales || {};
-    const cbMetrics = conversionData?.CB || {};
-    const salesMetrics = conversionData?.Sales || {};
-  
-    const cbChartData = [{
-      bookings: cbData?.['Bookings CB'] || 0,
-      wrong: cbData?.['Wrong calls'] || 0,
-      handled: cbData?.['CB calls handled'] || 0,
-      conversion: cbMetrics?.['CB Conversion'] || 0
-    }];
-  
-    const salesChartData = [{
-      bookings: salesData?.['Bookings Sales'] || 0,
-      wrong: salesData?.['Wrong calls'] || 0,
-      handled: salesData?.['Sales handles'] || 0,
-      conversion: salesMetrics?.['Sales Conversion'] || 0,
-      volume: salesData?.['Sales volume'] || 0
-    }];
+  const activeMetrics = showSales ? salesMetrics : serviceMetrics;
+  const serviceType = showSales ? 'Vertrieb' : 'Service';
 
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <StatCard
-            title="CB Konversion"
-            value={`${cbMetrics?.['CB Conversion']?.toFixed(2) || '0'}%`}
-            icon={TrendingUp}
-          />
-          <StatCard
-            title="Vertrieb Konversion"
-            value={`${salesMetrics?.['Sales Conversion']?.toFixed(2) || '0'}%`}
-            icon={TrendingUp}
-          />
-        </div>
-  
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ChartCard title="CB Leistung">
-            <div className="h-60">
-              <ResponsiveContainer>
-                <ComposedChart data={cbChartData}>
-                  <XAxis dataKey="name" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="wrong" name="Falsche Anrufe" fill={colors.danger} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="handled" name="Bearbeitete Anrufe" fill={colors.primary} radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="conversion" name="Konversionsrate %" stroke={colors.accent} strokeWidth={2} dot={{ fill: colors.accent }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-  
-          <ChartCard title="Vertrieb Leistung">
-            <div className="h-60">
-              <ResponsiveContainer>
-                <ComposedChart data={salesChartData}>
-                  <XAxis dataKey="name" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="wrong" name="Falsche Anrufe" fill={colors.danger} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="handled" name="Bearbeitete Anrufe" fill={colors.primary} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="volume" name="Vertriebsvolumen" fill={colors.gray} radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="conversion" name="Konversionsrate %" stroke={colors.accent} strokeWidth={2} dot={{ fill: colors.accent }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+  const callOverviewData = [{
+    name: serviceType,
+    angeboten: activeMetrics.calls_offered || 0,
+    bearbeitet: activeMetrics.calls_handled || 0
+  }];
+
+  const serviceMetricsData = [{
+    name: serviceType,
+    acc: Number(activeMetrics.ACC) || 0,
+    sl: Number(activeMetrics.SL) || 0
+  }];
+
+  const handlingTimeData = [{
+    name: serviceType,
+    durchschnitt: Number(activeMetrics.AHT_sec) || 0,
+    wartezeit: Number(activeMetrics.longest_waiting_time_sec) || 0,
+    sprechzeit: Number(activeMetrics.total_talk_time_sec) || 0
+  }];
+
+  return (
+    <div className="space-y-6">
+      {/* Toggle Button */}
+      <div className="flex justify-end mb-6">
+        <div className="inline-flex rounded-lg shadow-sm" role="group">
+          <button
+            onClick={() => setShowSales(true)}
+            className={`
+              px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+              border transition-all duration-200
+              ${showSales 
+                ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+              }
+            `}
+          >
+            Vertrieb
+          </button>
+          <button
+            onClick={() => setShowSales(false)}
+            className={`
+              px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+              border-t border-b border-r transition-all duration-200
+              ${!showSales 
+                ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+              }
+            `}
+          >
+            Service
+          </button>
         </div>
       </div>
-    );
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title={`${serviceType} Anrufe Angeboten`}
+          value={activeMetrics.calls_offered || 0}
+          icon={PhoneCall}
+        />
+        <StatCard
+          title={`${serviceType} Anrufe Bearbeitet`}
+          value={activeMetrics.calls_handled || 0}
+          icon={Phone}
+        />
+        <StatCard
+          title={`${serviceType} ACC`}
+          value={`${Number(activeMetrics.ACC).toFixed(2)}%`}
+          icon={CheckCircle}
+        />
+        <StatCard
+          title={`${serviceType} Serviceniveau`}
+          value={`${Number(activeMetrics.SL).toFixed(2)}%`}
+          icon={TrendingUp}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <ChartCard title="Anruf Übersicht">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={callOverviewData}>
+                <XAxis 
+                  dataKey="name"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                  <Tooltip content={<CustomTooltip />} />
+
+                <Legend 
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    color: '#001E4A'
+                  }}
+                />
+                <Bar dataKey="angeboten" name="Angebotene Anrufe" fill="#F0B72F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="bearbeitet" name="Bearbeitete Anrufe" fill="#E6E2DF" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Service Level & ACC">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={serviceMetricsData}>
+                <XAxis 
+                  dataKey="name"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                  domain={[0, 100]}
+                />
+                <Tooltip content={<CustomTooltip />} />
+
+                <Legend 
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    color: '#001E4A'
+                  }}
+                />
+                <Bar dataKey="acc" name="ACC %" fill="#F0B72F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="sl" name="Serviceniveau %" fill="#001E4A" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Bearbeitungszeiten">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={handlingTimeData}>
+                <XAxis 
+                  dataKey="name"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <Tooltip content={<CustomTooltip />} />
+
+                <Legend 
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    color: '#001E4A'
+                  }}
+                />
+                <Bar dataKey="durchschnitt" name="DGB (Sek)" fill="#F0B72F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="wartezeit" name="Wartezeit (Sek)" fill="#E6E2DF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="sprechzeit" name="Sprechzeit (Sek)" fill="#001E4A" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+    </div>
+  );
+};
+
+const BookingTab = () => {
+  if (!data.bookingData || !data.bookingSubKPIs) return <Loading />;
+
+  const bookingData = data.bookingData || {};
+  const bookingSubKPIs = data.bookingSubKPIs || {};
+  const bookingStatus = bookingData['Booking status'] || {};
+
+  const bookingMetrics = [
+    {
+      title: "Gesamtbuchungen",
+      value: bookingData['Total Bookings'] || 0,
+      icon: Users,
+      change: bookingSubKPIs['Total Bookings change']
+    },
+    {
+      title: "Gebucht",
+      value: bookingData['Booked'] || 0,
+      icon: CheckCircle,
+      change: bookingSubKPIs['Booked change']
+    },
+    {
+      title: "Storniert",
+      value: bookingData['Cancelled count'] || 0,
+      icon: XCircle,
+      change: bookingSubKPIs['Cancelled count change']
+    },
+    {
+      title: "SB Buchungsrate",
+      value: `${bookingData['SB Booking Rate (%)'] || 0}%`,
+      icon: Activity,
+      change: bookingSubKPIs['SB Booking Rate (%) change']
+    },
+    {
+      title: "Ausstehend",
+      value: bookingData['Pending'] || 0,
+      icon: Clock,
+      change: bookingSubKPIs['Pending change']
+    },
+    {
+      title: "OP Anzahl",
+      value: bookingData['OP'] || 0,
+      icon: TrendingUp,
+      change: bookingSubKPIs['OP change']
+    },
+    {
+      title: "RQ Anzahl",
+      value: bookingData['RQ'] || 0,
+      icon: TrendingDown,
+      change: bookingSubKPIs['RQ change']
+    }
+  ];
+
+  const bookingStatusData = Object.entries(bookingStatus || {}).map(([key, value]) => ({
+    category: key,
+    value: value || 0
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {bookingMetrics.map((metric, index) => (
+          <StatCard
+            key={index}
+            title={metric.title}
+            value={metric.value}
+            icon={metric.icon}
+            change={metric.change}
+            description="im Vergleich zur letzten Periode"
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="Buchungsstatus">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={bookingStatusData}>
+                <XAxis 
+                  dataKey="category"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar 
+                  dataKey="value" 
+                  name="Anzahl"
+                  fill="#F0B72F" 
+                  radius={[4, 4, 0, 0]}
+                />
+                <Legend
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    color: '#001E4A'
+                  }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="OP/RQ Verteilung">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={[
+                { name: 'OP', value: bookingData['OP'] || 0 },
+                { name: 'RQ', value: bookingData['RQ'] || 0 }
+              ]}>
+                <XAxis 
+                  dataKey="name"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar 
+                  dataKey="value" 
+                  name="Anzahl"
+                  fill="#F0B72F" 
+                  radius={[4, 4, 0, 0]}
+                />
+                <Legend
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    color: '#001E4A'
+                  }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+    </div>
+  );
+};
+
+  
+const ConversionTab = () => {
+  if (!data.conversionData) return <Loading />;
+
+  const conversionData = data.conversionData || {};
+  const cbData = conversionData?.['Conversion Performance']?.CB || {};
+  const salesData = conversionData?.['Conversion Performance']?.Sales || {};
+  const cbMetrics = conversionData?.CB || {};
+  const salesMetrics = conversionData?.Sales || {};
+
+  const cbChartData = [{
+    bookings: cbData?.['Bookings CB'] || 0,
+    wrong: cbData?.['Wrong calls'] || 0,
+    handled: cbData?.['CB calls handled'] || 0,
+    conversion: cbMetrics?.['CB Conversion'] || 0
+  }];
+
+  const salesChartData = [{
+    bookings: salesData?.['Bookings Sales'] || 0,
+    wrong: salesData?.['Wrong calls'] || 0,
+    handled: salesData?.['Sales handles'] || 0,
+    conversion: salesMetrics?.['Sales Conversion'] || 0,
+    volume: salesData?.['Sales volume'] || 0
+  }];
+
+  const axisStyle = {
+    tick: { 
+      fill: '#001E4A', 
+      fontFamily: 'Nexa-Book',
+      fontSize: '14px'  // Increased font size
+    }
   };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          title="CB Konversion"
+          value={`${cbMetrics?.['CB Conversion']?.toFixed(2) || '0'}%`}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Vertrieb Konversion"
+          value={`${salesMetrics?.['Sales Conversion']?.toFixed(2) || '0'}%`}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Umsatz"
+          value={cbData?.['Turnover'] || '0'}
+          icon={CreditCard}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChartCard title="CB Leistung">
+          <div className="h-[300px]"> {/* Increased height for better visibility */}
+            <ResponsiveContainer>
+              <ComposedChart data={cbChartData}>
+                <XAxis 
+                  dataKey="name" 
+                  {...axisStyle}
+                />
+                <YAxis 
+                  yAxisId="left" 
+                  {...axisStyle}
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right" 
+                  domain={[0, 100]}
+                  {...axisStyle}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    fontSize: '14px',  // Increased legend font size
+                    paddingTop: '10px'  // Added padding for better spacing
+                  }}
+                />
+                <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="wrong" name="Falsche Anrufe" fill={colors.danger} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="handled" name="Bearbeitete Anrufe" fill={colors.primary} radius={[4, 4, 0, 0]} />
+                <Line 
+                  yAxisId="right" 
+                  type="monotone" 
+                  dataKey="conversion" 
+                  name="Konversionsrate %" 
+                  stroke={colors.accent} 
+                  strokeWidth={2} 
+                  dot={{ fill: colors.accent, r: 5 }}  // Increased dot size
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Vertrieb Leistung">
+          <div className="h-[300px]"> {/* Increased height for better visibility */}
+            <ResponsiveContainer>
+              <ComposedChart data={salesChartData}>
+                <XAxis 
+                  dataKey="name" 
+                  {...axisStyle}
+                />
+                <YAxis 
+                  yAxisId="left" 
+                  {...axisStyle}
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right" 
+                  domain={[0, 100]}
+                  {...axisStyle}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{
+                    fontFamily: 'Nexa-Book',
+                    fontSize: '14px',  // Increased legend font size
+                    paddingTop: '10px'  // Added padding for better spacing
+                  }}
+                />
+                <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="wrong" name="Falsche Anrufe" fill={colors.danger} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="handled" name="Bearbeitete Anrufe" fill={colors.primary} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="volume" name="Vertriebsvolumen" fill={colors.gray} radius={[4, 4, 0, 0]} />
+                <Line 
+                  yAxisId="right" 
+                  type="monotone" 
+                  dataKey="conversion" 
+                  name="Konversionsrate %" 
+                  stroke={colors.accent} 
+                  strokeWidth={2} 
+                  dot={{ fill: colors.accent, r: 5 }}  // Increased dot size
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+    </div>
+  );
+};
+
 
   const tabs = [
     { id: "email", name: "E-Mail-Analyse" },
@@ -687,59 +897,79 @@ const handleCompanyChange = (company) => {
 
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
-  return (
-    <div className="bg-gray-50 rounded-[50px]">
+ // Styled Tab Button
+ const TabButton = ({ selected, children, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`px-6 py-3 text-[17px] leading-[27px] font-nexa-black transition-all duration-200 border-b-2 ${
+      selected
+        ? "text-[#001E4A] border-[#F0B72F]"
+        : "text-[#001E4A]/70 border-transparent hover:text-[#001E4A] hover:border-[#F0B72F]/50"
+    }`}
+  >
+    {children}
+  </button>
+);
+
+// Styled Select
+const StyledSelect = ({ value, onChange, options }) => (
+  <select
+    value={value}
+    onChange={onChange}
+    className="w-full px-4 py-2 border border-[#E6E2DF] rounded-md text-[17px] leading-[27px] font-nexa-book text-[#001E4A] focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
+  >
+    {options.map((option) => (
+      <option key={option.id} value={option.id}>
+        {option.name}
+      </option>
+    ))}
+  </select>
+);
+
+return (
+  <div className="bg-[#E6E2DF]/10 rounded-[50px]">
     <div className="max-w-full mx-auto p-4 sm:p-6">
-    <div className="bg-white/70 p-4 rounded-xl shadow-xs mb-4">
-  <div className="flex flex-row gap-4 ">
-    <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-    <CompanyDropdown onCompanyChange={handleCompanyChange} />
-  </div>
-</div>
-        <div className="border-b border-gray-200 mb-6">
-          {/* Dropdown für Mobile */}
-          <div className="sm:hidden">
-            <select
-              value={activeTab}
-              onChange={handleDropdownChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
-            >
-              {tabs.map((tab) => (
-                <option key={tab.id} value={tab.id}>
-                  {tab.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Tabs für Desktop */}
-          <div className="hidden sm:flex space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
-                  activeTab === tab.id
-                    ? "text-black border-yellow-400"
-                    : "text-gray-500 border-transparent hover:text-black hover:border-yellow-300"
-                }`}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab-Inhalt */}
-        <div className="py-4">
-          {activeTab === "email" && <EmailTab />}
-          {activeTab === "sales" && <SalesServiceTab />}
-          {activeTab === "booking" && <BookingTab />}
-          {activeTab === "conversion" && <ConversionTab />}
+      <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-4">
+        <div className="flex flex-row gap-4">
+          <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+          <CompanyDropdown onCompanyChange={handleCompanyChange} />
         </div>
       </div>
+
+      <div className="border-b border-[#E6E2DF] mb-6">
+        {/* Mobile Dropdown */}
+        <div className="sm:hidden">
+          <StyledSelect
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            options={tabs}
+          />
+        </div>
+
+        {/* Desktop Tabs */}
+        <div className="hidden sm:flex space-x-8">
+          {tabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.name}
+            </TabButton>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="py-4">
+        {activeTab === "email" && <EmailTab />}
+        {activeTab === "sales" && <SalesServiceTab />}
+        {activeTab === "booking" && <BookingTab />}
+        {activeTab === "conversion" && <ConversionTab />}
+      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default AnalyticsDashboard;

@@ -37,10 +37,19 @@ const CompanyDropdown = ({ onCompanyChange }) => {
 
   if (!isAdmin) return null;
 
+  if (!isAdmin) return null;
+
   return (
     <select
       onChange={(e) => onCompanyChange(e.target.value)}
-      className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white hover:border-yellow-400 focus:outline-none focus:border-yellow-400 transition-colors"
+      className="
+        px-4 py-2 rounded-lg 
+        text-[17px] leading-[27px] font-nexa-book text-[#001E4A]
+        border border-[#E6E2DF] bg-white 
+        hover:border-[#F0B72F] 
+        focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F] 
+        transition-all
+      "
     >
       <option value="">Keine Filter</option>
       {companies.map((company, index) => (

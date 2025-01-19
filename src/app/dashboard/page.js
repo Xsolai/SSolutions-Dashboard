@@ -67,28 +67,20 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity z-40"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-[#001E4A]/10 backdrop-blur-sm transition-opacity z-40" onClick={onClose} />
       )}
-      <div
-        className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
+      <div className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+        isOpen ? "translate-x-0" : "translate-x-full"
+      }`}>
         <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-[#E6E2DF]">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <h2 className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] flex items-center gap-2">
                 <History className="w-6 h-6" />
-                Verlauf
+                Geschichte
               </h2>
-              <button
-                onClick={onClose}
-                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors duration-200"
-              >
-                <X className="w-5 h-5 text-gray-600" />
+              <button onClick={onClose} className="p-1.5 hover:bg-[#E6E2DF]/10 rounded-full transition-colors duration-200">
+                <X className="w-5 h-5 text-[#001E4A]" />
               </button>
             </div>
           </div>
@@ -96,26 +88,27 @@ const HistorySidebar = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center items-center h-full">
-                <div className="text-gray-500">Verlauf wird geladen...</div>
+                <div className="text-[17px] leading-[27px] font-nexa-book text-[#001E4A]/70">
+                  Verlauf wird geladen...
+                </div>
               </div>
             ) : historyData.length === 0 ? (
               <div className="flex justify-center items-center h-full">
-                <div className="text-gray-500">Kein Verlauf verfügbar</div>
+                <div className="text-[17px] leading-[27px] font-nexa-book text-[#001E4A]/70">
+                  Kein Verlauf verfügbar
+                </div>
               </div>
             ) : (
               <div className="p-4 space-y-3">
                 {historyData.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-gray-50 rounded-xl p-3.5 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group border border-gray-200"
-                  >
+                  <div key={item.id} className="bg-[#E6E2DF]/10 rounded-xl p-3.5 hover:bg-[#E6E2DF]/20 transition-colors duration-200 cursor-pointer group border border-[#E6E2DF]">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-gray-800 group-hover:text-black transition-colors">
+                      <span className="font-nexa-black text-[17px] leading-[27px] text-[#001E4A] group-hover:text-[#001E4A] transition-colors">
                         {item.filename}
                       </span>
                       {getStatusIcon(item.status)}
                     </div>
-                    <div className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
+                    <div className="text-[14px] font-nexa-book text-[#001E4A]/70 group-hover:text-[#001E4A]/80 transition-colors">
                       {item.processed_at}
                     </div>
                   </div>
@@ -164,35 +157,30 @@ const ProfileDropdown = ({ role }) => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200"
-      >
-        <UserCircle className="w-6 h-6" />
+      <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-full hover:bg-[#E6E2DF]/10 transition-all duration-200">
+        <UserCircle className="w-6 h-6 text-[#001E4A]" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-          <div className="p-4 border-b border-gray-200">
-            <p className="font-medium text-gray-900">{localStorage.getItem("username")}</p>
-            <p className="text-sm text-gray-500">{localStorage.getItem("email")}</p>
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-[#E6E2DF] z-50">
+          <div className="p-4 border-b border-[#E6E2DF]">
+            <p className="font-nexa-black text-[17px] leading-[27px] text-[#001E4A]">
+              {localStorage.getItem("username")}
+            </p>
+            <p className="font-nexa-book text-[14px] text-[#001E4A]/70">
+              {localStorage.getItem("email")}
+            </p>
           </div>
           {role === "admin" && (
             <div className="p-2">
-              <a
-                href="/dashboard/admin"
-                className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-md flex items-center gap-2 transition-all duration-200"
-              >
+              <a href="/dashboard/admin" className="w-full px-4 py-2 text-left text-[#001E4A] hover:bg-[#E6E2DF]/10 rounded-md flex items-center gap-2 transition-all duration-200 font-nexa-book">
                 <Settings className="w-4 h-4" />
                 Admin Bereich
               </a>
             </div>
           )}
           <div className="p-2">
-            <button
-              onClick={handleLogout}
-              className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 transition-all duration-200"
-            >
+            <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 transition-all duration-200 font-nexa-book">
               <LogOut className="w-4 h-4" />
               Abmelden
             </button>
@@ -240,15 +228,11 @@ const Home = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-white text-black">
+      <div className="min-h-screen bg-white text-[#001E4A]">
         <div className="py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex-shrink-0">
-              <img
-                src={logo.src}
-                alt="Dashboard Logo"
-                className="w-auto h-6 px-2"
-              />
+              <img src={logo.src} alt="Dashboard Logo" className="w-auto h-8" />
             </div>
 
             <div className="flex items-center gap-4">
@@ -256,10 +240,10 @@ const Home = () => {
                 {navigationLinks.map((link) => (
                   <button
                     key={link.id}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                    className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] transition-all duration-200 ${
                       activeTab === link.id
-                        ? "text-black bg-yellow-400"
-                        : "text-black border-[#FDCC00] border-2"
+                        ? "text-[#001E4A] bg-[#F0B72F]"
+                        : "text-[#001E4A] border-[#F0B72F] border-2 hover:bg-[#F0B72F]/10"
                     }`}
                     onClick={() => setActiveTab(link.id)}
                   >
@@ -268,11 +252,11 @@ const Home = () => {
                 ))}
                 {role === "admin" && (
                   <button
-                    className="px-4 py-2 rounded-xl font-medium bg-black text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
+                    className="px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] bg-[#001E4A] text-[#F0B72F] hover:bg-[#001E4A]/90 transition-all duration-200 flex items-center gap-2"
                     onClick={() => setIsHistoryOpen(true)}
                   >
                     <History className="w-5 h-5" />
-                    Verlauf
+                    Geschichte
                   </button>
                 )}
                 <ProfileDropdown role={role} />
@@ -280,7 +264,7 @@ const Home = () => {
 
               <div className="md:hidden flex items-center gap-4">
                 <button
-                  className="p-2 rounded-lg bg-black text-[#FDCC00] hover:bg-gray-800"
+                  className="p-2 rounded-lg bg-[#001E4A] text-[#F0B72F] hover:bg-[#001E4A]/90"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 >
                   <Menu className="w-6 h-6" />
@@ -291,14 +275,14 @@ const Home = () => {
           </div>
 
           {isMobileMenuOpen && (
-            <div className="md:hidden bg-white border-black border-2 rounded-xl mt-4 p-4 space-y-3">
+            <div className="md:hidden bg-white border-[#001E4A] border-2 rounded-xl mt-4 p-4 space-y-3">
               {navigationLinks.map((link) => (
                 <button
                   key={link.id}
-                  className={`w-full px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  className={`w-full px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] transition-all duration-200 ${
                     activeTab === link.id
-                      ? "bg-[#FDCC00] text-black"
-                      : "text-[#FDCC00] hover:bg-gray-800"
+                      ? "bg-[#F0B72F] text-[#001E4A]"
+                      : "text-[#F0B72F] hover:bg-[#001E4A]/10"
                   }`}
                   onClick={() => setActiveTab(link.id)}
                 >
@@ -307,14 +291,14 @@ const Home = () => {
               ))}
               {role === "admin" && (
                 <button
-                  className="w-full px-4 py-2 rounded-xl font-medium text-[#FDCC00] hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] text-[#F0B72F] hover:bg-[#001E4A]/10 transition-all duration-200 flex items-center justify-center gap-2"
                   onClick={() => {
                     setIsHistoryOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
                 >
                   <History className="w-5 h-5" />
-                  Verlauf
+                  Geschichte
                 </button>
               )}
             </div>

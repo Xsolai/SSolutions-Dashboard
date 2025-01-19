@@ -177,69 +177,90 @@ const OTPVerificationPage = () => {
     }
   };
 
-  const inputClass = "w-12 h-12 text-center text-xl font-semibold rounded-md border border-yellow-400 shadow-sm focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 hover:border-gray-400 transition-all duration-200";
-  const buttonClass = "w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed";
+  const inputClass = `
+  w-12 h-12 
+  text-center text-[17px] font-nexa-book 
+  rounded-md border border-[#F0B72F] shadow-sm 
+  text-[#001E4A] 
+  focus:outline-none focus:border-[#F0B72F] focus:ring-1 focus:ring-[#F0B72F] 
+  hover:border-[#E6E2DF] 
+  transition-all duration-200
+`;
 
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <Toaster />
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <div className="text-center space-y-2 mb-8">
-          <h2 className="text-4xl font-extrabold text-gray-800">Bestätigungscode</h2>
-          <p className="text-gray-500">
-            Wir haben einen Code an Ihre E-Mail gesendet
+const buttonClass = `
+  w-full px-4 py-2 
+  border border-transparent rounded-md shadow-sm 
+  text-[17px] leading-[27px] font-nexa-black 
+  text-[#001E4A] bg-[#F0B72F] 
+  hover:bg-[#F0B72F]/90 
+  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001E4A] 
+  transition-colors duration-200 
+  flex items-center justify-center 
+  disabled:opacity-50 disabled:cursor-not-allowed
+`;
+
+return (
+  <div className="flex justify-center items-center min-h-screen bg-[#E6E2DF]/10">
+    <Toaster />
+    <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+      <div className="text-center space-y-2 mb-8">
+        <h2 className="text-[42px] leading-[54px] font-nexa-black text-[#001E4A]">
+          Bestätigungscode
+        </h2>
+        <p className="text-[17px] leading-[27px] font-nexa-book text-[#001E4A]/70">
+          Wir haben einen Code an Ihre E-Mail gesendet
+        </p>
+        {maskedEmail && (
+          <p className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">
+            {maskedEmail}
           </p>
-          {maskedEmail && (
-            <p className="text-gray-900 font-medium">
-              {maskedEmail}
-            </p>
-          )}
-        </div>
+        )}
+      </div>
 
-        <div className="flex justify-between mb-8">
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{1}"
-              maxLength="1"
-              ref={el => inputRefs.current[index] = el}
-              value={digit}
-              onChange={e => handleChange(e.target, index)}
-              onKeyDown={e => handleKeyDown(e, index)}
-              onPaste={handlePaste}
-              className={inputClass}
-            />
-          ))}
-        </div>
+      <div className="flex justify-between mb-8 gap-2">
+        {otp.map((digit, index) => (
+          <input
+            key={index}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="\d{1}"
+            maxLength="1"
+            ref={el => inputRefs.current[index] = el}
+            value={digit}
+            onChange={e => handleChange(e.target, index)}
+            onKeyDown={e => handleKeyDown(e, index)}
+            onPaste={handlePaste}
+            className={inputClass}
+          />
+        ))}
+      </div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className={buttonClass}
+      <button
+        onClick={handleSubmit}
+        disabled={isLoading}
+        className={buttonClass}
+      >
+        {isLoading ? 'Wird verifiziert...' : (
+          <>
+            <span>Verifizieren</span>
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </>
+        )}
+      </button>
+
+      <div className="mt-4 text-center text-[17px] leading-[27px]">
+        <span className="font-nexa-book text-[#001E4A]/70">Keinen Code erhalten? </span>
+        <button 
+          onClick={handleResendOTP}
+          className="font-nexa-black text-[#001E4A] hover:text-[#F0B72F] transition-colors"
         >
-          {isLoading ? 'Wird verifiziert...' : (
-            <>
-              <span>Verifizieren</span>
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </>
-          )}
+          Erneut senden
         </button>
-
-        <div className="mt-4 text-center text-sm">
-          <span className="text-gray-600">Keinen Code erhalten? </span>
-          <button 
-            onClick={handleResendOTP}
-            className="font-medium text-black hover:underline focus:outline-none"
-          >
-            Erneut senden
-          </button>
-        </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default OTPVerificationPage;

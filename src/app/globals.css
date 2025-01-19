@@ -45,3 +45,21 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
+
+@font-face {
+  font-family: 'Nexa-Black';
+  src: url('/fonts/nexa-black.woff2') format('woff2'),
+       url('/fonts/nexa-black.woff') format('woff');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa-Book';
+  src: url('/fonts/Nexa-Book.woff2') format('woff2'),
+       url('/fonts/Nexa-Book.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
