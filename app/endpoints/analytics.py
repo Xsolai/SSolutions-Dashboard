@@ -16,6 +16,14 @@ router = APIRouter(
     tags=["Analytics"]
 )
 
+def format_revenue(num):
+    if num >= 1_000_000:
+        return f"{num / 1_000_000:.2f}M"
+    elif num >= 1_000:
+        return f"{num / 1_000:.2f}K"
+    else:
+        return str(num)
+
 def time_to_seconds(time_str):
     """Convert time in various formats to seconds."""
     try:
@@ -968,7 +976,8 @@ async def get_conversion_data(
             "CB calls handled": calls_cb_handled,
             "Wrong calls": wrong_calls,
             "Bookings CB": bookings_cb if bookings_cb>1 else 0,
-            "Turnover": turnover_cb,
+            "Turnover": format_revenue(turnover_cb),
+            # "turnover": turnover_cb,
             "CB Conversion": cb_conversion
             },
             "Sales":{
