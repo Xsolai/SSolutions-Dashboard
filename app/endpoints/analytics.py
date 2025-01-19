@@ -812,6 +812,7 @@ async def get_conversion_data(
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
     # Calculate the allowed date range based on the user's permissions
     start_date, end_date = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
+    start_date_booking, end_date_booking = validate_user_and_date_permissions_booking(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     user_permission = db.query(Permission).filter(Permission.user_id == user.id).first()
     user_domains = [
         domain.strip().lower()
@@ -945,7 +946,7 @@ async def get_conversion_data(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 1
         turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).filter(
-        SoftBookingKF.service_creation_time.between(start_date_str, end_date_str)
+        SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
         ).scalar() or 0,2)
         sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).filter(
         GuruCallReason.date.between(start_date, end_date)
