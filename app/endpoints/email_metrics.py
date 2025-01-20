@@ -309,6 +309,8 @@ async def get_email_overview_sub_kpis(
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")
     total_processing_time_seconds = 0.00001
     prev_total_processing_time_seconds = 0.00001
+    total_processing_time_min = 0.00001
+    prev_total_processing_time_min = 0.00001
     # start_date, end_date = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
     # prev_start_date, prev_end_date = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Normal Kpis
@@ -323,10 +325,12 @@ async def get_email_overview_sub_kpis(
     processing_times = email_query.with_entities(EmailData.processing_time).filter(
         EmailData.date.between(start_date, end_date)
     ).all()
-    processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     for pt in processing_times:
-        seconds = time_to_minutes(pt)
+        minutes,seconds = time_to_minutes(pt)
         total_processing_time_seconds += seconds
+        total_processing_time_min += minutes
+        
+    total_processing_time_min += total_processing_time_seconds // 60
     
     total_emails = query.with_entities(
         func.sum(
@@ -357,9 +361,12 @@ async def get_email_overview_sub_kpis(
         EmailData.date.between(prev_start_date, prev_end_date)
     ).all()
     prev_processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in prev_processing_times]
-    for pt in prev_processing_times:
-        prev_seconds = time_to_minutes(pt) 
-        prev_total_processing_time_seconds += prev_seconds
+    for pt in processing_times:
+        p_minutes,p_seconds = time_to_minutes(pt)
+        prev_total_processing_time_seconds += p_seconds
+        prev_total_processing_time_min += p_minutes
+        
+    prev_total_processing_time_min += total_processing_time_seconds // 60
     
     prev_total_emails = query.with_entities(
         func.sum(
