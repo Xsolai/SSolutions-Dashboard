@@ -35,7 +35,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       if (value > 60) {
         return `${(value / 60).toFixed(2)} Min`;
       }
-      return `${Number(value).toFixed(2)} Sek`;
+      return `${Number(value).toFixed(2)} Min`;
     }
 
     // Handle integers
@@ -405,7 +405,10 @@ const PerformanceTab = () => {
         </div>
       </ChartCard>
 
-      {/* Tasks by Due Date */}
+
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Tasks by Due Date */}
       <ChartCard title="Aufgaben nach Fälligkeitsdatum">
         <div className="h-[350px]">
           <ResponsiveContainer>
@@ -434,8 +437,7 @@ const PerformanceTab = () => {
           </ResponsiveContainer>
         </div>
       </ChartCard>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
         {/* Task Creation Trend */}
         <ChartCard title="Aufgabenerstell-Trend">
           <div className="h-[350px]">
@@ -470,7 +472,7 @@ const PerformanceTab = () => {
           </div>
         </ChartCard>
 
-        {/* Upcoming Tasks */}
+        {/* Upcoming Tasks
         <ChartCard title="Anstehende Aufgaben (Nächste 7 Tage)">
           <div className="h-[350px]">
             <ResponsiveContainer>
@@ -499,7 +501,7 @@ const PerformanceTab = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </ChartCard>
+        </ChartCard> */}
       </div>
     </div>
   );

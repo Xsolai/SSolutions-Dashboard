@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       return `${Number(value).toFixed(2)}%`;
     }
     if (name?.toLowerCase().includes('zeit') || name?.toLowerCase().includes('time')) {
-      return `${Number(value).toFixed(2)} Sek`;
+      return `${Number(value).toFixed(2)} Min`;
     }
     return value.toLocaleString();
   };

@@ -101,8 +101,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 
     // Handle time values
     if (name?.toLowerCase().includes('zeit') || name?.toLowerCase().includes('time') || 
-        name?.toLowerCase().includes('sec') || name?.toLowerCase().includes('sek')) {
-      return `${Number(value).toFixed(2)} Sek`;
+        name?.toLowerCase().includes('sec') || name?.toLowerCase().includes('min')) {
+      return `${Number(value).toFixed(2)} Min`;
     }
 
     // Default number formatting
@@ -393,7 +393,7 @@ const EmailTab = () => {
                   stroke="#F0B72F"
                   strokeWidth={2}
                   dot={{ fill: '#F0B72F' }}
-                  name="Bearbeitungszeit (Sek.)"
+                  name="Bearbeitungszeit (Min)"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -588,9 +588,9 @@ const SalesServiceTab = () => {
                     color: '#001E4A'
                   }}
                 />
-                <Bar dataKey="durchschnitt" name="DGB (Sek)" fill="#F0B72F" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="wartezeit" name="Wartezeit (Sek)" fill="#E6E2DF" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sprechzeit" name="Sprechzeit (Sek)" fill="#001E4A" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="durchschnitt" name="DGB (Min)" fill="#F0B72F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="wartezeit" name="Wartezeit (Min)" fill="#E6E2DF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="sprechzeit" name="Sprechzeit (Min)" fill="#001E4A" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

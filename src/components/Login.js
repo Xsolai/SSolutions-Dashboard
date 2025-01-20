@@ -8,6 +8,7 @@ import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
+// Move schema outside component to prevent recreation on each render
 const schema = z.object({
   email: z.string().email('Ungültige E-Mail-Adresse'),
   password: z.string().min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein')
@@ -16,9 +17,22 @@ const schema = z.object({
     .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Das Passwort muss mindestens ein Sonderzeichen enthalten'),
 });
 
+// Memoize static classes
+const inputClass = "mt-1 block w-full px-3 py-2 bg-white border rounded-md text-[17px] leading-[27px] font-nexa-book text-[#001E4A] border-[#F0B72F] placeholder-gray-400 focus:outline-none focus:border-[#F0B72F] focus:ring-1 focus:ring-[#F0B72F] hover:border-[#E6E2DF] transition-all duration-200";
+const buttonClass = "w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-[17px] leading-[27px] font-nexa-black text-[#001E4A] bg-[#F0B72F] hover:bg-[#F0B72F]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001E4A] transition-colors duration-200 disabled:opacity-50";
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: 'https://app.saincube.com/app2',
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+});
+
 const LoginForm = () => {
   const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(schema)
+    resolver: zodResolver(schema),
+    mode: 'onChange' // Validate on change instead of submit for faster feedback
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,43 +45,29 @@ const LoginForm = () => {
       formData.append('username', data.email);
       formData.append('password', data.password);
 
-      const response = await axios.post('https://app.saincube.com/app2/login', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post('/login', formData);
 
       if (response.data.access_token) {
+        // Store token and redirect simultaneously
         localStorage.setItem('access_token', response.data.access_token);
+        
+        // Prefetch the dashboard page
+        router.prefetch('/dashboard');
+        
         toast.success('Anmeldung erfolgreich!');
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1000);
+        
+        // Remove the timeout delay and use immediate navigation
+        router.push('/dashboard');
       }
     } catch (error) {
-      if (error.response) {
-        switch (error.response.status) {
-          case 403:
-          case 404:
-          case 422:
-            toast.error(error.response.data.detail);
-            break;
-          default:
-            toast.error(error.response.data.detail || 'Ein Serverfehler ist aufgetreten');
-        }
-      } else if (error.request) {
-        toast.error('Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung.');
-      } else {
-        toast.error('Fehler bei der Anfrage. Bitte versuchen Sie es erneut.');
-      }
+      const errorMessage = error.response?.data?.detail || 
+        (error.request ? 'Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung.' : 'Fehler bei der Anfrage. Bitte versuchen Sie es erneut.');
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const inputClass = "mt-1 block w-full px-3 py-2 bg-white border rounded-md text-[17px] leading-[27px] font-nexa-book text-[#001E4A] border-[#F0B72F] placeholder-gray-400 focus:outline-none focus:border-[#F0B72F] focus:ring-1 focus:ring-[#F0B72F] hover:border-[#E6E2DF] transition-all duration-200";
-  
-  const buttonClass = "w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-[17px] leading-[27px] font-nexa-black text-[#001E4A] bg-[#F0B72F] hover:bg-[#F0B72F]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001E4A] transition-colors duration-200 disabled:opacity-50";
 
   return (
     <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-[#E6E2DF]/10">

@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Clock,
   Menu,
+  Mail ,
   Settings,
 } from "lucide-react";
 import CallAnalysisDashboard from "@/components/CallAnalysisDashboard";
@@ -22,64 +23,106 @@ import TaskAnalysisDashboard from "@/components/TaskAnalyis";
 const HistorySidebar = ({ isOpen, onClose }) => {
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(null);
+  const accessToken = localStorage.getItem('access_token');
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get("https://app.saincube.com/app2/history");
+        const response = await axios.get("https://app.saincube.com/app2/history", {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
         setHistoryData(response.data);
+        setError(null);
         setLoading(false);
       } catch (error) {
         console.error("Fehler beim Abrufen des Verlaufs:", error);
+        setError(
+          error.response?.status === 401 
+            ? "Nicht autorisiert. Bitte melden Sie sich erneut an."
+            : "Fehler beim Laden des Verlaufs. Bitte versuchen Sie es später erneut."
+        );
         setLoading(false);
       }
     };
 
-    if (isOpen) {
+    if (isOpen && accessToken) {
       fetchHistory();
     }
 
-    let interval;
-    if (isOpen) {
-      interval = setInterval(fetchHistory, 30000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isOpen]);
+    const interval = isOpen && accessToken ? setInterval(fetchHistory, 30000) : null;
+    return () => interval && clearInterval(interval);
+  }, [isOpen, accessToken]);
 
-  const getStatusIcon = (status) => {
-    switch (status.toLowerCase()) {
-      case "success":
-      case "completed":
-        return <Check className="w-5 h-5 text-green-500" />;
-      case "error":
-      case "failed":
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case "pending":
-      case "processing":
-        return <Clock className="w-5 h-5 text-yellow-500" />;
-      default:
-        return null;
+  const getStatusInfo = (status) => {
+    const statusMap = {
+      'added': {
+        icon: <Check className="w-5 h-5 text-[#4CAF50]" />,
+        label: 'Hinzugefügt'
+      },
+      'added for email data': {
+        icon: <Mail className="w-5 h-5 text-[#F0B72F]" />,
+        label: 'E-Mail-Daten hinzugefügt'
+      },
+      'processing': {
+        icon: <Clock className="w-5 h-5 text-[#F0B72F]" />,
+        label: 'Wird verarbeitet'
+      },
+      'error': {
+        icon: <AlertTriangle className="w-5 h-5 text-[#DC3545]" />,
+        label: 'Fehler'
+      }
+    };
+
+    return statusMap[status.toLowerCase()] || {
+      icon: <Clock className="w-5 h-5 text-[#F0B72F]" />,
+      label: status
+    };
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      return dateString;
     }
   };
 
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 bg-[#001E4A]/10 backdrop-blur-sm transition-opacity z-40" onClick={onClose} />
+        <div 
+          className="fixed inset-0 bg-[#001E4A]/10 backdrop-blur-sm transition-opacity z-40" 
+          onClick={onClose}
+        />
       )}
-      <div className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
-        isOpen ? "translate-x-0" : "translate-x-full"
-      }`}>
+      
+      <div
+        className={`fixed top-0 right-0 h-full w-full md:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-[#E6E2DF]">
             <div className="flex items-center justify-between">
               <h2 className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] flex items-center gap-2">
                 <History className="w-6 h-6" />
-                Geschichte
+                History
               </h2>
-              <button onClick={onClose} className="p-1.5 hover:bg-[#E6E2DF]/10 rounded-full transition-colors duration-200">
+              <button 
+                onClick={onClose}
+                className="p-1.5 hover:bg-[#E6E2DF]/10 rounded-full transition-colors duration-200"
+                aria-label="Schließen"
+              >
                 <X className="w-5 h-5 text-[#001E4A]" />
               </button>
             </div>
@@ -92,6 +135,12 @@ const HistorySidebar = ({ isOpen, onClose }) => {
                   Verlauf wird geladen...
                 </div>
               </div>
+            ) : error ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="text-[17px] leading-[27px] font-nexa-book text-[#DC3545] px-4 text-center">
+                  {error}
+                </div>
+              </div>
             ) : historyData.length === 0 ? (
               <div className="flex justify-center items-center h-full">
                 <div className="text-[17px] leading-[27px] font-nexa-book text-[#001E4A]/70">
@@ -100,19 +149,31 @@ const HistorySidebar = ({ isOpen, onClose }) => {
               </div>
             ) : (
               <div className="p-4 space-y-3">
-                {historyData.map((item) => (
-                  <div key={item.id} className="bg-[#E6E2DF]/10 rounded-xl p-3.5 hover:bg-[#E6E2DF]/20 transition-colors duration-200 cursor-pointer group border border-[#E6E2DF]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-nexa-black text-[17px] leading-[27px] text-[#001E4A] group-hover:text-[#001E4A] transition-colors">
-                        {item.filename}
-                      </span>
-                      {getStatusIcon(item.status)}
+                {historyData.map((item) => {
+                  const statusInfo = getStatusInfo(item.status);
+                  
+                  return (
+                    <div 
+                      key={item.id}
+                      className="bg-[#E6E2DF]/10 rounded-xl p-3.5 hover:bg-[#E6E2DF]/20 transition-colors duration-200 cursor-pointer group border border-[#E6E2DF]"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1">
+                          <span className="font-nexa-black text-[17px] leading-[27px] text-[#001E4A] group-hover:text-[#001E4A] transition-colors">
+                            {item.filename}
+                          </span>
+                          <div className="text-[14px] font-nexa-book text-[#001E4A]/70 group-hover:text-[#001E4A]/80 transition-colors mt-1">
+                            {statusInfo.label}
+                          </div>
+                        </div>
+                        {statusInfo.icon}
+                      </div>
+                      <div className="text-[14px] font-nexa-book text-[#001E4A]/70 group-hover:text-[#001E4A]/80 transition-colors">
+                        {formatDate(item.processed_at)}
+                      </div>
                     </div>
-                    <div className="text-[14px] font-nexa-book text-[#001E4A]/70 group-hover:text-[#001E4A]/80 transition-colors">
-                      {item.processed_at}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -121,6 +182,10 @@ const HistorySidebar = ({ isOpen, onClose }) => {
     </>
   );
 };
+
+
+
+
 
 const ProfileDropdown = ({ role }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -256,7 +321,7 @@ const Home = () => {
                     onClick={() => setIsHistoryOpen(true)}
                   >
                     <History className="w-5 h-5" />
-                    Geschichte
+                    History
                   </button>
                 )}
                 <ProfileDropdown role={role} />
@@ -298,7 +363,7 @@ const Home = () => {
                   }}
                 >
                   <History className="w-5 h-5" />
-                  Geschichte
+                  History
                 </button>
               )}
             </div>
