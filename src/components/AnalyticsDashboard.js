@@ -167,7 +167,6 @@ const handleCompanyChange = (company) => {
   useEffect(() => {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-    Bearbeitungszeiten
     setDateRange({
       startDate: currentDate,
       endDate: currentDate,
