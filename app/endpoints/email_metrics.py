@@ -57,13 +57,13 @@ def time_to_minutes(time):
             if len(time[0].split(':')) == 2:
                 # Format: 'mm:ss'
                 dt = datetime.strptime(time[0], "%M:%S")
-                total_minutes = dt.minute + dt.second / 60
-                return total_minutes
+                # total_minutes = dt.minute + dt.second
+                return (dt.minute, dt.second)
             elif len(time[0].split(':')) == 3:
                 # Format: 'hh:mm:ss'
                 dt = datetime.strptime(time[0], "%H:%M:%S")
-                total_minutes = dt.hour * 60 + dt.minute + dt.second / 60
-                return total_minutes
+                total_minutes = dt.hour * 60 + dt.minute
+                return (total_minutes, dt.second)
 
         return 0  # Return 0 if format is unrecognized
     except Exception as e:
@@ -140,6 +140,7 @@ async def get_email_overview(
             email_query = db.query(EmailData)
         
     total_processing_time_seconds = 0.00001
+    total_processing_time_min = 0
     if start_date is None:
         service_level_gross = query.with_entities(
             func.avg(
@@ -151,11 +152,11 @@ async def get_email_overview(
         # Clean the data to extract values from tuples
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
-            # print("Original Time:", pt)  # Debug print
-            seconds = time_to_minutes(pt)
-            # print("Converted Seconds:", seconds)  # Debug print
+            minutes,seconds = time_to_minutes(pt)
             total_processing_time_seconds += seconds
-            # print("Interval Data:", dict(interval_data))  # Debug print
+            total_processing_time_min += minutes
+        
+        total_processing_time_min += total_processing_time_seconds // 60
         
         total_emails = query.with_entities(
             func.sum(
@@ -194,8 +195,11 @@ async def get_email_overview(
         ).all()
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
         for pt in processing_times:
-            seconds = time_to_minutes(pt)
+            minutes,seconds = time_to_minutes(pt)
             total_processing_time_seconds += seconds
+            total_processing_time_min += minutes
+        
+        total_processing_time_min += total_processing_time_seconds // 60
         
         total_emails = query.with_entities(
             func.sum(
@@ -228,7 +232,7 @@ async def get_email_overview(
         ]
     
     return {
-        "Total Processing Time (sec)": round(total_processing_time_seconds,2) if total_processing_time_seconds>1 else 0,
+        "Total Processing Time (sec)": f"{round(total_processing_time_min,0) if total_processing_time_min>1 else 0}m {round(total_processing_time_seconds%60,0) if total_processing_time_seconds>1 else 0}s",
         "total emails recieved": total_emails,
         "total new cases": new_cases,
         "service_level_gross": round(service_level_gross, 2),
@@ -474,22 +478,48 @@ async def get_mailbox_SL(
         ).all()
 
         # Process data to calculate total processing time for each mailbox
+        # processing_time_by_mailbox = {}
+        # for row in mailbox_processing_data:
+        #     if row.mailbox not in processing_time_by_mailbox:
+        #         processing_time_by_mailbox[row.mailbox] = 0
+
+        #     # Convert processing_time to seconds and accumulate
+        #     processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))
+
+        # # Format the results
+        # pt_mailbox = [
+        #     {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
+        #     for mailbox, total_time in processing_time_by_mailbox.items()
+        # ]
+
+        # # Sort by processing time in descending order
+        # pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
+        
         processing_time_by_mailbox = {}
         for row in mailbox_processing_data:
             if row.mailbox not in processing_time_by_mailbox:
-                processing_time_by_mailbox[row.mailbox] = 0
+                processing_time_by_mailbox[row.mailbox] = (0, 0)  # Initialize with (minutes, seconds)
 
-            # Convert processing_time to seconds and accumulate
-            processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))
+            # Convert processing_time to (minutes, seconds) and accumulate
+            minutes, seconds = time_to_minutes((row.processing_time,))
+            total_minutes, total_seconds = processing_time_by_mailbox[row.mailbox]
+            total_seconds += seconds
+            total_minutes += minutes + total_seconds // 60  # Handle overflow of seconds
+            total_seconds = total_seconds % 60  # Remaining seconds
+            processing_time_by_mailbox[row.mailbox] = (total_minutes, total_seconds)
 
         # Format the results
         pt_mailbox = [
-            {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
-            for mailbox, total_time in processing_time_by_mailbox.items()
+            {
+                "mailbox": mailbox,
+                "processing_time": f"{minutes}m{seconds}s"
+            }
+            for mailbox, (minutes, seconds) in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
+        pt_mailbox = sorted(pt_mailbox, key=lambda x: int(x["processing_time"].split("m")[0]), reverse=True)
+
         
         # Query total new sent emails
         replies_data = query.with_entities(
@@ -524,25 +554,52 @@ async def get_mailbox_SL(
         ).all()
         
         # Process data to calculate total processing time for each mailbox
+        # processing_time_by_mailbox = {}
+        # for row in mailbox_processing_data:
+        #     if row.mailbox not in processing_time_by_mailbox:
+        #         processing_time_by_mailbox[row.mailbox] = 0
+            
+        #     # print("Processing time: ", row.processing_time)    
+
+        #     # Convert processing_time to seconds and accumulate
+        #     processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))
+
+        # # Format the results
+        # pt_mailbox = [
+        #     {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
+        #     for mailbox, total_time in processing_time_by_mailbox.items()
+        # ]
+
+        # # Sort by processing time in descending order
+        # pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
+        
         processing_time_by_mailbox = {}
         for row in mailbox_processing_data:
             if row.mailbox not in processing_time_by_mailbox:
-                processing_time_by_mailbox[row.mailbox] = 0
-            
-            # print("Processing time: ", row.processing_time)    
+                processing_time_by_mailbox[row.mailbox] = (0, 0)  # Initialize with (minutes, seconds)
 
-            # Convert processing_time to seconds and accumulate
-            processing_time_by_mailbox[row.mailbox] += time_to_minutes((row.processing_time,))
+            # Convert processing_time to (minutes, seconds) and accumulate
+            minutes, seconds = time_to_minutes((row.processing_time,))
+            total_minutes, total_seconds = processing_time_by_mailbox[row.mailbox]
+            total_seconds += seconds
+            total_minutes += minutes + total_seconds // 60  # Handle overflow of seconds
+            total_seconds = total_seconds % 60  # Remaining seconds
+            processing_time_by_mailbox[row.mailbox] = (total_minutes, total_seconds)
 
         # Format the results
         pt_mailbox = [
-            {"mailbox": mailbox, "processing_time_sec": round(total_time, 2)}
-            for mailbox, total_time in processing_time_by_mailbox.items()
+            {
+                "mailbox": mailbox,
+                "processing_time": f"{minutes}m{seconds}s"
+            }
+            for mailbox, (minutes, seconds) in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: x["processing_time_sec"], reverse=True)
+        pt_mailbox = sorted(pt_mailbox, key=lambda x: int(x["processing_time"].split("m")[0]), reverse=True)
+
         
+                
         # Query total new sent emails
         replies_data = query.with_entities(
             WorkflowReportGuruKF.customer.label("customer"),

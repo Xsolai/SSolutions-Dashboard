@@ -18,9 +18,9 @@ router = APIRouter(
 
 def format_revenue(num):
     if num >= 1_000_000:
-        return f"{num / 1_000_000:.2f}M"
+        return f"{num / 1_000_000:.2f}M€"
     elif num >= 1_000:
-        return f"{num / 1_000:.2f}K"
+        return f"{num / 1_000:.2f}€"
     else:
         return str(num)
 
@@ -246,7 +246,7 @@ async def get_anaytics_email_data(
         {
             "interval_start": f"{interval}m",
             "interval_end": f"{interval + 10}m",
-            "total_processing_time_sec": total
+            "total_processing_time_sec": total/60
         }
         for interval, total in sorted(interval_data.items())
     ]
@@ -491,9 +491,9 @@ async def get_sales_and_service(
             func.sum(QueueStatistics.accepted).label("sale_calls_handled"),
             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 1) * 100).label("sale_ACC"),
             func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("sale_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time * 60).label("sale_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("sale_total_talk_time_sec")
+            func.avg(QueueStatistics.avg_handling_time_inbound ).label("sale_AHT_sec"),
+            func.max(QueueStatistics.max_wait_time).label("sale_longest_waiting_time_sec"),
+            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("sale_total_talk_time_sec")
         ).filter(QueueStatistics.queue_name.notlike("%Service%")).first()
         
         # Query for Service Calls
@@ -502,9 +502,9 @@ async def get_sales_and_service(
             func.sum(QueueStatistics.accepted).label("service_calls_handled"),
             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 1) * 100).label("service_ACC"),
             func.avg(QueueStatistics.sla_20_20).label("service_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("service_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time * 60).label("service_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("service_total_talk_time_sec")
+            func.avg(QueueStatistics.avg_handling_time_inbound).label("service_AHT_sec"),
+            func.max(QueueStatistics.max_wait_time).label("service_longest_waiting_time_sec"),
+            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
         ).filter(QueueStatistics.queue_name.like("%Service%")).first()
         
     else:
@@ -538,9 +538,9 @@ async def get_sales_and_service(
             func.sum(QueueStatistics.accepted).label("sale_calls_handled"),
             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("sale_ACC"),
             func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("sale_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time * 60).label("sale_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("sale_total_talk_time_sec")
+            func.avg(QueueStatistics.avg_handling_time_inbound).label("sale_AHT_sec"),
+            func.max(QueueStatistics.max_wait_time).label("sale_longest_waiting_time_sec"),
+            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("sale_total_talk_time_sec")
         ).filter(QueueStatistics.queue_name.notlike("%Service%"), QueueStatistics.date.between(start_date, end_date)).first()
         
         # Query for Service Calls
@@ -549,9 +549,9 @@ async def get_sales_and_service(
             func.sum(QueueStatistics.accepted).label("service_calls_handled"),
             func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("service_ACC"),
             func.avg(QueueStatistics.sla_20_20).label("service_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound * 60).label("service_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time * 60).label("service_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination * 60).label("service_total_talk_time_sec")
+            func.avg(QueueStatistics.avg_handling_time_inbound).label("service_AHT_sec"),
+            func.max(QueueStatistics.max_wait_time).label("service_longest_waiting_time_sec"),
+            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
         ).filter(QueueStatistics.queue_name.like("%Service%"), QueueStatistics.date.between(start_date, end_date)).first()
     
     return {
@@ -560,21 +560,21 @@ async def get_sales_and_service(
             "calls_handled": sale_metrics.sale_calls_handled or 0,
             "ACC": round(sale_metrics.sale_ACC or 0, 2),
             "SL": round(sale_metrics.sale_SL or 0, 2),
-            "AHT_sec": round(sale_metrics.sale_AHT_sec or 0, 2),
-            "longest_waiting_time_sec": sale_metrics.sale_longest_waiting_time_sec or 0,
-            "total_talk_time_sec": round(sale_metrics.sale_total_talk_time_sec or 0, 2)
+            "AHT_sec": round((sale_metrics.sale_AHT_sec/60 if sale_metrics.sale_AHT_sec else 0) or 0, 2),
+            "longest_waiting_time_sec": (sale_metrics.sale_longest_waiting_time_sec/60 if sale_metrics.sale_longest_waiting_time_sec else 0) or 0 or 0,
+            # "total_talk_time_sec": round((sale_metrics.sale_total_talk_time_sec/60 if sale_metrics.sale_total_talk_time_sec else 0) or 0, 2)
         },
         "service_metrics": {
             "calls_offered": service_metrics.service_calls_offered or 0,
             "calls_handled": service_metrics.service_calls_handled or 0,
             "ACC": round(service_metrics.service_ACC or 0, 2),
             "SL": round(service_metrics.service_SL or 0, 2),
-            "AHT_sec": round(service_metrics.service_AHT_sec or 0, 2),
-            "longest_waiting_time_sec": service_metrics.service_longest_waiting_time_sec or 0,
-            "total_talk_time_sec": round(service_metrics.service_total_talk_time_sec or 0, 2)
+            "AHT_sec": round((service_metrics.service_AHT_sec/60 if service_metrics.service_AHT_sec else 0) or 0, 2),
+            "longest_waiting_time_sec": (service_metrics.service_longest_waiting_time_sec/60 if service_metrics.service_longest_waiting_time_sec else 0) or 0 or 0,
+            # "total_talk_time_sec": round((service_metrics.service_total_talk_time_sec/60 if service_metrics.service_total_talk_time_sec else 0) or 0, 2)
         },
-        "average handling time": round(avg_handling_time*60 if avg_handling_time else 0,2),
-        "Total Talk Time": round(total_talk_time*60 if total_talk_time else 0, 2),
+        "average handling time": round(avg_handling_time/60 if avg_handling_time else 0,2),
+        # "Total Talk Time": round(total_talk_time if total_talk_time else 0, 2),
         "Total outbound calls": total_outbound_calls
         }
 
@@ -966,10 +966,10 @@ async def get_conversion_data(
     # Return metrics as a dictionary
     return {
         "CB":{
-            "CB Conversion": cb_conversion
+            "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
             },
         "Sales":{
-            "Sales Conversion": sales_conversion
+            "Sales Conversion": 100 if sales_conversion > 100 else sales_conversion
             },
         "Conversion Performance":{
             "CB":{
@@ -978,14 +978,14 @@ async def get_conversion_data(
             "Bookings CB": bookings_cb if bookings_cb>1 else 0,
             "Turnover": format_revenue(turnover_cb),
             # "turnover": turnover_cb,
-            "CB Conversion": cb_conversion
+            "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
             },
             "Sales":{
             "Sales handles": calls_sales_handled,
             "Wrong calls": sales_wrong_calls,
             "Bookings Sales": bookings_cb if bookings_cb>1 else 0,
             "Sales volume": sales_volume,
-            "Sales Conversion": sales_conversion
+            "Sales Conversion": 100 if sales_conversion > 100 else sales_conversion
             }
         }
         
