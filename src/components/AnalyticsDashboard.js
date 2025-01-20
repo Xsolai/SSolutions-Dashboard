@@ -167,7 +167,7 @@ const handleCompanyChange = (company) => {
   useEffect(() => {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-    
+    Bearbeitungszeiten
     setDateRange({
       startDate: currentDate,
       endDate: currentDate,
@@ -590,7 +590,6 @@ const SalesServiceTab = () => {
                 />
                 <Bar dataKey="durchschnitt" name="DGB (Min)" fill="#F0B72F" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="wartezeit" name="Wartezeit (Min)" fill="#E6E2DF" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sprechzeit" name="Sprechzeit (Min)" fill="#001E4A" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
