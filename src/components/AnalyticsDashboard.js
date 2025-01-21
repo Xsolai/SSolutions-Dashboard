@@ -312,7 +312,7 @@ const EmailTab = () => {
   ];
   
   const slGross = data.emailData['SL Gross'] || 0;
-  const processingTime = data.emailData['Total Processing Time (sec)'] || 0;
+  const processingTime = data.emailData['Total Dwell Time (sec)'] || 0;
 
   return (
     <div className="space-y-6">
@@ -337,7 +337,7 @@ const EmailTab = () => {
         />
         <StatCard
           title="Bearbeitungszeit"
-          value={`${Math.round(processingTime / 60)}m`}
+          value={`${processingTime}`}
           icon={Clock}
         />
       </div>

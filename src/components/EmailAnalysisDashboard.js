@@ -262,14 +262,14 @@ const UebersichtTab = () => {
     },
     { 
       title: "Gesamte E-Mails", 
-      value: (overviewData['total emails recieved'] || 0).toLocaleString(), 
+      value: (overviewData['total emails received'] || 0).toLocaleString(), 
       icon: Inbox,
       change: subKPIs['total emails recieved change'],
       description: "im Vergleich zur letzten Periode"
     },
     { 
       title: "Bearbeitungszeit", 
-      value: `${overviewData['Total Processing Time (sec)'] || 0} min`, 
+      value: `${overviewData['Total Processing Time (sec)'] || 0}`, 
       icon: Timer,
       change: subKPIs['Total Processing Time (sec) change'],
       description: "im Vergleich zur letzten Periode"
@@ -341,35 +341,36 @@ const LeistungTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6">
-        <ChartCard isWideChart={true} title="Bearbeitungszeit nach Postfach">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={performanceData.Processing_time_by_mailbox || []}
-              margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
-            >
-              <XAxis
-                dataKey="mailbox"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                {...chartConfig.xAxis}
-              />
-              <YAxis {...chartConfig.yAxis} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend {...chartConfig.legend} />
-              <Line
-                type="monotone"
-                dataKey="processing_time_sec"
-                name="Bearbeitungszeit (Minuten)"
-                stroke={chartColors.primary}
-                strokeWidth={2}
-                dot={{ fill: chartColors.primary, r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
+    <div className="grid grid-cols-1 gap-6">
+      <ChartCard isWideChart={true} title="Bearbeitungszeit nach Postfach">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={performanceData.Processing_time_by_mailbox || []}
+            margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+          >
+            <XAxis
+              dataKey="mailbox"
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              {...chartConfig.xAxis}
+            />
+            <YAxis {...chartConfig.yAxis} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend {...chartConfig.legend} />
+            <Line
+              type="monotone"
+              dataKey="processing_time" // Use "processing_time" from the data
+              name="Bearbeitungszeit (Minuten)"
+              stroke={chartColors.primary}
+              strokeWidth={2}
+              dot={{ fill: chartColors.primary, r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
 
         <ChartCard isWideChart={true} title="Serviceniveau nach Postfach">
           <ResponsiveContainer width="100%" height="100%">
