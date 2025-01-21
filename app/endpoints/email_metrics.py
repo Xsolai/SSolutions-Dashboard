@@ -232,8 +232,8 @@ async def get_email_overview(
         ]
     
     return {
-    "Total Processing Time (sec)": f"{int(total_processing_time_min)}m {int(total_processing_time_seconds % 60)}s" 
-    if total_processing_time_min > 1 else f"0m {int(total_processing_time_seconds)}s",
+    "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
+    if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
     "total emails received": total_emails,
     "total new cases": new_cases,
     "service_level_gross": round(service_level_gross, 2),

@@ -303,7 +303,7 @@ async def get_anaytics_email_data(
         {
             "interval_start": f"{interval}m",
             "interval_end": f"{interval + 10}m",
-            "total_processing_time_sec": f"{int(total/60)}m {int(total % 60)}s"
+            "total_processing_time_sec": f"{int(total/60)}m{int(total % 60)}s"
         }
         for interval, total in sorted(interval_data.items())
     ]
@@ -338,13 +338,13 @@ async def get_anaytics_email_data(
         "email archived": email_archieved,
         "SL Gross": round(service_level_gross, 2),
         # "New Sent": new_sent,
-        "Total Processing Time (sec)": f"{int(total_dwell_min)}m {int(total_dwell_time_seconds % 60)}s" 
-        if total_processing_time_min > 1 else f"0m {int(total_processing_time_seconds)}s",
+        "Total Dwell Time (sec)": f"{int(total_dwell_min)}m{int(total_dwell_time_seconds % 60)}s" 
+        if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
     
-@router.get("/anaytics_email_subkpis")
+@router.get("/analytics_email_subkpis")
 async def get_anaytics_email_data_sub_kpis(
     start_date: Optional[date] = Query(
         None, 
@@ -417,7 +417,7 @@ async def get_anaytics_email_data_sub_kpis(
     ).filter(
         EmailData.date.between(start_date, end_date)
     ).scalar() or 0
-    
+
     email_answered = email_query.with_entities(
         func.sum(EmailData.sent)
     ).filter(
