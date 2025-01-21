@@ -526,7 +526,7 @@ async def get_call_performance(
             filtered_query = filter_query_by_date(queue_filter)
             
             queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query)
-            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 2)
+            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 1)
             # if "5vorFlug Service" in queue_name:
             #     queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Service")))
             #     queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Service"))) / 60, 2)
@@ -599,7 +599,7 @@ async def get_call_performance(
             filtered_query = filter_query_by_date(queue_filter)
             
             queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query)
-            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 2)
+            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 1)
             if "5vorFlugService" in queue_name:
                 queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")))
                 queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))) / 60, 2)
