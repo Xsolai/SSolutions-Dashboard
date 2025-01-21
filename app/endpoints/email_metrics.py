@@ -599,13 +599,13 @@ async def get_mailbox_SL(
         pt_mailbox = [
             {
                 "mailbox": mailbox,
-                "processing_time": f"{minutes}m{seconds}s"
+                "processing_time": float(f"{minutes}.{seconds}")
             }
             for mailbox, (minutes, seconds) in processing_time_by_mailbox.items()
         ]
 
         # Sort by processing time in descending order
-        pt_mailbox = sorted(pt_mailbox, key=lambda x: int(x["processing_time"].split("m")[0]), reverse=True)
+        # pt_mailbox = sorted(pt_mailbox, key=lambda x: int(x["processing_time"].split("m")[0]), reverse=True)
 
         
                 
