@@ -110,10 +110,12 @@ async def get_tasks_kpis(
             query.with_entities(
                 func.count(
                     func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )
                 ).label("total_orders")
             )
             .filter(OrderJoin.task_created.isnot(None), OrderJoin.task_type.isnot(None), OrderJoin.date.between(start_date, end_date))
@@ -191,38 +193,50 @@ async def get_tasks_overview(
         # No date filter applied
         status_by_cat_data = query.with_entities(
             OrderJoin.task_type.label("tasks"),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("count"),
         ).filter(OrderJoin.task_type.isnot(None)).group_by(OrderJoin.task_type).all()
 
         status_by_date_data = query.with_entities(
             func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("count"),
         ).filter(OrderJoin.task_created.isnot(None)).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
 
         status_by_day_data = query.with_entities(
             func.strftime('%w', OrderJoin.task_created).label('weekday'),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("count"),
         ).filter(OrderJoin.task_created.isnot(None)).group_by(func.strftime('%w', OrderJoin.task_created)).all()
     else:
         status_by_cat_data = query.with_entities(
             OrderJoin.task_type.label("tasks"),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("count"),
         ).filter(
             OrderJoin.task_type.isnot(None),
             OrderJoin.date.between(start_date, end_date)
@@ -230,11 +244,14 @@ async def get_tasks_overview(
 
         status_by_date_data = query.with_entities(
             func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("count"),
         ).filter(
             OrderJoin.task_created.isnot(None),
             OrderJoin.date.between(start_date, end_date)
@@ -242,11 +259,14 @@ async def get_tasks_overview(
 
         status_by_day_data = query.with_entities(
             func.strftime('%w', OrderJoin.task_created).label('weekday'),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("count"),
         ).filter(
             OrderJoin.task_created.isnot(None),
             OrderJoin.date.between(start_date, end_date)
@@ -346,11 +366,14 @@ async def get_tasks_performance(
             {"assign_users_by_tasks": row[0], "task_count": row[1]}
             for row in query.with_entities(
                 OrderJoin.user.label("assign_users_by_tasks"),
-                func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("task_count")
+                func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("task_count")
             ).filter(OrderJoin.task_created.isnot(None)).group_by(OrderJoin.user).all()
         ]
         assign_tasks_by_date = [
@@ -365,11 +388,14 @@ async def get_tasks_performance(
         
         tasks_trend = query.with_entities(
             func.date(OrderJoin.task_created).label("date"),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("tasks_count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("tasks_count"),
         ).filter(OrderJoin.task_created.isnot(None)).group_by(func.date(OrderJoin.task_created)).all()
         
         upcoming_tasks_next_week = query.with_entities(
@@ -386,11 +412,14 @@ async def get_tasks_performance(
             {"assign_users_by_tasks": row[0], "task_count": row[1]}
             for row in query.with_entities(
                 OrderJoin.user.label("assign_users_by_tasks"),
-                func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("task_count")
+                func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("task_count")
             ).filter(OrderJoin.date.between(start_date, end_date),OrderJoin.task_created.isnot(None)
                      ).group_by(OrderJoin.user).all()
         ]
@@ -421,13 +450,16 @@ async def get_tasks_performance(
         
         tasks_trend = query.with_entities(
             func.date(OrderJoin.task_created).label("date"),
-            func.count(func.distinct(
-                        OrderJoin.order_number
-                        + "|" + OrderJoin.task_created.cast(String)
-                        + "|" + OrderJoin.task_type
-                    )).label("tasks_count"),
+            func.count(
+                    func.distinct(
+                    OrderJoin.order_number + "|" +
+                    OrderJoin.user + "|" +
+                    # OrderJoin.task_deadline.cast(String) + "|" +
+                    OrderJoin.task_created.cast(String) + "|" +
+                    OrderJoin.time_modified.cast(String)
+                )).label("tasks_count"),
         ).filter(
-            OrderJoin.date.between(start_date, end_date),
+            # OrderJoin.date.between(start_date, end_date),
             OrderJoin.task_created.isnot(None)
         ).group_by(func.date(OrderJoin.task_created)).all()
         

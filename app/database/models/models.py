@@ -285,6 +285,7 @@ class OrderJoin(Base):
     user = Column(String, nullable=True)  # Assigned user
     task_deadline = Column(DateTime, nullable=True)  # Task deadline
     task_created = Column(DateTime, nullable=True)  # Task creation timestamp
+    time_modified = Column(DateTime, nullable=True)  # Task creation timestamp
     
     # # Optional unique constraint if you still want to enforce uniqueness
     # __table_args__ = (

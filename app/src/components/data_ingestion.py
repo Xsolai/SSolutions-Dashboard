@@ -319,7 +319,7 @@ def create_order_join(db: Session):
         INSERT INTO order_join (
             date, order_number, task_type, customer, lt_code, status, 
             element_price, original_amount, performance_time,
-            user, task_deadline, task_created
+            user, task_deadline, task_created, time_modified
         )
         SELECT DISTINCT
             gt.date AS date,
@@ -333,7 +333,8 @@ def create_order_join(db: Session):
             sb.service_creation_time AS performance_time,
             gt.assigned_user AS user,
             gt.due_date AS task_deadline,
-            gt.creation_time AS task_created
+            gt.creation_time AS task_created,
+            gt.time_modified AS time_modified
         FROM guru_tasks gt
         LEFT JOIN soft_booking_kf sb ON gt.order_number = sb.booking_number
 
@@ -351,7 +352,8 @@ def create_order_join(db: Session):
             sb.service_creation_time AS performance_time,
             NULL AS user,
             NULL AS task_deadline,
-            NULL AS task_created
+            NULL AS task_created,
+            NULL AS time_modified
         FROM soft_booking_kf sb
         LEFT JOIN guru_tasks gt ON sb.booking_number = gt.order_number
         WHERE gt.order_number IS NULL;
