@@ -53,6 +53,33 @@ def time_to_seconds(time_str):
         print(f"Error converting time '{time_str}': {e}")
         return 0
 
+# def time_to_minutes(time):
+#     """Convert time in various formats to minutes."""
+#     try:
+#         if isinstance(time, tuple):
+#             pass
+
+#         if '.' in time[0]:
+#             print("float ", time[0])
+#             return float(time[0])  # Assuming this represents minutes directly
+
+#         # Handle time formats
+#         if ':' in time[0]:
+#             if len(time[0].split(':')) == 2:
+#                 # Format: 'mm:ss'
+#                 dt = datetime.strptime(time[0], "%M:%S")
+#                 total_minutes = dt.minute + dt.second / 60
+#                 return total_minutes
+#             elif len(time[0].split(':')) == 3:
+#                 # Format: 'hh:mm:ss'
+#                 dt = datetime.strptime(time[0], "%H:%M:%S")
+#                 total_minutes = dt.hour * 60 + dt.minute + dt.second / 60
+#                 return total_minutes
+
+#         return 0  # Return 0 if format is unrecognized
+#     except Exception as e:
+#         print(f"Error converting time '{time}': {e}")
+#         return 0
 def time_to_minutes(time):
     """Convert time in various formats to minutes."""
     try:
@@ -68,13 +95,15 @@ def time_to_minutes(time):
             if len(time[0].split(':')) == 2:
                 # Format: 'mm:ss'
                 dt = datetime.strptime(time[0], "%M:%S")
-                total_minutes = dt.minute + dt.second / 60
-                return total_minutes
+                # total_minutes = dt.minute + dt.second
+                return (dt.minute, dt.second)
             elif len(time[0].split(':')) == 3:
                 # Format: 'hh:mm:ss'
-                dt = datetime.strptime(time[0], "%H:%M:%S")
-                total_minutes = dt.hour * 60 + dt.minute + dt.second / 60
-                return total_minutes
+                # dt = datetime.strptime(time[0], "%H:%M:%S")
+                hours, minutes, seconds = time[0].split(":")[0], time[0].split(":")[1], time[0].split(":")[2]
+                # print(hours, minutes, seconds)
+                total_minutes = int(hours) * 60 + int(minutes)
+                return (total_minutes, int(seconds))
 
         return 0  # Return 0 if format is unrecognized
     except Exception as e:
@@ -154,20 +183,20 @@ async def get_anaytics_email_data(
     # Retrieve data from database
     if start_date is None:
         # Filter data based on the interval (date) column
-        email_recieved = query.with_entities(
-            func.sum(WorkflowReportGuruKF.received)
+        email_recieved = email_query.with_entities(
+            func.sum(EmailData.received)
         ).scalar() or 0
 
-        email_answered = query.with_entities(
-            func.sum(WorkflowReportGuruKF.sent)
+        email_answered = email_query.with_entities(
+            func.sum(EmailData.sent)
         ).scalar() or 0
 
-        new_cases = query.with_entities(
-            func.sum(WorkflowReportGuruKF.new_cases)
+        new_cases = email_query.with_entities(
+            func.sum(EmailData.new_cases)
         ).scalar() or 0
 
-        email_archieved = query.with_entities(
-            func.sum(WorkflowReportGuruKF.archived)
+        email_archieved = email_query.with_entities(
+            func.sum(EmailData.archived)
         ).scalar() or 0
 
         service_level_gross = email_query.with_entities(
@@ -179,32 +208,33 @@ async def get_anaytics_email_data(
         # ).scalar() or 0
 
         processing_times = email_query.with_entities(EmailData.processing_time).all()
+        dwell_times = email_query.with_entities(EmailData.dwell_time_net).all()
         
 
     else:
         # Filter data based on the interval (date) column
-        email_recieved = query.with_entities(
-            func.sum(WorkflowReportGuruKF.received)
+        email_recieved = email_query.with_entities(
+            func.sum(EmailData.received)
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
 
-        email_answered = query.with_entities(
-            func.sum(WorkflowReportGuruKF.sent)
+        email_answered = email_query.with_entities(
+            func.sum(EmailData.sent)
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
 
-        new_cases = query.with_entities(
-            func.sum(WorkflowReportGuruKF.new_cases)
+        new_cases = email_query.with_entities(
+            func.sum(EmailData.new_cases)
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
 
-        email_archieved = query.with_entities(
-            func.sum(WorkflowReportGuruKF.archived)
+        email_archieved = email_query.with_entities(
+            func.sum(EmailData.archived)
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
 
         service_level_gross = email_query.with_entities(
@@ -222,20 +252,47 @@ async def get_anaytics_email_data(
         processing_times = email_query.with_entities(EmailData.processing_time).filter(
             EmailData.date.between(start_date, end_date)
         ).all()
+        dwell_times = email_query.with_entities(EmailData.dwell_time_net).filter(
+            EmailData.date.between(start_date, end_date)
+        ).all()
     # Clean the data to extract values from tuples
-    processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
+    # processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     
     total_processing_time_seconds = 0.0001
+    total_processing_time_min = 0.0001
+    total_dwell_time_seconds = 0.0001
+    total_dwell_min = 0.0001
     interval_data = defaultdict(float)
 
+    # for pt in processing_times:
+    #     # print("Original Time:", pt)  # Debug print
+    #     seconds = time_to_seconds(pt)
+    #     # print("Converted Seconds:", seconds)  # Debug print
+    #     total_processing_time_seconds += seconds
+    #     interval = (seconds // 600) * 10
+    #     interval_data[interval] += seconds
+    #     # print("Interval Data:", dict(interval_data))  # Debug print
+    processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
+    dwell_times = [pt[0] if isinstance(pt, tuple) else pt for pt in dwell_times]
+    for pt in dwell_times:
+        minutes,seconds = time_to_minutes(pt)
+        total_dwell_time_seconds += seconds
+        total_dwell_min += minutes
+    total_dwell_min += total_dwell_time_seconds // 60
     for pt in processing_times:
-        # print("Original Time:", pt)  # Debug print
+        minutes,seconds = time_to_minutes(pt)
+        total_processing_time_seconds += seconds
+        total_processing_time_min += minutes
+        
+        # Calculating interval data
         seconds = time_to_seconds(pt)
         # print("Converted Seconds:", seconds)  # Debug print
-        total_processing_time_seconds += seconds
         interval = (seconds // 600) * 10
         interval_data[interval] += seconds
-        # print("Interval Data:", dict(interval_data))  # Debug print
+    
+    total_processing_time_min += total_processing_time_seconds // 60
+    
+    # print("Dwell min: ", total_dwell_min)
 
     processing_time_trend = [
         {"interval_start": f"{interval}m", "total_processing_time_sec": total}
@@ -246,7 +303,7 @@ async def get_anaytics_email_data(
         {
             "interval_start": f"{interval}m",
             "interval_end": f"{interval + 10}m",
-            "total_processing_time_sec": total/60
+            "total_processing_time_sec": f"{int(total/60)}m {int(total % 60)}s"
         }
         for interval, total in sorted(interval_data.items())
     ]
@@ -281,7 +338,8 @@ async def get_anaytics_email_data(
         "email archived": email_archieved,
         "SL Gross": round(service_level_gross, 2),
         # "New Sent": new_sent,
-        "Total Processing Time (sec)": round(total_processing_time_seconds, 2) if total_processing_time_seconds>1 else 0,
+        "Total Processing Time (sec)": f"{int(total_dwell_min)}m {int(total_dwell_time_seconds % 60)}s" 
+        if total_processing_time_min > 1 else f"0m {int(total_processing_time_seconds)}s",
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
@@ -354,41 +412,41 @@ async def get_anaytics_email_data_sub_kpis(
     print("dates:", start_date, end_date, prev_start_date, prev_end_date)
     
     # Filter data based on the interval (date) column
-    email_recieved = query.with_entities(
-        func.sum(WorkflowReportGuruKF.received)
+    email_recieved = email_query.with_entities(
+        func.sum(EmailData.received)
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
+        EmailData.date.between(start_date, end_date)
+    ).scalar() or 0
+    
+    email_answered = email_query.with_entities(
+        func.sum(EmailData.sent)
+    ).filter(
+        EmailData.date.between(start_date, end_date)
     ).scalar() or 0
 
-    email_answered = query.with_entities(
-        func.sum(WorkflowReportGuruKF.sent)
+    email_archieved = email_query.with_entities(
+        func.sum(EmailData.archived)
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
-    ).scalar() or 0
-
-    email_archieved = query.with_entities(
-        func.sum(WorkflowReportGuruKF.archived)
-    ).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
+        EmailData.date.between(start_date, end_date)
     ).scalar() or 0
     
     # Previous values to calculate the change
-    prev_email_recieved = query.with_entities(
-        func.sum(WorkflowReportGuruKF.received)
+    prev_email_recieved = email_query.with_entities(
+        func.sum(EmailData.received)
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
 
-    prev_email_answered = query.with_entities(
-        func.sum(WorkflowReportGuruKF.sent)
+    prev_email_answered = email_query.with_entities(
+        func.sum(EmailData.sent)
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
 
-    prev_email_archieved = query.with_entities(
-        func.sum(WorkflowReportGuruKF.archived)
+    prev_email_archieved = email_query.with_entities(
+        func.sum(EmailData.archived)
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
         
     return {

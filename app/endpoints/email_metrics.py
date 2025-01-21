@@ -232,12 +232,14 @@ async def get_email_overview(
         ]
     
     return {
-        "Total Processing Time (sec)": f"{round(total_processing_time_min,0) if total_processing_time_min>1 else 0}m {round(total_processing_time_seconds%60,0) if total_processing_time_seconds>1 else 0}s",
-        "total emails recieved": total_emails,
-        "total new cases": new_cases,
-        "service_level_gross": round(service_level_gross, 2),
-        "daily_service_level_gross": service_level_gross_trend
-    }
+    "Total Processing Time (sec)": f"{int(total_processing_time_min)}m {int(total_processing_time_seconds % 60)}s" 
+    if total_processing_time_min > 1 else f"0m {int(total_processing_time_seconds)}s",
+    "total emails received": total_emails,
+    "total new cases": new_cases,
+    "service_level_gross": round(service_level_gross, 2),
+    "daily_service_level_gross": service_level_gross_trend
+}
+
 
 @router.get("/email_overview_sub_kpis")
 async def get_email_overview_sub_kpis(
