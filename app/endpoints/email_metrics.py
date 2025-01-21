@@ -142,9 +142,9 @@ async def get_email_overview(
     total_processing_time_seconds = 0.00001
     total_processing_time_min = 0
     if start_date is None:
-        service_level_gross = query.with_entities(
+        service_level_gross = email_query.with_entities(
             func.avg(
-                WorkflowReportGuruKF.service_level_gross
+                EmailData.service_level_gross
             )
         ).scalar() or 0
         
@@ -164,17 +164,17 @@ async def get_email_overview(
             )
         ).scalar() or 0
         
-        new_cases = query.with_entities(
+        new_cases = email_query.with_entities(
             func.sum(
-                WorkflowReportGuruKF.new_cases
+                EmailData.new_cases
             )
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
-        service_level_gross_data = query.with_entities(
-            WorkflowReportGuruKF.date.label("interval"),
-            func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
-        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.interval.desc()).limit(10).all()
+        service_level_gross_data = email_query.with_entities(
+            EmailData.date.label("interval"),
+            func.avg(EmailData.service_level_gross).label("service_level_gross")
+        ).group_by(EmailData.date).order_by(EmailData.interval.desc()).limit(10).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -182,12 +182,12 @@ async def get_email_overview(
             for row in service_level_gross_data
         ]
     else:
-        service_level_gross = query.with_entities(
+        service_level_gross = email_query.with_entities(
             func.avg(
-                WorkflowReportGuruKF.service_level_gross
+                EmailData.service_level_gross
             )
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
         
         processing_times = email_query.with_entities(EmailData.processing_time).filter(
@@ -201,29 +201,29 @@ async def get_email_overview(
         
         total_processing_time_min += total_processing_time_seconds // 60
         
-        total_emails = query.with_entities(
+        total_emails = email_query.with_entities(
             func.sum(
-                WorkflowReportGuruKF.received
+                EmailData.received
             )
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
         
-        new_cases = query.with_entities(
+        new_cases = email_query.with_entities(
             func.sum(
-                WorkflowReportGuruKF.new_cases
+                EmailData.new_cases
             )
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
+            EmailData.date.between(start_date, end_date)
         ).scalar() or 0
         
         # Query the latest 6 intervals (dates) and service level gross
-        service_level_gross_data = query.with_entities(
-            WorkflowReportGuruKF.date.label("interval"),
-            func.avg(WorkflowReportGuruKF.service_level_gross).label("service_level_gross")
+        service_level_gross_data = email_query.with_entities(
+            EmailData.date.label("interval"),
+            func.avg(EmailData.service_level_gross).label("service_level_gross")
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuruKF.date).order_by(WorkflowReportGuruKF.date.desc()).limit(10).all()
+            EmailData.date.between(start_date, end_date)
+        ).group_by(EmailData.date).order_by(EmailData.date.desc()).limit(10).all()
 
         # Format the service level gross data
         service_level_gross_trend = [
@@ -316,12 +316,12 @@ async def get_email_overview_sub_kpis(
     # start_date, end_date = start_date.strftime("%d.%m.%Y"), end_date.strftime("%d.%m.%Y")
     # prev_start_date, prev_end_date = prev_start_date.strftime("%d.%m.%Y"), prev_end_date.strftime("%d.%m.%Y")
     # Normal Kpis
-    service_level_gross = query.with_entities(
+    service_level_gross = email_query.with_entities(
         func.avg(
-            WorkflowReportGuruKF.service_level_gross
+            EmailData.service_level_gross
         )
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
+        EmailData.date.between(start_date, end_date)
     ).scalar() or 0
     
     processing_times = email_query.with_entities(EmailData.processing_time).filter(
@@ -334,29 +334,29 @@ async def get_email_overview_sub_kpis(
         
     total_processing_time_min += total_processing_time_seconds // 60
     
-    total_emails = query.with_entities(
+    total_emails = email_query.with_entities(
         func.sum(
-            WorkflowReportGuruKF.received
+            EmailData.received
         )
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
+        EmailData.date.between(start_date, end_date)
     ).scalar() or 0
     
-    new_cases = query.with_entities(
+    new_cases = email_query.with_entities(
         func.sum(
-            WorkflowReportGuruKF.new_cases
+            EmailData.new_cases
         )
     ).filter(
-        WorkflowReportGuruKF.date.between(start_date, end_date)
+        EmailData.date.between(start_date, end_date)
     ).scalar() or 0
     
     # Previous Kpis to calculate the change
-    prev_service_level_gross = query.with_entities(
+    prev_service_level_gross = email_query.with_entities(
         func.avg(
-            WorkflowReportGuruKF.service_level_gross
+            EmailData.service_level_gross
         )
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     prev_processing_times = email_query.with_entities(EmailData.processing_time).filter(
@@ -370,20 +370,20 @@ async def get_email_overview_sub_kpis(
         
     prev_total_processing_time_min += total_processing_time_seconds // 60
     
-    prev_total_emails = query.with_entities(
+    prev_total_emails = email_query.with_entities(
         func.sum(
-            WorkflowReportGuruKF.received
+            EmailData.received
         )
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
-    prev_new_cases = query.with_entities(
+    prev_new_cases = email_query.with_entities(
         func.sum(
-            WorkflowReportGuruKF.new_cases
+            EmailData.new_cases
         )
     ).filter(
-        WorkflowReportGuruKF.date.between(prev_start_date, prev_end_date)
+        EmailData.date.between(prev_start_date, prev_end_date)
     ).scalar() or 0
     
     return {
@@ -531,11 +531,11 @@ async def get_mailbox_SL(
 
         
         # Query total new sent emails
-        replies_data = query.with_entities(
-            WorkflowReportGuruKF.customer.label("customer"),
-            func.sum(WorkflowReportGuruKF.sent).label("sent"),
-            func.sum(WorkflowReportGuruKF.received).label("recieved")
-        ).group_by(WorkflowReportGuruKF.customer).order_by(WorkflowReportGuruKF.sent.desc()).all()
+        replies_data = email_query.with_entities(
+            EmailData.customer.label("customer"),
+            func.sum(EmailData.sent).label("sent"),
+            func.sum(EmailData.received).label("recieved")
+        ).group_by(EmailData.customer).order_by(EmailData.sent.desc()).all()
 
         replies = [
         {"customer": row.customer, "sent": round(row.sent or 0, 2), "recieved": round(row.recieved or 0, 2)}
@@ -610,13 +610,13 @@ async def get_mailbox_SL(
         
                 
         # Query total new sent emails
-        replies_data = query.with_entities(
-            WorkflowReportGuruKF.customer.label("customer"),
-            func.sum(WorkflowReportGuruKF.sent).label("sent"),
-            func.sum(WorkflowReportGuruKF.received).label("recieved")
+        replies_data = email_query.with_entities(
+            EmailData.customer.label("customer"),
+            func.sum(EmailData.sent).label("sent"),
+            func.sum(EmailData.received).label("recieved")
         ).filter(
-            WorkflowReportGuruKF.date.between(start_date, end_date)
-        ).group_by(WorkflowReportGuruKF.customer).order_by(WorkflowReportGuruKF.sent.desc()).all()
+            EmailData.date.between(start_date, end_date)
+        ).group_by(EmailData.customer).order_by(EmailData.sent.desc()).all()
 
         replies = [
         {"customer": row.customer, "sent": round(row.sent or 0, 2), "recieved": round(row.recieved or 0, 2)}
