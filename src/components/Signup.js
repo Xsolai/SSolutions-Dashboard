@@ -47,7 +47,7 @@ const SignupForm = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('https://app.saincube.com/app2/auth/register', {
+      const response = await axios.post('https://solasolution.ecomtask.de/auth/register', {
         username: data.username,
         email: data.email,
         password: data.password,
