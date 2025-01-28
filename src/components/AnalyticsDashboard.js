@@ -209,12 +209,12 @@ const handleCompanyChange = (company) => {
         conversionData
       ] = await Promise.all([
         // Fixed API endpoint names to match backend
-        fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config),
-        fetch('https://solasolution.ecomtask.de/anaytics_email_subkpis', config), // Note: backend has typo in 'anaytics'
-        fetch(`https://solasolution.ecomtask.de/analytics_sales_service?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/analytics_booking?${queryString}`, config),
-        fetch('https://solasolution.ecomtask.de/analytics_booking_subkpis', config),
-        fetch(`https://solasolution.ecomtask.de/analytics_conversion?${queryString}`, config)
+        fetch(`https://app.saincube.com/app2/analytics_email?${queryString}`, config),
+        fetch('https://app.saincube.com/app2/anaytics_email_subkpis', config), // Note: backend has typo in 'anaytics'
+        fetch(`https://app.saincube.com/app2/analytics_sales_service?${queryString}`, config),
+        fetch(`https://app.saincube.com/app2/analytics_booking?${queryString}`, config),
+        fetch('https://app.saincube.com/app2/analytics_booking_subkpis', config),
+        fetch(`https://app.saincube.com/app2/analytics_conversion?${queryString}`, config)
       ]);
 
   

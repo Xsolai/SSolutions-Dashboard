@@ -19,7 +19,7 @@ const ResetPasswordPage = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('https://solasolution.ecomtask.de/auth/forget-password/', {
+      const response = await axios.post('https://app.saincube.com/app2/auth/forget-password/', {
         email: data.email
       });
 

@@ -240,9 +240,9 @@ const CallAnalysisDashboard = () => {
       };
 
       const responses = await Promise.all([
-        fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
+        fetch(`https://app.saincube.com/app2/call_overview?${queryString}`, config),
+        fetch(`https://app.saincube.com/app2/calls_sub_kpis?${queryString}`, config),
+        fetch(`https://app.saincube.com/app2/call_performance?${queryString}`, config)
       ]);
 
       const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(

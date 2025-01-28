@@ -4,7 +4,7 @@ const nextConfig = {
       return [
         {
           source: '/api/:path*',
-          destination: 'https://solasolution.ecomtask.de/:path*', // Proxy to Backend
+          destination: 'https://app.saincube.com/app2/:path*', // Proxy to Backend
         },
       ]
     }

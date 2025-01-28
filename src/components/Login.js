@@ -23,7 +23,7 @@ const buttonClass = "w-full px-4 py-2 border border-transparent rounded-md shado
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'https://solasolution.ecomtask.de',
+  baseURL: 'https://app.saincube.com/app2',
   headers: {
     'Content-Type': 'multipart/form-data',
   },

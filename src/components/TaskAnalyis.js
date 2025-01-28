@@ -210,11 +210,11 @@ const TaskAnalysisDashboard = () => {
         };
 
         const [kpisRes, overviewRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/tasks_kpis?${queryString}`, config)
+          fetch(`https://app.saincube.com/app2/tasks_kpis?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/tasks_overview?${queryString}`, config)
+          fetch(`https://app.saincube.com/app2/tasks_overview?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/tasks_performance?${queryString}`, config)
+          fetch(`https://app.saincube.com/app2/tasks_performance?${queryString}`, config)
             .then(res => res.json())
         ]);
 
