@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason,WorkflowReportGuruKF, EmailData,
-                                        QueueStatistics, SoftBookingKF, GuruTask, OrderJoin)
+                                        QueueStatistics, SoftBookingKF, GuruTask, OrderJoin, BookingData)
 from app.src.logger import logging
 from datetime import datetime
 import pandas as pd
@@ -155,6 +155,48 @@ def populate_queue_statistics(data, db: Session, date, day):
         logging.error(f"Error populating QueueStatistics data: {e}")
         print(f"Exception occurred while populating queue statistics data: {e}")        
         
+
+def populate_booking_data(data, db: Session, date):
+    """
+    Populate the BookingData table with data from the DataFrame.
+    """
+    try:
+        for _, row in data.iterrows():
+            # Convert date and time columns 
+            # print("Saving data....")
+            if 'order_creation_date' in row and isinstance(row['order_creation_date'], str):
+                row['order_creation_date'] = datetime.strptime(row['order_creation_date'], '%d.%m.%Y').date()
+                
+            
+            if 'order_creation_time' in row and isinstance(row['order_creation_time'], str):
+                row['order_creation_time'] = datetime.strptime(row['order_creation_time'], '%d.%m.%Y %H:%M:%S')
+            # print("converted date columnsss....") 
+            # print(data, row)
+            db_record = BookingData(
+                date=date,
+                order_creation_date=row.get('Auftrag Anlagedatum (Auftrag)', None),
+                order_creation_time=row.get('Auftrag Anlagezeit (Auftrag)', None),
+                crs_extld=row.get('CRS (Standard) ExtId', ''),
+                crs_status=row.get('CRS (Standard) Status', ''),
+                order_agent=row.get('Auftrag Vermittler (Auftrag)', ''),
+                lt_code=row.get('CRS (Standard) LT-Code', ''),
+                crs_original_booking_number=row.get('CRS (Standard) original Buchungsnummer', ''),
+                order_attribute_value=row.get('Auftrag Attributwert (Attribute/Auftrag)', ''),
+                order_creating_user=row.get('Auftrag Anlegender Benutzer (Name) (Auftrag)', ''),
+                service_sales_price=row.get('Leistung Verkaufspreis', 0.0)
+            )
+            # print("record", db_record.order_agent)
+            db.add(db_record)
+
+        db.commit()
+        logging.info("BookingData successfully populated into the database.")
+        print("BookingData successfully populated into the database.")
+
+    except Exception as e:
+        db.rollback()
+        logging.error(f"Error populating BookingList table: {e}")
+        print(f"Exception occurred while populating BookingList table: {e}")
+        
 def populate_soft_booking_data(data, db: Session):
     """
     Populate the OrderDetails table with data from the DataFrame.
@@ -186,33 +228,6 @@ def populate_soft_booking_data(data, db: Session):
         logging.error(f"Error populating SoftBookingKF table: {e}")
         print(f"Exception occurred while populating SoftBookingKF table: {e}")
         
-# def populate_guru_task_data(data, db: Session, date):
-#     """
-#     Populate the GuruTask table with data from the DataFrame.
-#     """
-#     try:
-#         for _, row in data.iterrows():
-#             # Create a GuruTask record
-#             db_record = GuruTask(
-#                 date = date,
-#                 order_number=row.get('Auftrag Auftragsnummer (Auftrag)', ''),
-#                 assigned_user=row.get('Notiz/Aufgabe erledigender Benutzer', ''),
-#                 due_date=row.get('Notiz/Aufgabe fällig bis', None),
-#                 time_modified=row.get('Notiz/Aufgabe Zeit Änderung', None),
-#                 task_type=row.get('Notiz/Aufgabe Aufgabentyp', ''),
-#                 creation_time=row.get('Notiz/Aufgabe Zeit Anlage', None)
-#             )
-
-#             db.add(db_record)
-
-#         db.commit()
-#         logging.info("GuruTask data successfully populated into the database.")
-#         print("GuruTask data successfully populated into the database.")
-
-#     except Exception as e:
-#         db.rollback()
-#         logging.error(f"Error populating GuruTask table: {e}")
-#         print(f"Exception occurred while populating GuruTask table: {e}")
 def populate_guru_task_data(data, db: Session, date):
     """
     Populate the GuruTask table with data from the DataFrame.

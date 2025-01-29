@@ -167,12 +167,12 @@ async def get_tasks_overview(
         if "5vorflug" in company:
             # query = db.query(OrderJoin).join(
             # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+            # ).filter(OrderJoin.customer.like("%5vF%")).distinct() 
             query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"))
         elif "Urlaubsguru" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+            # query = db.query(OrderJoin).join( 
+            # GuruTask, OrderJoin.order_number == GuruTask.order_number 
+            # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct() 
             query = db.query(OrderJoin).filter(OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
         elif "Bild" in company:
             # query = db.query(OrderJoin).join(

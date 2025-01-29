@@ -110,13 +110,15 @@ def clean_and_convert_data(data):
             'Weiterleitung (in)': ('int', 0),  # Transfer in
             'Weiterleitung (out)': ('int', 0),  # Transfer out
             #Booking table columns
-            'CRS (Standard) original Status': ('str', ''),
+            'CRS (Standard) ExtId': ('str', ''),
             'CRS (Standard) Status': ('str', ''),
-            'Leistung Element Preis': ('float', ''),
             'Auftrag Vermittler (Auftrag)': ('str', ''),
-            'CRS (Standard Externes System)': ('str', ''),
-            'Auftrag Anlagedatum (Auftrag)': ('str', ''),
+            'CRS (Standard) LT-Code': ('str', ''),
             'CRS (Standard) original Buchungsnummer': ('str', ''),
+            'Auftrag Attributwert (Attribute/Auftrag)': ('str', ''),
+            'CRS (Standard) original Buchungsnummer': ('int', 0),
+            'Auftrag Anlegender Benutzer (Name) (Auftrag)': ('str', ''),
+            'Leistung Verkaufspreis': ('float', ''),
             #Soft Booking table columns
             'Auftrag Auftragsnummer (Auftrag)': ('str', ''),
             'CRS (Standard) LT-Code': ('str', ''),
@@ -228,14 +230,19 @@ def load_csv_data(file_path):
             df["tot. Nachbearbeitung Outbound"] = df["tot. Nachbearbeitung Outbound"].apply(lambda x: x.split(",")[1] if isinstance(x, str) else None)
             df["tot. Nachbearbeitung Outbound"] = df["tot. Nachbearbeitung Outbound"].astype(float)
         
-        # if "Leistung Anlagezeit" in df.columns:
-        #     df["Leistung Anlagezeit"] = pd.to_datetime(df["Leistung Anlagezeit"], errors='coerce')
+        if "Leistung Verkaufspreis" in df.columns:
+            df["Leistung Verkaufspreis"] = df["Leistung Verkaufspreis"].str.replace(",", ".")
+            df["Leistung Verkaufspreis"] = df["Leistung Verkaufspreis"].apply(
+                lambda x: x.replace(".", "", x.count(".") - 1) if isinstance(x, str) else x
+            )
+            df["Leistung Verkaufspreis"] = pd.to_numeric(df["Leistung Verkaufspreis"], errors='coerce')
             
         date_columns = [
             "Leistung Anlagezeit",
             "Notiz/Aufgabe fällig bis", 
             "Notiz/Aufgabe Zeit Änderung", 
-            "Notiz/Aufgabe Zeit Anlage"
+            "Notiz/Aufgabe Zeit Anlage",
+            "Auftrag Anlagezeit (Auftrag)"
         ]
         
         for col in date_columns:
@@ -245,6 +252,10 @@ def load_csv_data(file_path):
                 
                 # Replace NaT with None
                 df[col] = df[col].where(df[col].notnull(), None)
+                
+        # if "Auftrag Anlagedatum (Auftrag)" in df.columns:
+        #     df["Auftrag Anlagedatum (Auftrag)"] = pd.to_datetime(df[col], errors='coerce', dayfirst=True).date
+        #     df["Auftrag Anlagedatum (Auftrag)"] = df[col].where(df[col].notnull(), None)
         
         df = clean_and_convert_data(df)
 

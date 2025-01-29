@@ -169,17 +169,23 @@ class QueueStatistics(Base):
     # transfer_out = Column(Integer, nullable=False, default=0)  # Weiterleitung (out)
     
     
-# class BookingData(Base):
-#     __tablename__ = 'booking_data'
+class BookingData(Base):
+    __tablename__ = 'booking_list'
     
-#     id = Column(Integer, primary_key=True, index=True)
-#     crs_original_status = Column(String(255), nullable=True)  # CRS (Standard) original Status
-#     crs_status = Column(String(255), nullable=True)  # CRS (Standard) Status
-#     performance_element_price = Column(Float, nullable=True)  # Leistung Element Preis
-#     order_mediator = Column(String(255), nullable=True)  # Auftrag Vermittler (Auftrag)
-#     external_system = Column(String(255), nullable=True)  # CRS (Standard Externes System)
-#     order_creation_date = Column(Date, nullable=True)  # Auftrag Anlagedatum (Auftrag) date
-#     crs_original_booking_number = Column(String(255), nullable=True)  # CRS (Standard) original Buchungsnummer
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date)
+    order_creation_date = Column(String, nullable=True)
+    order_creation_time = Column(DateTime, nullable=False)
+    crs_extld = Column(String(255), nullable=False)
+    crs_status = Column(String(255), nullable=True) 
+    crs_status_org_number = Column(Integer, nullable=True)    
+    order_agent = Column(String(255), nullable=True)  
+    lt_code = Column(String, nullable=True)
+    order_attribute_value = Column(String, nullable=True)
+    order_creating_user = Column(String, nullable=True)
+    crs_original_booking_number = Column(String(255), nullable=True)  
+    service_sales_price = Column(Float, nullable=True)
+    
     
 class SoftBookingKF(Base):
     __tablename__ = "soft_booking_kf"

@@ -514,7 +514,7 @@ async def get_mailbox_SL(
             total_minutes, total_seconds = processing_time_by_mailbox[row.mailbox]
             total_seconds += seconds
             total_minutes += minutes + total_seconds // 60  # Handle overflow of seconds
-            total_seconds = total_seconds % 60  # Remaining seconds
+            total_seconds = total_seconds % 60  # Remaining seconds 
             processing_time_by_mailbox[row.mailbox] = (total_minutes, total_seconds)
 
         # Format the results

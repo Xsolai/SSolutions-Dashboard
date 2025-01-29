@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission
+from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission, BookingData
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta, date
 from sqlalchemy import func, or_
@@ -917,20 +917,33 @@ async def get_conversion_data(
     
     if is_admin_or_employee:
         if "5vorflug" in company:
-            query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%5vF%")  
-        )
+            query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%5VF%")  
+            )
+            sale_query = db.query(QueueStatistics).filter(
+                QueueStatistics.queue_name.notlike("%Service%"),
+                QueueStatistics.queue_name.like("%5vorFlug%")
+            )
         elif "Urlaubsguru" in company:
-            query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vF%"),
-            SoftBookingKF.customer.notlike("%BILD%")
-        )
+            query = db.query(BookingData).filter(BookingData.order_agent.like(f"%GURU%"))
+            sale_query = db.query(QueueStatistics).filter(
+                QueueStatistics.queue_name.notlike("%Service%"),
+                QueueStatistics.queue_name.notlike("%5vorFlug%"),
+                QueueStatistics.queue_name.notlike("%BILD%")
+            )
         elif "Bild" in company:
-            query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.like("%BILD%")  
+            query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%BILD%")  
         )
+            sale_query = db.query(QueueStatistics).filter(
+                QueueStatistics.queue_name.notlike("%Service%"),
+                QueueStatistics.queue_name.like("%BILD%")
+            )
         else:
-            query = db.query(SoftBookingKF)
+            query = db.query(BookingData)
+            sale_query = db.query(QueueStatistics).filter(
+                QueueStatistics.queue_name.notlike("%Service%")
+            )
     # if "5vorflug" in accessible_companies:
     #     print("containss")
     #     raise HTTPException(
@@ -981,7 +994,10 @@ async def get_conversion_data(
     # Handle "urlaubsguru" separately if present and not already handled
     if "guru" in accessible_companies:
         print("executing else containss")
-        query = db.query(SoftBookingKF)
+        query = db.query(BookingData)
+        sale_query = db.query(QueueStatistics).filter(
+                QueueStatistics.queue_name.notlike("%Service%")
+            )
 
     db = SessionLocal()
     if start_date is None:
@@ -990,12 +1006,13 @@ async def get_conversion_data(
         wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
         sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
-        turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).scalar() or 0,2)
+        # turnover_cb = round(query.with_entities(func.sum(BookingData.id)).scalar() or 0,2)
         sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
+        
+        # calculations for conversion and effective calls
+        
     
     else:
-        start_date_str = start_date.strftime("%Y-%m-%d")
-        end_date_str = end_date.strftime("%Y-%m-%d")
         calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0
@@ -1011,18 +1028,46 @@ async def get_conversion_data(
         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 1
-        turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).filter(
-        SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
-        ).scalar() or 0,2)
+        # turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).filter(
+        # SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
+        # ).scalar() or 0,2)
         sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0
         
+        # calculations for conversion and effective calls
+        total_calls = sale_query.with_entities(func.sum(QueueStatistics.calls)).filter(
+        QueueStatistics.date.between(start_date, end_date)
+        ).scalar() or 0
+        accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).filter(
+        QueueStatistics.date.between(start_date, end_date)
+        ).scalar() or 0
+        abondened_before_ans = sale_query.with_entities(func.sum(QueueStatistics.abandoned_before_answer)).filter(
+        QueueStatistics.date.between(start_date, end_date)
+        ).scalar() or 0
+        cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0
+        sucess_bookings = query.with_entities(func.sum(BookingData.crs_original_booking_number)).filter(
+        BookingData.date.between(start_date, end_date),
+        BookingData.crs_status == "OK"
+        ).scalar() or 0
+        
+        print(total_calls)
+        print(accepted_calls)
+        print(abondened_before_ans)
+        print(cb_wrong_calls)
+        print(sucess_bookings)
+        
+        
+        
     cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
-    sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
-    
+    # sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
+    sales_effective_calls = accepted_calls - (abondened_before_ans + cb_wrong_calls)
+    sales_conversion = sucess_bookings/sales_effective_calls
     # Return metrics as a dictionary
     return {
+        "sales_effective_calls": sales_effective_calls,
         "CB":{
             "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
             },
@@ -1034,7 +1079,7 @@ async def get_conversion_data(
             "CB calls handled": calls_cb_handled,
             "Wrong calls": wrong_calls,
             "Bookings CB": bookings_cb if bookings_cb>1 else 0,
-            "Turnover": format_revenue(turnover_cb),
+            # "Turnover": format_revenue(turnover_cb),
             # "turnover": turnover_cb,
             "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
             },

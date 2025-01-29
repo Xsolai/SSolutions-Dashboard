@@ -6,7 +6,7 @@ from app.database.db.db_connection import SessionLocal
 from app.src.components.data_ingestion import (
     populate_guru_call_reason,populate_workflow_report, 
     populate_queue_statistics, populate_soft_booking_data, populate_guru_task_data, create_order_join,
-    populate_email_data)
+    populate_email_data, populate_booking_data)
 from app.src.components.data_transformation import load_excel_data, load_csv_data
 import os
 from app.src.utils import add_file_record
@@ -44,7 +44,7 @@ def run_task():
 
         # Today's date for file processing
         TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-        # TODAY_DATE = "16-Jan-2025"  # Hardcoded for now
+        # TODAY_DATE = "14-Jan-2025"  # Hardcoded for now
         YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
 
         weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
@@ -57,6 +57,10 @@ def run_task():
             "call_reason": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "Guru_CallReason" in file and (file.endswith('.csv'))
+            )),
+            "daily_booking_list": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "Buchungsliste_daily" in file and (file.endswith('.csv'))
             )),
             "daily_5vF_SB": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
@@ -149,10 +153,12 @@ def run_task():
                     data = load_excel_data(path, skiprows=[0, 1, 2, 3])
                 # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
                 #     email_data = load_excel_data(path, skiprows=[0, 1, 2, 3])
-                    print("Found email data")
+                    # print("Found email data")
                 elif file_type == "guru_task":
                     data = load_csv_data(path)
                 elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:
+                    data = load_csv_data(path)
+                elif file_type == "daily_booking_list":
                     data = load_csv_data(path)
 
                 # Populate database only if data is not None and not empty
@@ -176,6 +182,9 @@ def run_task():
                         add_file_record(db=db, filename=file_type, status="added")
                     elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:
                         populate_soft_booking_data(data, db)
+                        add_file_record(db=db, filename=file_type, status="added")
+                    elif file_type == "daily_booking_list":
+                        populate_booking_data(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")
                     logging.info(f"Successfully processed {file_type}")
             except Exception as e:
