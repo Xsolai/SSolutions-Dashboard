@@ -137,15 +137,13 @@ const AnalyticsDashboard = () => {
     isAllTime: false
   });
   const [data, setData] = useState({
-    emailData: null,
-    emailSubKPIs: null,
     salesServiceData: null,
     bookingData: null,
     bookingSubKPIs: null,
     conversionData: null
   });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('email');
+  const [activeTab, setActiveTab] = useState('sales');
 
   const access_token = localStorage.getItem('access_token');
   const config = {
@@ -201,16 +199,12 @@ const handleCompanyChange = (company) => {
 
     try {
       const [
-        emailData,
-        emailSubKPIs,
         salesServiceData,
         bookingData,
         bookingSubKPIs,
         conversionData
       ] = await Promise.all([
         // Fixed API endpoint names to match backend
-        fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config),
-        fetch('https://solasolution.ecomtask.de/anaytics_email_subkpis', config), // Note: backend has typo in 'anaytics'
         fetch(`https://solasolution.ecomtask.de/analytics_sales_service?${queryString}`, config),
         fetch(`https://solasolution.ecomtask.de/analytics_booking?${queryString}`, config),
         fetch('https://solasolution.ecomtask.de/analytics_booking_subkpis', config),
@@ -219,15 +213,11 @@ const handleCompanyChange = (company) => {
 
   
       const [
-        emailDataJson,
-        emailSubKPIsJson,
         salesServiceDataJson,
         bookingDataJson,
         bookingSubKPIsJson,
         conversionDataJson
       ] = await Promise.all([
-        emailData.json(),
-        emailSubKPIs.json(),
         salesServiceData.json(),
         bookingData.json(),
         bookingSubKPIs.json(),
@@ -236,8 +226,6 @@ const handleCompanyChange = (company) => {
   
       // Update state with fetched data
       setData({
-        emailData: emailDataJson,
-        emailSubKPIs: emailSubKPIsJson,
         salesServiceData: salesServiceDataJson,
         bookingData: bookingDataJson,
         bookingSubKPIs: bookingSubKPIsJson,
@@ -279,129 +267,6 @@ const handleCompanyChange = (company) => {
       isAllTime: newRange.isAllTime
     });
   };
-
-  
-  
-const EmailTab = () => {
-  if (!data.emailData || !data.emailSubKPIs) return <Loading />;
-  
-  const processedTimeData = data.emailData['Processing Time Trend in seconds'] || [];
-  
-  const emailMetrics = [
-    {
-      title: "Empfangene E-Mails",
-      value: data.emailData['email recieved'] || 0,
-      icon: Mail,
-      change: data.emailSubKPIs['email recieved change'],
-      description: "im Vergleich zur letzten Periode"
-    },
-    {
-      title: "Gesendete E-Mails",
-      value: data.emailData['email sent'] || 0,
-      icon: Mail,
-      change: data.emailSubKPIs['email sent change'],
-      description: "im Vergleich zur letzten Periode"
-    },
-    {
-      title: "Neue Fälle",
-      value: data.emailData['email new cases'] || 0,
-      icon: Send,
-      change: data.emailSubKPIs['email new cases change'],
-      description: "im Vergleich zur letzten Periode"
-    }
-  ];
-  
-  const slGross = data.emailData['SL Gross'] || 0;
-  const processingTime = data.emailData['Total Dwell Time (sec)'] || 0;
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {emailMetrics.map((metric, index) => (
-          <StatCard
-            key={index}
-            title={metric.title}
-            value={metric.value}
-            icon={metric.icon}
-            change={metric.change}
-            description={metric.description}
-          />
-        ))}
-      </div>
-  
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <StatCard
-          title="SL Brutto"
-          value={`${slGross.toFixed(2)}%`}
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Bearbeitungszeit"
-          value={`${processingTime}`}
-          icon={Clock}
-        />
-      </div>
-  
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="E-Mail-Bearbeitungsübersicht">
-          <div className="h-[300px]">
-            <ResponsiveContainer>
-              <BarChart data={[
-                { name: 'Empfangen', value: data.emailData['email recieved'] || 0 },
-                { name: 'Gesendet', value: data.emailData['email sent'] || 0 },
-                { name: 'Archiviert', value: data.emailData['email archived'] || 0 }
-              ]}>
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
-                />
-                <YAxis 
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
-                />
-                <Tooltip content={<CustomTooltip />} />
-
-                <Bar 
-                  dataKey="value" 
-                  fill="#F0B72F"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-  
-        <ChartCard title="Bearbeitungszeit-Trend">
-          <div className="h-[300px]">
-            <ResponsiveContainer>
-              <LineChart data={processedTimeData}>
-                <XAxis 
-                  dataKey="interval_start"
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
-                />
-                <YAxis 
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
-                />
-              <Tooltip content={<CustomTooltip />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="total_processing_time_sec" 
-                  stroke="#F0B72F"
-                  strokeWidth={2}
-                  dot={{ fill: '#F0B72F' }}
-                  name="Bearbeitungszeit (Min)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-      </div>
-    </div>
-  );
-};
 
     
 const SalesServiceTab = () => {
@@ -887,7 +752,7 @@ const ConversionTab = () => {
 
 
   const tabs = [
-    { id: "email", name: "E-Mail-Analyse" },
+    // { id: "email", name: "E-Mail-Analyse" },
     { id: "sales", name: "Vertrieb & Service" },
     { id: "booking", name: "Softbuchungen" },
     { id: "conversion", name: "Konversion" },
@@ -931,6 +796,13 @@ return (
         <div className="flex flex-row gap-4">
           <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
           <CompanyDropdown onCompanyChange={handleCompanyChange} />
+          <button
+            className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
+              text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
+            onClick={() => {}}
+          >
+            Download
+          </button>
         </div>
       </div>
 
@@ -960,7 +832,6 @@ return (
 
       {/* Tab Content */}
       <div className="py-4">
-        {activeTab === "email" && <EmailTab />}
         {activeTab === "sales" && <SalesServiceTab />}
         {activeTab === "booking" && <BookingTab />}
         {activeTab === "conversion" && <ConversionTab />}

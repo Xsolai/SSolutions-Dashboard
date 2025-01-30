@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
-import { Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
+import { Mail, Send, TrendingUp, Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
 import CustomDateRangeFilter from './FilterComponent';
 import CompanyDropdown from './Company';
 
@@ -135,7 +135,7 @@ const chartConfig = {
 
 
 const EmailAnalysisDashboard = () => {
-  const [activeTab, setActiveTab] = useState('uebersicht');
+  const [activeTab, setActiveTab] = useState('email');
   const [dateRange, setDateRange] = useState({
     startDate: null,
     endDate: null,
@@ -143,6 +143,8 @@ const EmailAnalysisDashboard = () => {
   });
   const [selectedCompany, setSelectedCompany] = useState('');
 
+  const [emailData, setEmailData] = useState(null);
+  const [emailSubKPIs, setEmailSubKPIs] = useState(null);
   const [overviewData, setOverviewData] = useState(null);
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
@@ -151,6 +153,7 @@ const EmailAnalysisDashboard = () => {
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
+    { id: "email", name: "E-Mail-Analyse" },
     { id: "uebersicht", name: "Übersicht" },
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
@@ -203,7 +206,11 @@ const EmailAnalysisDashboard = () => {
           }
         };
 
-        const [overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+        const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+            .then(res => res.json()),
+          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+            .then(res => res.json()),
           fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
             .then(res => res.json()),
           fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
@@ -212,6 +219,8 @@ const EmailAnalysisDashboard = () => {
             .then(res => res.json())
         ]);
 
+        setEmailData(emailRes);
+        setEmailSubKPIs(emailSubKPIsRes);
         setOverviewData(overviewRes);
         setSubKPIs(subKPIsRes);
         setPerformanceData(performanceRes);
@@ -248,6 +257,126 @@ const EmailAnalysisDashboard = () => {
     });
   };
 
+  const EmailTab = () => {
+    if (!emailData || !emailSubKPIs) return <Loading />;
+    
+    const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
+    
+    const emailMetrics = [
+      {
+        title: "Transaktionen E-Mails",
+        value: emailData['email recieved'] || 0,
+        icon: Mail,
+        change: emailSubKPIs['email recieved change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Gesendete E-Mails",
+        value: emailData['email sent'] || 0,
+        icon: Mail,
+        change: emailSubKPIs['email sent change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Neue Fälle",
+        value: emailData['email new cases'] || 0,
+        icon: Send,
+        change: emailSubKPIs['email new cases change'],
+        description: "im Vergleich zur letzten Periode"
+      }
+    ];
+    
+    const slGross = emailData['SL Gross'] || 0;
+    const processingTime = emailData['Total Dwell Time (sec)'] || 0;
+  
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {emailMetrics.map((metric, index) => (
+            <StatCard
+              key={index}
+              title={metric.title}
+              value={metric.value}
+              icon={metric.icon}
+              change={metric.change}
+              description={metric.description}
+            />
+          ))}
+        </div>
+    
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <StatCard
+            title="SL Brutto"
+            value={`${slGross.toFixed(2)}%`}
+            icon={TrendingUp}
+          />
+          <StatCard
+            title="Bearbeitungszeit"
+            value={`${processingTime}`}
+            icon={Clock}
+          />
+        </div>
+    
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="E-Mail-Bearbeitungsübersicht">
+            <div className="h-[300px]">
+              <ResponsiveContainer>
+                <BarChart data={[
+                  { name: 'Empfangen', value: emailData['email recieved'] || 0 },
+                  { name: 'Gesendet', value: emailData['email sent'] || 0 },
+                  { name: 'Archiviert', value: emailData['email archived'] || 0 }
+                ]}>
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <YAxis 
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+  
+                  <Bar 
+                    dataKey="value" 
+                    fill="#F0B72F"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+    
+          <ChartCard title="Bearbeitungszeit-Trend">
+            <div className="h-[300px]">
+              <ResponsiveContainer>
+                <LineChart data={processedTimeData}>
+                  <XAxis 
+                    dataKey="interval_start"
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <YAxis 
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                <Tooltip content={<CustomTooltip />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="total_processing_time_sec" 
+                    stroke="#F0B72F"
+                    strokeWidth={2}
+                    dot={{ fill: '#F0B72F' }}
+                    name="Bearbeitungszeit (Min)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+      </div>
+    );
+  };
 
 const UebersichtTab = () => {
   if (!overviewData || !subKPIs) return <Loading/>;
@@ -447,6 +576,13 @@ const LeistungTab = () => {
           <div className="flex flex-row gap-4">
             <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
             <CompanyDropdown onCompanyChange={handleCompanyChange} />
+            <button
+            className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
+              text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
+            onClick={() => {}}
+          >
+            Download
+          </button>
           </div>
         </div>
 
@@ -484,6 +620,7 @@ const LeistungTab = () => {
         </div>
 
         <div className="py-4">
+          {activeTab === "email" && <EmailTab />}
           {activeTab === "uebersicht" && <UebersichtTab />}
           {activeTab === "leistung" && <LeistungTab />}
         </div>
