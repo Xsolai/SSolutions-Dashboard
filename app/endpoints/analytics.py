@@ -7,7 +7,7 @@ from sqlalchemy import func, or_
 from collections import defaultdict
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import domains_checker_booking, domains_checker_email, domains_checker, calculate_percentage_change, validate_user_and_date_permissions, get_date_subkpis, get_date_rng_subkpis
+from app.src.utils import domains_checker_booking, domains_checker_email, domains_checker, calculate_percentage_change, validate_user_and_date_permissions, time_formatter, get_date_rng_subkpis, time_format
 from typing import Optional 
 from app.src.utils_booking import validate_user_and_date_permissions_booking, calculate_percentage_change_booking, get_date_rng_subkpis_booking
 
@@ -52,34 +52,7 @@ def time_to_seconds(time_str):
     except Exception as e:
         print(f"Error converting time '{time_str}': {e}")
         return 0
-
-# def time_to_minutes(time):
-#     """Convert time in various formats to minutes."""
-#     try:
-#         if isinstance(time, tuple):
-#             pass
-
-#         if '.' in time[0]:
-#             print("float ", time[0])
-#             return float(time[0])  # Assuming this represents minutes directly
-
-#         # Handle time formats
-#         if ':' in time[0]:
-#             if len(time[0].split(':')) == 2:
-#                 # Format: 'mm:ss'
-#                 dt = datetime.strptime(time[0], "%M:%S")
-#                 total_minutes = dt.minute + dt.second / 60
-#                 return total_minutes
-#             elif len(time[0].split(':')) == 3:
-#                 # Format: 'hh:mm:ss'
-#                 dt = datetime.strptime(time[0], "%H:%M:%S")
-#                 total_minutes = dt.hour * 60 + dt.minute + dt.second / 60
-#                 return total_minutes
-
-#         return 0  # Return 0 if format is unrecognized
-#     except Exception as e:
-#         print(f"Error converting time '{time}': {e}")
-#         return 0
+    
 def time_to_minutes(time):
     """Convert time in various formats to minutes."""
     try:
@@ -140,7 +113,7 @@ async def get_anaytics_email_data(
     email_filter = current_user.get("email")
     # email_contains_5vflug = "5vorflug" in email_filter
     # email_contains_bild = "bild" in email_filter
-    is_guru_email = "urlaubsguru" in email_filter
+    # is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
@@ -262,23 +235,31 @@ async def get_anaytics_email_data(
     total_processing_time_min = 0.0001
     total_dwell_time_seconds = 0.0001
     total_dwell_min = 0.0001
+    total_dwell_hours = 0
     interval_data = defaultdict(float)
 
-    # for pt in processing_times:
-    #     # print("Original Time:", pt)  # Debug print
-    #     seconds = time_to_seconds(pt)
-    #     # print("Converted Seconds:", seconds)  # Debug print
-    #     total_processing_time_seconds += seconds
-    #     interval = (seconds // 600) * 10
-    #     interval_data[interval] += seconds
-    #     # print("Interval Data:", dict(interval_data))  # Debug print
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     dwell_times = [pt[0] if isinstance(pt, tuple) else pt for pt in dwell_times]
+    # for pt in dwell_times:
+    #     hours,minutes,seconds = time_format(pt)
+    #     total_dwell_time_seconds += seconds
+    #     total_dwell_min += minutes
+    #     total_dwell_hours += hours
+    # total_dwell_min += total_dwell_time_seconds // 60
     for pt in dwell_times:
-        minutes,seconds = time_to_minutes(pt)
+        hours, minutes, seconds = time_format(pt)
         total_dwell_time_seconds += seconds
         total_dwell_min += minutes
+        total_dwell_hours += hours
+
+    # Convert extra seconds into minutes
     total_dwell_min += total_dwell_time_seconds // 60
+    total_dwell_time_seconds = total_dwell_time_seconds % 60  # Keep remaining seconds
+
+    # Convert extra minutes into hours
+    total_dwell_hours += total_dwell_min // 60
+    total_dwell_min = total_dwell_min % 60  # Keep remaining minutes
+
     for pt in processing_times:
         minutes,seconds = time_to_minutes(pt)
         total_processing_time_seconds += seconds
@@ -338,8 +319,9 @@ async def get_anaytics_email_data(
         "email archived": email_archieved,
         "SL Gross": round(service_level_gross, 2),
         # "New Sent": new_sent,
-        "Total Dwell Time (sec)": f"{int(total_dwell_min)}m{int(total_dwell_time_seconds % 60)}s" 
-        if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
+        # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
+        # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
+        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)),
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
