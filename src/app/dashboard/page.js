@@ -301,7 +301,7 @@ const Home = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center space-x-4">
+              <div className="hidden lg:flex items-center space-x-4">
                 {navigationLinks.map((link) => (
                   <button
                     key={link.id}
@@ -327,7 +327,7 @@ const Home = () => {
                 <ProfileDropdown role={role} />
               </div>
 
-              <div className="md:hidden flex items-center gap-4">
+              <div className="lg:hidden flex items-center gap-4">
                 <button
                   className="p-2 rounded-lg bg-[#001E4A] text-[#F0B72F] hover:bg-[#001E4A]/90"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
