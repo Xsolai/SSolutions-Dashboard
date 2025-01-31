@@ -285,20 +285,13 @@ const UebersichtTab = () => {
       change: emailSubKPIs['email sent change'],
       description: "im Vergleich zur letzten Periode"
     },
-    {
-      title: "Neue Email Fälle",
-      value: emailData['email new cases'] || 0,
-      icon: Send,
-      change: emailSubKPIs['email new cases change'],
-      description: "im Vergleich zur letzten Periode"
-    },
-    { 
-      title: "Durchschnittliche Verweilzeit", 
-      value: `${overviewData['Total Processing Time (sec)'] || 0}`, 
-      icon: Timer,
-      change: subKPIs['Total Processing Time (sec) change'],
-      description: "im Vergleich zur letzten Periode"
-    },
+    // { 
+    //   title: "Bearbeitungszeit", 
+    //   value: `${overviewData['Total Processing Time (sec)'] || 0}`, 
+    //   icon: Timer,
+    //   change: subKPIs['Total Processing Time (sec) change'],
+    //   description: "im Vergleich zur letzten Periode"
+    // },
     { 
       title: "Neue Fälle", 
       value: (overviewData['total new cases'] || 0).toLocaleString(), 
@@ -321,18 +314,20 @@ const UebersichtTab = () => {
         {uebersichtStats.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
-        <StatCard
-            title="SL Brutto"
-            value={`${slGross.toFixed(1)}%`}
-            icon={TrendingUp}
-          />
-          <StatCard
-            title="Bearbeitungszeit"
-            value={`${processingTime}`}
-            icon={Clock}
-          />
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+        <StatCard
+          title="SL Brutto"
+          value={`${slGross.toFixed(1)}%`}
+          icon={TrendingUp}
+          />
+        <StatCard
+          title="Durchschnittliche Verweilzeit"
+          value={`${processingTime}`}
+          icon={Clock}
+          />
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="E-Mail-Bearbeitungsübersicht">
           <div className="h-[300px]">
