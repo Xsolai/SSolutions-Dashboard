@@ -321,7 +321,7 @@ async def get_anaytics_email_data(
         # "New Sent": new_sent,
         # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
         # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
-        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)),
+        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours/3), int(total_dwell_min/3), int(total_dwell_time_seconds/3)),
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
