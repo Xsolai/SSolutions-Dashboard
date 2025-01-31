@@ -231,6 +231,8 @@ const handleCompanyChange = (company) => {
         bookingSubKPIs: bookingSubKPIsJson,
         conversionData: conversionDataJson
       });
+      console.log("bookingData: ", bookingDataJson);
+      console.log("bookingSubKPIs: ", bookingSubKPIsJson);
     } catch (error) {
       console.error('Fehler beim Abrufen der Analysedaten:', error);
       // Could add error state handling here
@@ -512,6 +514,12 @@ const BookingTab = () => {
       value: bookingData['RQ'] || 0,
       icon: TrendingDown,
       change: bookingSubKPIs['RQ change']
+    },
+    {
+      title: "SB Anzahl",
+      value: bookingData['SB'] || 0,
+      icon: TrendingDown,
+      change: bookingSubKPIs['SB change']
     }
   ];
 
@@ -752,7 +760,6 @@ const ConversionTab = () => {
 
 
   const tabs = [
-    // { id: "email", name: "E-Mail-Analyse" },
     { id: "sales", name: "Vertrieb & Service" },
     { id: "booking", name: "Softbuchungen" },
     { id: "conversion", name: "Konversion" },

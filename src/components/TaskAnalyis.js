@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell , CartesianGrid} from 'recharts';
+import { Users, Inbox, CircleCheck, TriangleAlert, Circle } from 'lucide-react';
 import CustomDateRangeFilter from './FilterComponent';
 import CompanyDropdown from './Company';
 
@@ -138,6 +139,26 @@ const chartConfig = {
   }
 };
 
+const StatCard = ({ title, value, icon: Icon, change, description }) => (
+  <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
+    <div className="flex items-center justify-between mb-1">
+      <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
+      <div className="p-2 bg-[#F0B72F]/10 rounded-lg">
+        <Icon className="h-5 w-5 text-[#F0B72F]" />
+      </div>
+    </div>
+    <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] mb-2">{value}{title === "Durchschnittliche Dauer" ? " minuten" : ""}</div>
+    {change !== undefined && description && (
+      <p className="text-[14px] font-nexa-book text-[#001E4A]/70">
+        <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>
+          {parseFloat(change) > 0 ? '+' : ''}{parseFloat(change).toFixed(1)}%
+        </span>
+        {description}
+      </p>
+    )}
+  </div>
+);
+
 const TaskAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [dateRange, setDateRange] = useState({
@@ -261,9 +282,45 @@ const TaskAnalysisDashboard = () => {
   
     const tasksByWeekday = data.overview['Tasks created by weekday'] || [];
     const tasksByMonth = data.overview['Tasks created by date'] || [];
+
+    const taskMetrics = [
+      {
+        title: "Aufgabentypen",
+        value: data.kpis['Task types'] || 0,
+        icon: Inbox,
+        change: data.kpis['email recieved change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Durchschnittliche Dauer",
+        value: data.kpis['avg_duration in minutes'] || 0,
+        icon: data.kpis['avg_duration in minutes'] > 30 ? TriangleAlert : CircleCheck,
+        change: data.kpis['email sent change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Zugewiesene Benutzer",
+        value: data.kpis['# of assigned users'] || 0,
+        icon: Users,
+        change: data.kpis['email new cases change'],
+        description: "im Vergleich zur letzten Periode"
+      }
+    ];
   
     return (
       <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {taskMetrics.map((metric, index) => (
+            <StatCard
+              key={index}
+              title={metric.title}
+              value={metric.value}
+              icon={metric.icon}
+              change={metric.change}
+              description={metric.description}
+            />
+          ))}
+        </div>
         <ChartCard title="Aufgaben nach Kategorie">
           <div className="flex flex-col md:flex-row h-[400px] md:h-[450px] gap-4">
             <div className="flex-1 min-h-[300px]">
