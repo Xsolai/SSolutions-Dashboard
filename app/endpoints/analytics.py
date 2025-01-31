@@ -321,7 +321,7 @@ async def get_anaytics_email_data(
         # "New Sent": new_sent,
         # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
         # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
-        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours/3), int(total_dwell_min/3), int(total_dwell_time_seconds/3)),
+        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours/3), int(total_dwell_min/3), int(total_dwell_time_seconds/3)) if company == "all" else time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)),
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
@@ -436,7 +436,7 @@ async def get_anaytics_email_data_sub_kpis(
         "prev email recieved": prev_email_recieved,
         "email recieved change": calculate_percentage_change(email_answered, prev_email_recieved),
         "email answered": email_answered,
-        "prev email answered": prev_email_answered,
+        "prev email answered": prev_email_answered, 
         "email answered change": calculate_percentage_change(email_answered, prev_email_answered),
         "email archived": email_archieved,
         "prev email archived": prev_email_archieved,
