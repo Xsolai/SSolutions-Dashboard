@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, date
 from sqlalchemy import func, or_
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
-from app.src.utils import get_date_rng_subkpis, calculate_percentage_change, validate_user_and_date_permissions, domains_checker_email
+from app.src.utils import get_date_rng_subkpis, calculate_percentage_change, validate_user_and_date_permissions, domains_checker_email, time_format, time_formatter
 from typing import Optional
 
 router = APIRouter(
@@ -141,6 +141,7 @@ async def get_email_overview(
         
     total_processing_time_seconds = 0.00001
     total_processing_time_min = 0
+    total_processing_time_hour = 0
     if start_date is None:
         service_level_gross = email_query.with_entities(
             func.avg(
@@ -151,13 +152,26 @@ async def get_email_overview(
         processing_times = email_query.with_entities(EmailData.processing_time).all()
         # Clean the data to extract values from tuples
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
+        # for pt in processing_times:
+        #     minutes,seconds = time_to_minutes(pt)
+        #     total_processing_time_seconds += seconds
+        #     total_processing_time_min += minutes
+        
+        # total_processing_time_min += total_processing_time_seconds // 60
         for pt in processing_times:
-            minutes,seconds = time_to_minutes(pt)
+            hours, minutes, seconds = time_format(pt)
             total_processing_time_seconds += seconds
             total_processing_time_min += minutes
-        
+            total_processing_time_hour += hours
+
+        # Convert extra seconds into minutes
         total_processing_time_min += total_processing_time_seconds // 60
-        
+        total_processing_time_seconds = total_processing_time_seconds % 60  # Keep remaining seconds
+
+        # Convert extra minutes into hours
+        total_processing_time_hour += total_processing_time_min // 60
+        total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
+            
         total_emails = query.with_entities(
             func.sum(
                 WorkflowReportGuruKF.received
@@ -194,12 +208,25 @@ async def get_email_overview(
             EmailData.date.between(start_date, end_date)
         ).all()
         processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
+        # for pt in processing_times:
+        #     minutes,seconds = time_to_minutes(pt)
+        #     total_processing_time_seconds += seconds
+        #     total_processing_time_min += minutes
+        
+        # total_processing_time_min += total_processing_time_seconds // 60
         for pt in processing_times:
-            minutes,seconds = time_to_minutes(pt)
+            hours, minutes, seconds = time_format(pt)
             total_processing_time_seconds += seconds
             total_processing_time_min += minutes
-        
+            total_processing_time_hour += hours
+
+        # Convert extra seconds into minutes
         total_processing_time_min += total_processing_time_seconds // 60
+        total_processing_time_seconds = total_processing_time_seconds % 60  # Keep remaining seconds
+
+        # Convert extra minutes into hours
+        total_processing_time_hour += total_processing_time_min // 60
+        total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
         
         total_emails = email_query.with_entities(
             func.sum(
@@ -232,8 +259,9 @@ async def get_email_overview(
         ]
     
     return {
-    "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
-    if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
+    # "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
+    # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
+    "Total Processing Time (min)": time_formatter(int(total_processing_time_hour), int(total_processing_time_min), int(total_processing_time_seconds)),
     "total emails received": total_emails,
     "total new cases": new_cases,
     "service_level_gross": round(service_level_gross, 2),

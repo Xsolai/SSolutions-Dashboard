@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.database.models.models import (GuruCallReason,WorkflowReportGuruKF, EmailData,
-                                        QueueStatistics, SoftBookingKF, GuruTask, OrderJoin, BookingData)
+                                        QueueStatistics, SoftBookingKF, GuruTask, OrderJoin, BookingData, AllQueueStatisticsData)
 from app.src.logger import logging
 from datetime import datetime
 import pandas as pd
@@ -148,6 +148,50 @@ def populate_queue_statistics(data, db: Session, date, day):
         
         db.commit()
         logging.info("Queue statistics data successfully populated into the database.")
+        # print("Queue statistics data successfully populated into the database.")
+
+    except Exception as e:
+        db.rollback()  # Rollback the transaction in case of an error
+        logging.error(f"Error populating QueueStatistics data: {e}")
+        print(f"Exception occurred while populating queue statistics data: {e}")        
+
+
+def populate_all_queue_statistics(data, db: Session, date, day):
+    """Populate the QueueStatistics table with data from the DataFrame."""
+    try:
+        for _, row in data.iterrows():
+            # if any("Summe" in str(value) for value in row):
+            #     continue
+            if row.get("Warteschleife")=="Summe":
+                # Populate the QueueStatistics record, using .get() to avoid KeyError if column is missing
+                print("row: ", row)
+                db_record = AllQueueStatisticsData(
+                    date=date,
+                    customer=row.get('file_name', ""),
+                    weekday=day,
+                    queue_name=row.get('Warteschleife', ''),
+                    calls=row.get('Anrufe', 0),
+                    offered=row.get('Angeboten', 0),
+                    accepted=row.get('Angenommen', 0),
+                    abandoned_before_answer=row.get('Aufgelegt vor Antwort', 0),\
+                    avg_wait_time=row.get('av. Wartezeit', 0),
+                    max_wait_time=row.get('max. Wartezeit', 0.0),
+                    avg_handling_time_inbound=row.get('av. AHT Inbound', 0),
+                    max_talk_time=row.get('max. Gesprächszeit', 0),
+                    asr=row.get('ASR', 0.0),
+                    # asr20=row.get('ASR20', 0.0),
+                    sla_20_20=row.get('SLA20\\20', 0.0),
+                    outbound=row.get('Outbound', 0),
+                    outbound_accepted=row.get('Outbound angenommen', 0),
+                    total_outbound_talk_time_destination=row.get('tot. Outbound Gesprächszeit Ziel', 0.0),
+                    avg_after_call_work_outbound=row.get('tot. Nachbearbeitung Outbound', 0.0),
+                )
+                # print(db_record)
+                # print("AHT utbound:", row.get('avg AHT Outbound', 0))
+                db.add(db_record)
+            print("data added")
+            db.commit()
+            logging.info("Queue statistics data successfully populated into the database.")
         # print("Queue statistics data successfully populated into the database.")
 
     except Exception as e:
@@ -319,22 +363,87 @@ def populate_guru_task_data(data, db: Session, date):
 #         db.rollback()
 #         logging.error(f"Error populating order join table: {e}", exc_info=True)
 #         print(f"Exception occurred while populating order join table: {e}")
+# def create_order_join(db: Session):
+#     """
+#     Populate the order_join table using a UNION to emulate FULL OUTER JOIN.
+#     Includes an additional `date` column from `guru_tasks`.
+#     """
+#     try:
+#         # Clear existing data in the join table
+#         db.query(OrderJoin).delete()
+#         db.commit()
+
+#         # Insert using UNION to emulate FULL OUTER JOIN
+#         query = text("""
+#         INSERT INTO order_join (
+#             date, order_number, task_type, customer, lt_code, status, 
+#             element_price, original_amount, performance_time,
+#             user, task_deadline, task_created, time_modified
+#         )
+#         SELECT DISTINCT
+#             gt.date AS date,
+#             gt.order_number AS order_number,
+#             gt.task_type AS task_type,
+#             sb.customer AS customer,
+#             sb.lt_code AS lt_code,
+#             sb.status AS status,
+#             sb.service_element_price AS element_price,
+#             sb.service_original_amount AS original_amount,
+#             sb.service_creation_time AS performance_time,
+#             gt.assigned_user AS user,
+#             gt.due_date AS task_deadline,
+#             gt.creation_time AS task_created,
+#             gt.time_modified AS time_modified
+#         FROM guru_tasks gt
+#         LEFT JOIN soft_booking_kf sb ON gt.order_number = sb.booking_number
+
+#         UNION
+
+#         SELECT DISTINCT
+#             DATE(sb.service_creation_time) AS date,
+#             sb.booking_number AS order_number,
+#             NULL AS task_type,
+#             sb.customer AS customer,
+#             sb.lt_code AS lt_code,
+#             sb.status AS status,
+#             sb.service_element_price AS element_price,
+#             sb.service_original_amount AS original_amount,
+#             sb.service_creation_time AS performance_time,
+#             NULL AS user,
+#             NULL AS task_deadline,
+#             NULL AS task_created,
+#             NULL AS time_modified
+#         FROM soft_booking_kf sb
+#         LEFT JOIN guru_tasks gt ON sb.booking_number = gt.order_number
+#         WHERE gt.order_number IS NULL;
+#         """)
+
+#         # Execute the query
+#         db.execute(query)
+#         db.commit()
+#         logging.info("Order join table successfully populated.")
+
+#     except Exception as e:
+#         db.rollback()
+#         logging.error(f"Error populating order_join table: {e}", exc_info=True)
+#         print(f"Exception occurred while populating order_join table: {e}")
+
 def create_order_join(db: Session):
     """
-    Populate the order_join table using a UNION to emulate FULL OUTER JOIN.
-    Includes an additional `date` column from `guru_tasks`.
+    Populate the order_join table for SQLite.
+    Includes `duration` column as the difference between `time_modified` and `service_creation_time`.
     """
     try:
         # Clear existing data in the join table
         db.query(OrderJoin).delete()
         db.commit()
 
-        # Insert using UNION to emulate FULL OUTER JOIN
-        query = text("""
+        # First INSERT query (from guru_tasks)
+        query1 = text("""
         INSERT INTO order_join (
             date, order_number, task_type, customer, lt_code, status, 
             element_price, original_amount, performance_time,
-            user, task_deadline, task_created, time_modified
+            user, task_deadline, task_created, time_modified, duration
         )
         SELECT DISTINCT
             gt.date AS date,
@@ -349,12 +458,22 @@ def create_order_join(db: Session):
             gt.assigned_user AS user,
             gt.due_date AS task_deadline,
             gt.creation_time AS task_created,
-            gt.time_modified AS time_modified
+            gt.time_modified AS time_modified,
+            (julianday(gt.time_modified) - julianday(sb.service_creation_time)) * 1440 AS duration
         FROM guru_tasks gt
-        LEFT JOIN soft_booking_kf sb ON gt.order_number = sb.booking_number
+        LEFT JOIN soft_booking_kf sb ON gt.order_number = sb.booking_number;
+        """)
 
-        UNION
+        db.execute(query1)
+        db.commit()
 
+        # Second INSERT query (from soft_booking_kf where no match in guru_tasks)
+        query2 = text("""
+        INSERT INTO order_join (
+            date, order_number, task_type, customer, lt_code, status, 
+            element_price, original_amount, performance_time,
+            user, task_deadline, task_created, time_modified, duration
+        )
         SELECT DISTINCT
             DATE(sb.service_creation_time) AS date,
             sb.booking_number AS order_number,
@@ -368,15 +487,16 @@ def create_order_join(db: Session):
             NULL AS user,
             NULL AS task_deadline,
             NULL AS task_created,
-            NULL AS time_modified
+            NULL AS time_modified,
+            NULL AS duration
         FROM soft_booking_kf sb
         LEFT JOIN guru_tasks gt ON sb.booking_number = gt.order_number
         WHERE gt.order_number IS NULL;
         """)
 
-        # Execute the query
-        db.execute(query)
+        db.execute(query2)
         db.commit()
+
         logging.info("Order join table successfully populated.")
 
     except Exception as e:

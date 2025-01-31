@@ -6,7 +6,7 @@ from app.database.db.db_connection import SessionLocal
 from app.src.components.data_ingestion import (
     populate_guru_call_reason,populate_workflow_report, 
     populate_queue_statistics, populate_soft_booking_data, populate_guru_task_data, create_order_join,
-    populate_email_data, populate_booking_data)
+    populate_email_data, populate_booking_data, populate_all_queue_statistics)
 from app.src.components.data_transformation import load_excel_data, load_csv_data
 import os
 from app.src.utils import add_file_record
@@ -39,12 +39,12 @@ def run_task():
         logging.info("Task started successfully")
 
         # Download attachments
-        download_attachments()
+        # download_attachments()
         logging.info("Attachments downloaded")
 
         # Today's date for file processing
         TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-        # TODAY_DATE = "14-Jan-2025"  # Hardcoded for now
+        # TODAY_DATE = "29-Jan-2025"  # Hardcoded for now
         YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
 
         weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
@@ -134,6 +134,14 @@ def run_task():
                 str(file) for file in all_files 
                 if "1518_daily_Guru_Aufgaben" in file and (file.endswith('.csv'))
             )),
+            "5vf_task": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "1518_daily_5VFL_Aufgaben" in file and (file.endswith('.csv'))
+            )),
+            "bild_task": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "1518_daily_BILD_Aufgaben_" in file and (file.endswith('.csv'))
+            )),
             "soft_booking_data": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "Softbuchung_KF" in file and file.endswith('.csv')
@@ -154,7 +162,7 @@ def run_task():
                 # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
                 #     email_data = load_excel_data(path, skiprows=[0, 1, 2, 3])
                     # print("Found email data")
-                elif file_type == "guru_task":
+                elif file_type in ["guru_task", "bild_task", "5vf_task"]:
                     data = load_csv_data(path)
                 elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:
                     data = load_csv_data(path)
@@ -169,6 +177,8 @@ def run_task():
                     elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service"]:
                         populate_queue_statistics(data, db, date=YESTERDAY_DATE, day=weeday_name)
                         add_file_record(db=db, filename=file_type, status="added")
+                        populate_all_queue_statistics(data, db, date=YESTERDAY_DATE, day=weeday_name)
+                        add_file_record(db=db, filename=file_type, status="added for summe")
                     elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33", "ID_35"]:
                         populate_workflow_report(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")
@@ -177,7 +187,7 @@ def run_task():
                     # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
                     #     populate_email_data(data, db, date=YESTERDAY_DATE)
                     #     add_file_record(db=db, filename=file_type, status="added for email data")
-                    elif file_type == "guru_task":
+                    elif file_type in ["guru_task", "bild_task", "5vf_task"]:
                         populate_guru_task_data(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")
                     elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB"]:

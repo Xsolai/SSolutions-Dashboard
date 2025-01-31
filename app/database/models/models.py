@@ -167,7 +167,37 @@ class QueueStatistics(Base):
     # # Transfer statistics
     # transfer_in = Column(Integer, nullable=False, default=0)  # Weiterleitung (in)
     # transfer_out = Column(Integer, nullable=False, default=0)  # Weiterleitung (out)
+
+class AllQueueStatisticsData(Base):
+    __tablename__ = 'queue_statistics_summe'
     
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date)
+    weekday = Column(String)
+    customer = Column(String)
+    queue_name = Column(String(255), nullable=False)  # Warteschleife or queue name
+    
+    # General call statistics
+    calls = Column(Integer, nullable=False, default=0)  # Anrufe
+    offered = Column(Integer, nullable=False, default=0)  # Angeboten
+    accepted = Column(Integer, nullable=False, default=0)  # Angenommen
+    abandoned_before_answer = Column(Integer, nullable=False, default=0) 
+    
+    # Wait time statistics
+    avg_wait_time = Column(Integer, nullable=False, default=0)  # Ø Wartezeit (in seconds)
+    max_wait_time = Column(Integer, nullable=False, default=0)  # max. Wartezeit (in seconds)
+    avg_handling_time_inbound = Column(Integer, nullable=False, default=0)  # Ø AHT Inbound (in seconds)
+    max_talk_time = Column(Integer, nullable=False, default=0)  
+    
+    # Service level and ASR statistics
+    asr = Column(Float, nullable=False, default=0.0)  # ASR (%)
+    sla_20_20 = Column(Float, nullable=False, default=0.0)  # SLA20\20 (%)
+    
+    # Outbound statistics
+    outbound = Column(Integer, nullable=False, default=0)  # Outbound
+    outbound_accepted = Column(Integer, nullable=False, default=0)
+    total_outbound_talk_time_destination = Column(Float, nullable=False, default=0.0)  # ∑ Outbound Gesprächszeit Ziel (in minutes)
+    avg_after_call_work_outbound = Column(Integer, nullable=False, default=0) 
     
 class BookingData(Base):
     __tablename__ = 'booking_list'
@@ -292,6 +322,7 @@ class OrderJoin(Base):
     task_deadline = Column(DateTime, nullable=True)  # Task deadline
     task_created = Column(DateTime, nullable=True)  # Task creation timestamp
     time_modified = Column(DateTime, nullable=True)  # Task creation timestamp
+    duration = Column(Float, nullable=True)
     
     # # Optional unique constraint if you still want to enforce uniqueness
     # __table_args__ = (

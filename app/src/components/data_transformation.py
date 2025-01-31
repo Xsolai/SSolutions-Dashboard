@@ -16,6 +16,20 @@ def normalize_column_names(data):
     return data
 
 
+# def extract_filename_part(file_name):
+#     try:
+#         if "Workflow-Report" in file_name:
+#             match = re.search(r"Workflow-Report-(.*?)(?:\(ID__\d+\))", file_name)
+#             if match:
+#                 return match.group(1)
+#         elif re.match(r"^\d+_", file_name):
+#             match = re.search(r"\d+_(.*)", file_name)
+#             if match:
+#                 return match.group(1).replace("-", "_").replace(".csv", "")
+#         return file_name
+#     except Exception as e:
+#         logging.exception("Error while extracting filename part")
+#         return None
 def extract_filename_part(file_name):
     try:
         if "Workflow-Report" in file_name:
@@ -26,6 +40,10 @@ def extract_filename_part(file_name):
             match = re.search(r"\d+_(.*)", file_name)
             if match:
                 return match.group(1).replace("-", "_").replace(".csv", "")
+        else:
+            match = re.search(r"^(.*?_daily)", file_name)
+            if match:
+                return match.group(1)
         return file_name
     except Exception as e:
         logging.exception("Error while extracting filename part")

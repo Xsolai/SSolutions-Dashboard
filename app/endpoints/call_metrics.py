@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import (GuruCallReason, QueueStatistics, Permission, User)
+from app.database.models.models import (GuruCallReason, QueueStatistics, AllQueueStatisticsData, User, BookingData)
 from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func, or_
 from app.database.scehmas import schemas
@@ -18,13 +18,13 @@ def get_sla_percentage(query, start_date, end_date):
     """Endpoint to retrieve sla% per queue."""
     if start_date is None:
         sla_data = query.with_entities(
-            func.avg(QueueStatistics.sla_20_20)
+            func.avg(AllQueueStatisticsData.sla_20_20)
         ).scalar() or 0
     else:
         sla_data = query.with_entities(
-            func.avg(QueueStatistics.sla_20_20)
+            func.avg(AllQueueStatisticsData.sla_20_20)
         ).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
     return sla_data
 
@@ -33,12 +33,12 @@ def get_average_wait_time(query, start_date, end_date):
     """Endpoint to retrieve average wait time for calls."""
     if start_date is None:
         avg_wait_time = query.with_entities(func.avg(
-        QueueStatistics.avg_wait_time)).scalar() or 0
+        AllQueueStatisticsData.avg_wait_time)).scalar() or 0
     else:
         avg_wait_time = query.with_entities(func.avg(
-            QueueStatistics.avg_wait_time
+            AllQueueStatisticsData.avg_wait_time
         )).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
     return avg_wait_time
 
@@ -46,10 +46,10 @@ def get_max_wait_time(query, start_date, end_date):
     """Endpoint to retrieve max wait time for calls."""
     if start_date is None:
         
-        max_wait_time = query.with_entities(func.max(QueueStatistics.max_wait_time)).scalar() or 0
+        max_wait_time = query.with_entities(func.max(AllQueueStatisticsData.max_wait_time)).scalar() or 0
     else:
-        max_wait_time = query.with_entities(func.max(QueueStatistics.max_wait_time)).filter(
-        QueueStatistics.date.between(start_date, end_date)
+        max_wait_time = query.with_entities(func.max(AllQueueStatisticsData.max_wait_time)).filter(
+        AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
     return max_wait_time
 
@@ -58,13 +58,13 @@ def get_talk_time(query, start_date, end_date):
     """Endpoint to retrieve average wait time for calls."""
     if start_date is None:
         avg_talk_time = query.with_entities(func.avg(
-            QueueStatistics.total_outbound_talk_time_destination
+            AllQueueStatisticsData.total_outbound_talk_time_destination
         )).scalar() or 0
     else:
         avg_talk_time = query.with_entities(func.avg(
-            QueueStatistics.total_outbound_talk_time_destination
+            AllQueueStatisticsData.total_outbound_talk_time_destination
         )).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
     return avg_talk_time
 
@@ -122,17 +122,36 @@ async def get_calls(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
         )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like("%5vFlug%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%5VF%")  
+            )
         elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.notlike("%5vorFlug%"),
             QueueStatistics.queue_name.notlike("%BILD%")
             )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.notlike("%5vFlug%"),
+            AllQueueStatisticsData.customer.notlike("%Bild%")
+            )
+            booking_query = db.query(BookingData).filter(BookingData.order_agent.like(f"%GURU%"))
         elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
+            summe_query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like("%BILD%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%BILD%")  
+        )
         else:
             query = db.query(QueueStatistics)
+            summe_query = db.query(AllQueueStatisticsData)
+            booking_query = db.query(BookingData)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         print("excecuted for admin or guru")
     else:
@@ -140,42 +159,46 @@ async def get_calls(
         # print("Filters: ", filters)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
+            summe_query = db.query(AllQueueStatisticsData).filter(or_(*filters))
+            booking_query = db.query(BookingData).filter(or_(*filters))
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         else:
             query = db.query(QueueStatistics)
+            summe_query = db.query(AllQueueStatisticsData)
+            booking_query = db.query(BookingData)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
         # ).all()
-        calls = query.with_entities(func.sum(QueueStatistics.calls)).scalar() or 0
+        calls = summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).scalar() or 0
         # total_answered_calls = db.query(func.sum(QueueStatistics.answered_calls)).scalar() or 0
-        asr = query.with_entities(
-            func.avg(QueueStatistics.asr)
+        asr = summe_query.with_entities(
+            func.avg(AllQueueStatisticsData.asr)
         ).scalar() or 0
         total_call_reasons = total_call_reasons_query.scalar() or 0 if total_call_reasons_query else 0
         # asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
-        avg_handling_time = query.with_entities(func.avg(
-            QueueStatistics.avg_handling_time_inbound
+        avg_handling_time = summe_query.with_entities(func.avg(
+            AllQueueStatisticsData.avg_handling_time_inbound
         )).scalar()
-        dropped_calls = query.with_entities(func.sum(
-            QueueStatistics.abandoned_before_answer
+        dropped_calls = summe_query.with_entities(func.sum(
+            AllQueueStatisticsData.abandoned_before_answer
         )).scalar()
         
         
         # Graph
-        weekday_data = query.with_entities(
+        weekday_data = summe_query.with_entities(
         QueueStatistics.weekday.label("weekday"),  # Group by weekday
-        func.sum(QueueStatistics.calls).label("total_calls"),
-        func.sum(QueueStatistics.accepted).label("answered_calls"),
-        func.avg(QueueStatistics.avg_wait_time).label("avg_wait_time"),
-        func.max(QueueStatistics.max_wait_time).label("max_wait_time"),
-        func.avg(QueueStatistics.avg_handling_time_inbound).label("avg_handling_time"),
-        func.avg(QueueStatistics.sla_20_20).label("sla"),
-        func.sum(QueueStatistics.abandoned_before_answer).label("dropped_calls")
+        func.sum(AllQueueStatisticsData.calls).label("total_calls"),
+        func.sum(AllQueueStatisticsData.accepted).label("answered_calls"),
+        func.avg(AllQueueStatisticsData.avg_wait_time).label("avg_wait_time"),
+        func.max(AllQueueStatisticsData.max_wait_time).label("max_wait_time"),
+        func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("avg_handling_time"),
+        func.avg(AllQueueStatisticsData.sla_20_20).label("sla"),
+        func.sum(AllQueueStatisticsData.abandoned_before_answer).label("dropped_calls")
         ).group_by(
-            QueueStatistics.weekday
+            AllQueueStatisticsData.weekday
         ).all()
     else:
         # calls = db.query(QueueStatistics).filter(
@@ -187,39 +210,39 @@ async def get_calls(
         # total_answered_calls = db.query(func.sum(QueueStatistics.accepted)).filter(
         #     QueueStatistics.date.between(start_date, end_date)
         # ).scalar() or 0
-        asr = query.with_entities(
-            func.avg(QueueStatistics.asr)).filter(
-            QueueStatistics.date.between(start_date, end_date)
+        asr = summe_query.with_entities(
+            func.avg(AllQueueStatisticsData.asr)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         total_call_reasons = total_call_reasons_query.filter(
             GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0 if total_call_reasons_query else 0
         # asr = (total_answered_calls / total_calls) * 100 if total_calls > 0 else 0
-        avg_handling_time = query.with_entities(func.avg(
-            QueueStatistics.avg_handling_time_inbound
+        avg_handling_time = summe_query.with_entities(func.avg(
+            AllQueueStatisticsData.avg_handling_time_inbound
         )).filter(
-            QueueStatistics.date.between(start_date, end_date)
-        ).scalar()
-        dropped_calls = query.with_entities(func.sum(
-            QueueStatistics.abandoned_before_answer
+            AllQueueStatisticsData.date.between(start_date, end_date)
+        ).scalar() or 0
+        dropped_calls = summe_query.with_entities(func.sum(
+            AllQueueStatisticsData.abandoned_before_answer
         )).filter(
-            QueueStatistics.date.between(start_date, end_date)
-        ).scalar()
+            AllQueueStatisticsData.date.between(start_date, end_date)
+        ).scalar() or 0
         
         #Graph data
-        weekday_data = query.with_entities(
-        QueueStatistics.weekday.label("weekday"),  # Group by weekday
-            func.sum(QueueStatistics.calls).label("total_calls"),
-            func.sum(QueueStatistics.accepted).label("answered_calls"),
-            func.avg(QueueStatistics.avg_wait_time).label("avg_wait_time"),
-            func.max(QueueStatistics.max_wait_time).label("max_wait_time"),
-            func.avg(QueueStatistics.avg_handling_time_inbound).label("avg_handling_time"),
-            func.avg(QueueStatistics.sla_20_20).label("sla"),
-            func.sum(QueueStatistics.abandoned_before_answer).label("dropped_calls")
+        weekday_data = summe_query.with_entities(
+        AllQueueStatisticsData.weekday.label("weekday"),  # Group by weekday
+            func.sum(AllQueueStatisticsData.calls).label("total_calls"),
+            func.sum(AllQueueStatisticsData.accepted).label("answered_calls"),
+            func.avg(AllQueueStatisticsData.avg_wait_time).label("avg_wait_time"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("max_wait_time"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("avg_handling_time"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("sla"),
+            func.sum(AllQueueStatisticsData.abandoned_before_answer).label("dropped_calls")
         ).filter(
-                QueueStatistics.date.between(start_date, end_date)  # Filter by date range
+                AllQueueStatisticsData.date.between(start_date, end_date)  # Filter by date range
             ).group_by(
-                QueueStatistics.weekday
+                AllQueueStatisticsData.weekday
             ).all()
             
     # Format the result
@@ -256,13 +279,14 @@ async def get_calls(
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
         "SLA":round(get_sla_percentage(query, start_date=start_date, end_date=end_date), 2),
-        "avg wait time (min)": f"{int(get_average_wait_time(query, start_date=start_date, end_date=end_date)/60)}m{int(get_average_wait_time(query, start_date=start_date, end_date=end_date)%60)}s",
-        "max. wait time (min)": f"{int(get_max_wait_time(query, start_date=start_date, end_date=end_date) / 60)}m{int(get_max_wait_time(query, start_date=start_date, end_date=end_date) % 60)}s",
-        "After call work time (min)": f"{int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) / 60)}m{int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) % 60)}s",
-        "avg handling time (min)": f"{int((avg_handling_time or 0) / 60)}m{int((avg_handling_time or 0) % 60)}s",
+        "avg wait time (min)": f"{int(get_average_wait_time(query, start_date=start_date, end_date=end_date)/60)}min {int(get_average_wait_time(query, start_date=start_date, end_date=end_date)%60)}sek",
+        "max. wait time (min)": f"{int(get_max_wait_time(query, start_date=start_date, end_date=end_date) / 60)}min {int(get_max_wait_time(query, start_date=start_date, end_date=end_date) % 60)}sek",
+        "After call work time (min)": f"{int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) / 60)}min {int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) % 60)}sek",
+        "avg handling time (min)": f"{int((avg_handling_time or 0) / 60)}min {int((avg_handling_time or 0) % 60)}sek",
         "Dropped calls": int(dropped_calls or 0),
+        # "Call availability": pass,
         "Daily Call Volume": result  
-    }
+    } 
 
 @router.get("/calls_sub_kpis")
 async def get_calls_sub_kpis(

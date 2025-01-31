@@ -867,7 +867,7 @@ async def get_conversion_data(
         for domain in user_permission.domains.split(",")
         if domain.strip()
     ]
-    print("Domains: ", user_domains)
+    # print("Domains: ", user_domains)
      # Determine accessible companies based on permissions
     accessible_companies = []
     if "urlaubsguru" in user_domains:
@@ -877,7 +877,7 @@ async def get_conversion_data(
     if "bild" in user_domains:
         accessible_companies.append("bild")
     
-    print("accessible_companies: ", accessible_companies)
+    # print("accessible_companies: ", accessible_companies)
     # if "5vorflug" in accessible_companies:
     #     print("containss")
     #     filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
@@ -991,8 +991,13 @@ async def get_conversion_data(
         # turnover_cb = round(query.with_entities(func.sum(BookingData.id)).scalar() or 0,2)
         sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
         
-        # calculations for conversion and effective calls
-        
+        total_calls = sale_query.with_entities(func.sum(QueueStatistics.calls)).scalar() or 0
+        accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).scalar() or 0
+        abondened_before_ans = sale_query.with_entities(func.sum(QueueStatistics.abandoned_before_answer)).scalar() or 0
+        cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
+        sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
+        BookingData.crs_status == "OK"
+        ).scalar() or 0
     
     else:
         calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).filter(
@@ -1030,7 +1035,7 @@ async def get_conversion_data(
         cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
         GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0
-        sucess_bookings = query.with_entities(func.sum(BookingData.crs_original_booking_number)).filter(
+        sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
         BookingData.date.between(start_date, end_date),
         BookingData.crs_status == "OK"
         ).scalar() or 0
@@ -1042,11 +1047,10 @@ async def get_conversion_data(
         print(sucess_bookings)
         
         
-        
     cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
     # sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
     sales_effective_calls = accepted_calls - (abondened_before_ans + cb_wrong_calls)
-    sales_conversion = sucess_bookings/sales_effective_calls
+    sales_conversion = round((sucess_bookings/sales_effective_calls)*100, 2) 
     # Return metrics as a dictionary
     return {
         "sales_effective_calls": sales_effective_calls,

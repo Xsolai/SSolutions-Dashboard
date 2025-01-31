@@ -101,6 +101,10 @@ async def get_tasks_kpis(
         # )
         assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
         total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
+        avg_duration = query.with_entities(func.avg(OrderJoin.duration)).filter(
+            OrderJoin.task_created.isnot(None), 
+            OrderJoin.task_type.isnot(None), 
+            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
     else:
         orders = db.query(func.count(OrderJoin.order_number)).join(
             GuruTask, OrderJoin.order_number == GuruTask.order_number
@@ -124,11 +128,17 @@ async def get_tasks_kpis(
         )
         assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
         total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
+        avg_duration = query.with_entities(func.avg(OrderJoin.duration)).filter(
+            OrderJoin.task_created.isnot(None), 
+            OrderJoin.task_type.isnot(None), 
+            OrderJoin.date.between(start_date, end_date),
+            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
     return {
-        "orders": orders,
-        "Total orders": total_orders,
+        # "orders": orders,
+        # "Total orders": total_orders,
         "# of assigned users": assign_users_by_tasks,
         "Task types": total_tasks,
+        "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0
     }
     
 @router.get("/tasks_overview")
