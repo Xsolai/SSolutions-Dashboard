@@ -291,13 +291,13 @@ const TaskAnalysisDashboard = () => {
         change: data.kpis['email recieved change'],
         description: "im Vergleich zur letzten Periode"
       },
-      {
-        title: "Durchschnittliche Dauer",
-        value: data.kpis['avg_duration in minutes'] || 0,
-        icon: data.kpis['avg_duration in minutes'] > 30 ? TriangleAlert : CircleCheck,
-        change: data.kpis['email sent change'],
-        description: "im Vergleich zur letzten Periode"
-      },
+      // {
+      //   title: "Durchschnittliche Dauer",
+      //   value: data.kpis['avg_duration in minutes'] || 0,
+      //   icon: data.kpis['avg_duration in minutes'] > 30 ? TriangleAlert : CircleCheck,
+      //   change: data.kpis['email sent change'],
+      //   description: "im Vergleich zur letzten Periode"
+      // },
       {
         title: "Zugewiesene Benutzer",
         value: data.kpis['# of assigned users'] || 0,
@@ -309,7 +309,7 @@ const TaskAnalysisDashboard = () => {
   
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
           {taskMetrics.map((metric, index) => (
             <StatCard
               key={index}
