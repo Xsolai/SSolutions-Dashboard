@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission, BookingData
+from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission, BookingData, OrderJoin
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta, date
 from sqlalchemy import func, or_
@@ -643,12 +643,13 @@ async def get_booking_data(time_input: float = 6*60,
     
     # User info
     user = db.query(User).filter(User.email == current_user.get("email")).first() 
+    start_date_order, end_date_order = validate_user_and_date_permissions(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
+    # print(start_date_order, end_date_order)
     # Calculate the allowed date range based on the user's permissions
     start_date, end_date = validate_user_and_date_permissions_booking(db=db, current_user=current_user, start_date=start_date, end_date=end_date, include_all=include_all)
     # print("API: ", start_date, end_date)
     # Determine user access level
     email_filter = current_user.get("email")
-    is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
     
     if is_admin_or_employee:
@@ -656,24 +657,36 @@ async def get_booking_data(time_input: float = 6*60,
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
         )
+            order_query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"), 
+                                                     OrderJoin.task_created.isnot(None))
+            
         elif "Urlaubsguru" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.notlike("%5vF%"),
             SoftBookingKF.customer.notlike("%BILD%")
         )
+            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None), 
+                                                     OrderJoin.customer.notlike("%5vF%"), 
+                                                     OrderJoin.customer.notlike("%BILD%"))
         elif "Bild" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%BILD%")  
         )
+            order_query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"), 
+                                                     OrderJoin.task_created.isnot(None))
         else:
             query = db.query(SoftBookingKF)
+            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
     else:
         filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(SoftBookingKF).filter(or_(*filters))
+            order_query = db.query(OrderJoin).filter(or_(*filters), OrderJoin.task_created.isnot(None))
         else:
             query = db.query(SoftBookingKF)
+            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+            
     booked = "OK"
     cancelled = "XX"
     pending = "PE"
@@ -682,64 +695,71 @@ async def get_booking_data(time_input: float = 6*60,
     pe = "PE"
     sb_booked = "SB"
     
-    try:
-        if start_date is None:
-            # Count records for each status
-            total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).scalar() or 0
-            booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked).scalar() or 0
-            cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled).scalar() or 0
-            pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending).scalar() or 0
-            op_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op).scalar() or 0
-            rq_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq).scalar() or 0
-            pe_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe).scalar() or 0
-            sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked).scalar() or 0
-            # Calculate SB Booking Rate
-            total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
-            sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
-            sb_input = query.with_entities(
-                func.count(SoftBookingKF.original_status)
-            ).scalar() or 0
-        else:
-            print(start_date, end_date)
-            total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            op_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            rq_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            pe_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-            # Calculate SB Booking Rate
-            total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
-            sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
-            sb_input = query.with_entities(
-                func.count(SoftBookingKF.original_status)
-            ).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
-        
-        # Return metrics as a dictionary
-        return {
-            "Total Bookings": total_bookings,
+    if start_date is None:
+        # Count records for each status
+        total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).scalar() or 0
+        booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked).scalar() or 0
+        cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled).scalar() or 0
+        pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending).scalar() or 0
+        op_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op).scalar() or 0
+        rq_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq).scalar() or 0
+        pe_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe).scalar() or 0
+        sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked).scalar() or 0
+        # Calculate SB Booking Rate
+        total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
+        sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
+        sb_input = query.with_entities(
+            func.count(SoftBookingKF.original_status)
+        ).scalar() or 0
+        avg_duration = order_query.with_entities(func.avg(OrderJoin.duration)).filter(
+            OrderJoin.task_created.isnot(None), 
+            OrderJoin.task_type.isnot(None), 
+            OrderJoin.date.between(start_date_order, end_date_order),
+            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
+    else:
+        total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        cancelled_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == cancelled, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        pending_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pending, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        op_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == op, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        rq_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == rq, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        pe_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == pe, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        sb_booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == sb_booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        # Calculate SB Booking Rate
+        total_sb_booked_and_cancelled = booked_count + sb_booked_count + cancelled_count
+        sb_booking_rate = (sb_booked_count + booked_count / total_sb_booked_and_cancelled * 100) if total_sb_booked_and_cancelled > 0 else 0
+        sb_input = query.with_entities(
+            func.count(SoftBookingKF.original_status)
+        ).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
+        # total_tasks = order_query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
+        avg_duration = order_query.with_entities(func.avg(OrderJoin.duration)).filter(
+            OrderJoin.task_created.isnot(None), 
+            OrderJoin.task_type.isnot(None), 
+            OrderJoin.date.between(start_date_order, end_date_order),
+            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
+    #     print(avg_duration)
+    # print(avg_duration)
+    # Return metrics as a dictionary
+    return {
+        "Total Bookings": total_bookings,
+        "Booked": booked_count,
+        "Cancelled count": cancelled_count,
+        "Pending": pending_count,
+        "OP": op_count,
+        "RQ": rq_count,
+        # "PE": pe_count,
+        "SB": sb_booked_count,
+        "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0,
+        "SB Booking Rate (%)": round(sb_booking_rate, 2),
+        "Processing time" : sb_input * time_input,
+        "Booking status": {
             "Booked": booked_count,
-            "Cancelled count": cancelled_count,
+            "Cancelled": cancelled_count,
             "Pending": pending_count,
-            "OP": op_count,
-            "RQ": rq_count,
-            # "PE": pe_count,
-            "SB": sb_booked_count,
-            "SB Booking Rate (%)": round(sb_booking_rate, 2),
-            "Processing time" : sb_input * time_input,
-            "Booking status": {
-                "Booked": booked_count,
-                "Cancelled": cancelled_count,
-                "Pending": pending_count,
-                "OP/RQ": op_count+rq_count,
-                "SB": sb_booked_count
-            }
+            "OP/RQ": op_count+rq_count,
+            "SB": sb_booked_count
         }
-
-    except Exception as e:
-        print(f"Error retrieving booking status metrics: {e}")
-        return None
+    }
 
 @router.get("/analytics_booking_subkpis")
 async def get_booking_data_sub_kpis(
