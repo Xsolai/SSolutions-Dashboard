@@ -142,8 +142,8 @@ async def get_calls(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
-            summe_query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%BILD%")  
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like("%Bild%")  
         )
             booking_query = db.query(BookingData).filter(
             BookingData.order_agent.like("%BILD%")  
@@ -171,7 +171,7 @@ async def get_calls(
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
-        # ).all()
+        # ).all() 
         calls = summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).scalar() or 0
         # total_answered_calls = db.query(func.sum(QueueStatistics.answered_calls)).scalar() or 0
         asr = summe_query.with_entities(
@@ -189,7 +189,7 @@ async def get_calls(
         
         # Graph
         weekday_data = summe_query.with_entities(
-        QueueStatistics.weekday.label("weekday"),  # Group by weekday
+        AllQueueStatisticsData.weekday.label("weekday"),  # Group by weekday
         func.sum(AllQueueStatisticsData.calls).label("total_calls"),
         func.sum(AllQueueStatisticsData.accepted).label("answered_calls"),
         func.avg(AllQueueStatisticsData.avg_wait_time).label("avg_wait_time"),
@@ -278,10 +278,10 @@ async def get_calls(
         "total_calls": calls, 
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
-        "SLA":round(get_sla_percentage(query, start_date=start_date, end_date=end_date), 2),
-        "avg wait time (min)": f"{int(get_average_wait_time(query, start_date=start_date, end_date=end_date)/60)}min {int(get_average_wait_time(query, start_date=start_date, end_date=end_date)%60)}sek",
-        "max. wait time (min)": f"{int(get_max_wait_time(query, start_date=start_date, end_date=end_date) / 60)}min {int(get_max_wait_time(query, start_date=start_date, end_date=end_date) % 60)}sek",
-        "After call work time (min)": f"{int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) / 60)}min {int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) % 60)}sek",
+        "SLA":round(get_sla_percentage(summe_query, start_date=start_date, end_date=end_date), 2),
+        "avg wait time (min)": f"{int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date)/60)}min {int(get_average_wait_time(query, start_date=start_date, end_date=end_date)%60)}sek",
+        "max. wait time (min)": f"{int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date) / 60)}min {int(get_max_wait_time(query, start_date=start_date, end_date=end_date) % 60)}sek",
+        "After call work time (min)": f"{int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date) / 60)}min {int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) % 60)}sek",
         "avg handling time (min)": f"{int((avg_handling_time or 0) / 60)}min {int((avg_handling_time or 0) % 60)}sek",
         "Dropped calls": int(dropped_calls or 0),
         # "Call availability": pass,

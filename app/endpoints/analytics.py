@@ -1014,7 +1014,7 @@ async def get_conversion_data(
         ).scalar() or 0
         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
         GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 1
+        ).scalar() or 1 
         # turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).filter(
         # SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
         # ).scalar() or 0,2)
