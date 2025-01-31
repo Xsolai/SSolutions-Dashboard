@@ -23,10 +23,10 @@ const CustomTooltip = ({ active, payload, label }) => {
     if (typeof value !== 'number') return value;
 
     if (name?.toLowerCase().includes('%')) {
-      return `${Number(value).toFixed(2)}%`;
+      return `${Number(value).toFixed(1)}%`;
     }
     if (name?.toLowerCase().includes('zeit') || name?.toLowerCase().includes('time')) {
-      return `${Number(value).toFixed(2)} Min`;
+      return `${Number(value).toFixed(1)} Min`;
     }
     return value.toLocaleString();
   };
@@ -135,7 +135,7 @@ const chartConfig = {
 
 
 const EmailAnalysisDashboard = () => {
-  const [activeTab, setActiveTab] = useState('email');
+  const [activeTab, setActiveTab] = useState('uebersicht');
   const [dateRange, setDateRange] = useState({
     startDate: null,
     endDate: null,
@@ -153,7 +153,6 @@ const EmailAnalysisDashboard = () => {
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
-    { id: "email", name: "E-Mail-Analyse" },
     { id: "uebersicht", name: "Übersicht" },
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
@@ -257,129 +256,12 @@ const EmailAnalysisDashboard = () => {
     });
   };
 
-  const EmailTab = () => {
-    if (!emailData || !emailSubKPIs) return <Loading />;
-    
-    const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
-    
-    const emailMetrics = [
-      {
-        title: "Transaktionen E-Mails",
-        value: emailData['email recieved'] || 0,
-        icon: Mail,
-        change: emailSubKPIs['email recieved change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Gesendete E-Mails",
-        value: emailData['email sent'] || 0,
-        icon: Mail,
-        change: emailSubKPIs['email sent change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Neue Fälle",
-        value: emailData['email new cases'] || 0,
-        icon: Send,
-        change: emailSubKPIs['email new cases change'],
-        description: "im Vergleich zur letzten Periode"
-      }
-    ];
-    
-    const slGross = emailData['SL Gross'] || 0;
-    const processingTime = emailData['Total Dwell Time (sec)'] || 0;
-  
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {emailMetrics.map((metric, index) => (
-            <StatCard
-              key={index}
-              title={metric.title}
-              value={metric.value}
-              icon={metric.icon}
-              change={metric.change}
-              description={metric.description}
-            />
-          ))}
-        </div>
-    
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
-            title="SL Brutto"
-            value={`${slGross.toFixed(2)}%`}
-            icon={TrendingUp}
-          />
-          <StatCard
-            title="Bearbeitungszeit"
-            value={`${processingTime}`}
-            icon={Clock}
-          />
-        </div>
-    
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartCard title="E-Mail-Bearbeitungsübersicht">
-            <div className="h-[300px]">
-              <ResponsiveContainer>
-                <BarChart data={[
-                  { name: 'Empfangen', value: emailData['email recieved'] || 0 },
-                  { name: 'Gesendet', value: emailData['email sent'] || 0 },
-                  { name: 'Archiviert', value: emailData['email archived'] || 0 }
-                ]}>
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{ fill: '#001E4A' }}
-                    fontFamily="Nexa-Book"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#001E4A' }}
-                    fontFamily="Nexa-Book"
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-  
-                  <Bar 
-                    dataKey="value" 
-                    fill="#F0B72F"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-    
-          <ChartCard title="Bearbeitungszeit-Trend">
-            <div className="h-[300px]">
-              <ResponsiveContainer>
-                <LineChart data={processedTimeData}>
-                  <XAxis 
-                    dataKey="interval_start"
-                    tick={{ fill: '#001E4A' }}
-                    fontFamily="Nexa-Book"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#001E4A' }}
-                    fontFamily="Nexa-Book"
-                  />
-                <Tooltip content={<CustomTooltip />} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="total_processing_time_sec" 
-                    stroke="#F0B72F"
-                    strokeWidth={2}
-                    dot={{ fill: '#F0B72F' }}
-                    name="Bearbeitungszeit (Min)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-      </div>
-    );
-  };
-
 const UebersichtTab = () => {
   if (!overviewData || !subKPIs) return <Loading/>;
+
+  const slGross = emailData['SL Gross'] || 0;
+  const processingTime = emailData['Total Dwell Time (sec)'] || 0;
+  const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
   
   const uebersichtStats = [
     { 
@@ -396,8 +278,22 @@ const UebersichtTab = () => {
       change: subKPIs['total emails recieved change'],
       description: "im Vergleich zur letzten Periode"
     },
+    {
+      title: "Gesendete E-Mails",
+      value: emailData['email sent'] || 0,
+      icon: Mail,
+      change: emailSubKPIs['email sent change'],
+      description: "im Vergleich zur letzten Periode"
+    },
+    {
+      title: "Neue Email Fälle",
+      value: emailData['email new cases'] || 0,
+      icon: Send,
+      change: emailSubKPIs['email new cases change'],
+      description: "im Vergleich zur letzten Periode"
+    },
     { 
-      title: "Bearbeitungszeit", 
+      title: "Durchschnittliche Verweilzeit", 
       value: `${overviewData['Total Processing Time (sec)'] || 0}`, 
       icon: Timer,
       change: subKPIs['Total Processing Time (sec) change'],
@@ -414,7 +310,8 @@ const UebersichtTab = () => {
   
   const formattedData = (overviewData.daily_service_level_gross || [])
     .map(item => ({
-      ...item
+      ...item,
+      service_level_gross: parseFloat(item.service_level_gross.toFixed(1))
     }))
     .reverse();
 
@@ -424,6 +321,74 @@ const UebersichtTab = () => {
         {uebersichtStats.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
+        <StatCard
+            title="SL Brutto"
+            value={`${slGross.toFixed(1)}%`}
+            icon={TrendingUp}
+          />
+          <StatCard
+            title="Bearbeitungszeit"
+            value={`${processingTime}`}
+            icon={Clock}
+          />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="E-Mail-Bearbeitungsübersicht">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <BarChart data={[
+                { name: 'Empfangen', value: emailData['email recieved'] || 0 },
+                { name: 'Gesendet', value: emailData['email sent'] || 0 },
+                { name: 'Archiviert', value: emailData['email archived'] || 0 }
+              ]}>
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <Tooltip content={<CustomTooltip />} />
+
+                <Bar 
+                  dataKey="value" 
+                  fill="#F0B72F"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+  
+        <ChartCard title="Bearbeitungszeit-Trend">
+          <div className="h-[300px]">
+            <ResponsiveContainer>
+              <LineChart data={processedTimeData}>
+                <XAxis 
+                  dataKey="interval_start"
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+                <YAxis 
+                  tick={{ fill: '#001E4A' }}
+                  fontFamily="Nexa-Book"
+                />
+              <Tooltip content={<CustomTooltip />} />
+                <Line 
+                  type="monotone" 
+                  dataKey="total_processing_time_sec" 
+                  stroke="#F0B72F"
+                  strokeWidth={2}
+                  dot={{ fill: '#F0B72F' }}
+                  name="Bearbeitungszeit (Min)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
       </div>
 
       <ChartCard title="Tägliche Serviceniveau-Leistung">
@@ -620,7 +585,6 @@ const LeistungTab = () => {
         </div>
 
         <div className="py-4">
-          {activeTab === "email" && <EmailTab />}
           {activeTab === "uebersicht" && <UebersichtTab />}
           {activeTab === "leistung" && <LeistungTab />}
         </div>

@@ -109,7 +109,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       name?.toLowerCase().includes('serviceniveau') ||
       name?.toLowerCase().includes('asr')
     ) {
-      return `${Number(value).toFixed(2)}%`;
+      return `${Number(value).toFixed(1)}%`;
     }
 
     // Handle time values
@@ -119,7 +119,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       name?.toLowerCase().includes('sec') ||
       name?.toLowerCase().includes('min')
     ) {
-      return `${Number(value).toFixed(2)} Min`;
+      return `${Number(value).toFixed(1)} Min`;
     }
 
     // Default number formatting
@@ -248,6 +248,8 @@ const CallAnalysisDashboard = () => {
       const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
         responses.map(res => res.json())
       );
+
+      console.log(overviewRes);
 
       setOverviewData(overviewRes);
       setSubKPIs(subKPIsRes);

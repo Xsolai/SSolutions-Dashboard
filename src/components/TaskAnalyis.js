@@ -147,7 +147,7 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
         <Icon className="h-5 w-5 text-[#F0B72F]" />
       </div>
     </div>
-    <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] mb-2">{value}{title === "Durchschnittliche Dauer" ? " minuten" : ""}</div>
+    <div className={`text-[26px] leading-[36px] font-nexa-black ${value > 30 ? "text-red-500" : "text-[#001E4A]"} mb-2`}>{value}{title === "Durchschnittliche Dauer" ? " min" : ""}</div>
     {change !== undefined && description && (
       <p className="text-[14px] font-nexa-book text-[#001E4A]/70">
         <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>

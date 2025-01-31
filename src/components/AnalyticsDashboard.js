@@ -96,13 +96,13 @@ const CustomTooltip = ({ active, payload, label }) => {
     // Handle percentage values
     if (name?.toLowerCase().includes('%') || name?.toLowerCase().includes('rate') || 
         name?.toLowerCase().includes('niveau') || name?.toLowerCase().includes('acc')) {
-      return `${Number(value).toFixed(2)}%`;
+      return `${Number(value).toFixed(1)}%`;
     }
 
     // Handle time values
     if (name?.toLowerCase().includes('zeit') || name?.toLowerCase().includes('time') || 
         name?.toLowerCase().includes('sec') || name?.toLowerCase().includes('min')) {
-      return `${Number(value).toFixed(2)} Min`;
+      return `${Number(value).toFixed(1)} Min`;
     }
 
     // Default number formatting
@@ -231,8 +231,6 @@ const handleCompanyChange = (company) => {
         bookingSubKPIs: bookingSubKPIsJson,
         conversionData: conversionDataJson
       });
-      console.log("bookingData: ", bookingDataJson);
-      console.log("bookingSubKPIs: ", bookingSubKPIsJson);
     } catch (error) {
       console.error('Fehler beim Abrufen der Analysedaten:', error);
       // Could add error state handling here
@@ -365,12 +363,12 @@ const SalesServiceTab = () => {
         />
         <StatCard
           title={`${serviceType} ACC`}
-          value={`${Number(activeMetrics.ACC).toFixed(2)}%`}
+          value={`${Number(activeMetrics.ACC).toFixed(1)}%`}
           icon={CheckCircle}
         />
         <StatCard
           title={`${serviceType} Serviceniveau`}
-          value={`${Number(activeMetrics.SL).toFixed(2)}%`}
+          value={`${Number(activeMetrics.SL).toFixed(1)}%`}
           icon={TrendingUp}
         />
       </div>
@@ -504,19 +502,19 @@ const BookingTab = () => {
       change: bookingSubKPIs['Pending change']
     },
     {
-      title: "OP Anzahl",
+      title: "Optional",
       value: bookingData['OP'] || 0,
       icon: TrendingUp,
       change: bookingSubKPIs['OP change']
     },
     {
-      title: "RQ Anzahl",
+      title: "RQ Anfrage",
       value: bookingData['RQ'] || 0,
       icon: TrendingDown,
       change: bookingSubKPIs['RQ change']
     },
     {
-      title: "SB Anzahl",
+      title: "Nicht Bearbeitet",
       value: bookingData['SB'] || 0,
       icon: TrendingDown,
       change: bookingSubKPIs['SB change']
@@ -651,12 +649,12 @@ const ConversionTab = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard
           title="CB Konversion"
-          value={`${cbMetrics?.['CB Conversion']?.toFixed(2) || '0'}%`}
+          value={`${cbMetrics?.['CB Conversion']?.toFixed(1) || '0'}%`}
           icon={TrendingUp}
         />
         <StatCard
           title="Vertrieb Konversion"
-          value={`${salesMetrics?.['Sales Conversion']?.toFixed(2) || '0'}%`}
+          value={`${salesMetrics?.['Sales Conversion']?.toFixed(1) || '0'}%`}
           icon={TrendingUp}
         />
         <StatCard
