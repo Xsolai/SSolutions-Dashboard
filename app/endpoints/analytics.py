@@ -53,35 +53,62 @@ def time_to_seconds(time_str):
         print(f"Error converting time '{time_str}': {e}")
         return 0
     
+# def time_to_minutes(time):
+#     """Convert time in various formats to minutes."""
+#     try:
+#         if isinstance(time, tuple):
+#             pass
+
+#         if '.' in time[0]:
+#             print("float ", time[0])
+#             return float(time[0])  # Assuming this represents minutes directly
+
+#         # Handle time formats
+#         if ':' in time[0]:
+#             if len(time[0].split(':')) == 2:
+#                 # Format: 'mm:ss'
+#                 dt = datetime.strptime(time[0], "%M:%S")
+#                 # total_minutes = dt.minute + dt.second
+#                 return (dt.minute, dt.second)
+#             elif len(time[0].split(':')) == 3:
+#                 # Format: 'hh:mm:ss'
+#                 # dt = datetime.strptime(time[0], "%H:%M:%S")
+#                 hours, minutes, seconds = time[0].split(":")[0], time[0].split(":")[1], time[0].split(":")[2]
+#                 # print(hours, minutes, seconds)
+#                 total_minutes = int(hours) * 60 + int(minutes)
+#                 return (total_minutes, int(seconds))
+
+#         return 0  # Return 0 if format is unrecognized
+#     except Exception as e:
+#         print(f"Error converting time '{time}': {e}")
+#         return 0
+
 def time_to_minutes(time):
-    """Convert time in various formats to minutes."""
+    """Convert time in various formats to (minutes, seconds)."""
     try:
         if isinstance(time, tuple):
-            pass
+            return time  
 
         if '.' in time[0]:
             print("float ", time[0])
-            return float(time[0])  # Assuming this represents minutes directly
+            minutes = int(float(time[0]))  # Convert to int minutes
+            seconds = int((float(time[0]) - minutes) * 60)  # Convert fraction to seconds
+            return (minutes, seconds) 
 
-        # Handle time formats
         if ':' in time[0]:
-            if len(time[0].split(':')) == 2:
-                # Format: 'mm:ss'
+            parts = time[0].split(':')
+            if len(parts) == 2:  # Format: 'mm:ss'
                 dt = datetime.strptime(time[0], "%M:%S")
-                # total_minutes = dt.minute + dt.second
                 return (dt.minute, dt.second)
-            elif len(time[0].split(':')) == 3:
-                # Format: 'hh:mm:ss'
-                # dt = datetime.strptime(time[0], "%H:%M:%S")
-                hours, minutes, seconds = time[0].split(":")[0], time[0].split(":")[1], time[0].split(":")[2]
-                # print(hours, minutes, seconds)
-                total_minutes = int(hours) * 60 + int(minutes)
-                return (total_minutes, int(seconds))
+            elif len(parts) == 3:  # Format: 'hh:mm:ss'
+                hours, minutes, seconds = map(int, parts)
+                total_minutes = hours * 60 + minutes
+                return (total_minutes, seconds)
 
-        return 0  # Return 0 if format is unrecognized
+        return (0, 0) 
     except Exception as e:
         print(f"Error converting time '{time}': {e}")
-        return 0
+        return (0, 0) 
 
 
 @router.get("/analytics_email")
@@ -100,6 +127,7 @@ async def get_anaytics_email_data(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain:str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
@@ -152,6 +180,10 @@ async def get_anaytics_email_data(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+            
+    if domain != "all":
+        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     
     # Retrieve data from database
     if start_date is None:
@@ -339,6 +371,7 @@ async def get_anaytics_email_data_sub_kpis(
         example="2024-12-30"
     ),
     company: str = "all",
+    domain:str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database with date filtering."""
@@ -387,7 +420,10 @@ async def get_anaytics_email_data_sub_kpis(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
-    
+            
+    if domain != "all":
+        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")
     start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
@@ -460,6 +496,7 @@ async def get_sales_and_service(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain:str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""
@@ -506,6 +543,10 @@ async def get_sales_and_service(
             query = db.query(QueueStatistics)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
 
+    if domain != "all":
+        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+    
     if start_date is None:
         avg_handling_time = query.with_entities(
         func.avg(
@@ -750,7 +791,7 @@ async def get_booking_data(time_input: float = 6*60,
         # "PE": pe_count,
         "SB": sb_booked_count,
         "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0,
-        "SB Booking Rate (%)": round(sb_booking_rate, 2),
+        "SB Booking Rate (%)": 100 if sb_booking_rate > 100 else sb_booking_rate,
         "Processing time" : sb_input * time_input,
         "Booking status": {
             "Booked": booked_count,
@@ -873,6 +914,7 @@ async def get_conversion_data(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain:str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve graphs data from the database."""

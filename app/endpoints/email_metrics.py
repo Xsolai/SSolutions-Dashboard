@@ -87,6 +87,7 @@ async def get_email_overview(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain:str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
@@ -138,6 +139,10 @@ async def get_email_overview(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+    
+    if domain != "all":
+        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
         
     total_processing_time_seconds = 0.00001
     total_processing_time_min = 0
@@ -272,6 +277,7 @@ async def get_email_overview(
 @router.get("/email_overview_sub_kpis")
 async def get_email_overview_sub_kpis(
     company: str = "all",
+    domain:str = "all",
     start_date: Optional[date] = Query(
         None, 
         description="Start date for the filter in 'YYYY-MM-DD' format.",
@@ -334,7 +340,9 @@ async def get_email_overview_sub_kpis(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
-    
+    if domain != "all":
+        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")
     total_processing_time_seconds = 0.00001
@@ -442,6 +450,7 @@ async def get_mailbox_SL(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain:str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     """Endpoint to retrieve email KPIs from the database, limited to the latest 6 dates."""
@@ -495,6 +504,10 @@ async def get_mailbox_SL(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+    
+    if domain != "all":
+        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     
     if start_date is None:
         # Query the latest 6 intervals (dates) and service level gross

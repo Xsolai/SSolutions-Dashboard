@@ -14,8 +14,10 @@ router = APIRouter(
     tags=["Call APIS"]
 )
 
-def get_sla_percentage(query, start_date, end_date):
+def get_sla_percentage(query, start_date, end_date,domain):
     """Endpoint to retrieve sla% per queue."""
+    if domain !="all":
+        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         sla_data = query.with_entities(
             func.avg(AllQueueStatisticsData.sla_20_20)
@@ -29,8 +31,10 @@ def get_sla_percentage(query, start_date, end_date):
     return sla_data
 
 
-def get_average_wait_time(query, start_date, end_date):
+def get_average_wait_time(query, start_date, end_date, domain):
     """Endpoint to retrieve average wait time for calls."""
+    if domain !="all":
+        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         avg_wait_time = query.with_entities(func.avg(
         AllQueueStatisticsData.avg_wait_time)).scalar() or 0
@@ -42,10 +46,11 @@ def get_average_wait_time(query, start_date, end_date):
         ).scalar() or 0
     return avg_wait_time
 
-def get_max_wait_time(query, start_date, end_date):
+def get_max_wait_time(query, start_date, end_date, domain):
     """Endpoint to retrieve max wait time for calls."""
+    if domain !="all":
+        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
-        
         max_wait_time = query.with_entities(func.max(AllQueueStatisticsData.max_wait_time)).scalar() or 0
     else:
         max_wait_time = query.with_entities(func.max(AllQueueStatisticsData.max_wait_time)).filter(
@@ -54,8 +59,10 @@ def get_max_wait_time(query, start_date, end_date):
     return max_wait_time
 
 
-def get_talk_time(query, start_date, end_date):
+def get_talk_time(query, start_date, end_date, domain):
     """Endpoint to retrieve average wait time for calls."""
+    if domain !="all":
+        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         avg_talk_time = query.with_entities(func.avg(
             AllQueueStatisticsData.total_outbound_talk_time_destination
@@ -68,8 +75,10 @@ def get_talk_time(query, start_date, end_date):
         ).scalar() or 0
     return avg_talk_time
 
-def get_inbound_after_call(query, start_date, end_date):
+def get_inbound_after_call(query, start_date, end_date, domain):
     """Endpoint to retrieve average wait time for calls."""
+    if domain !="all":
+        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         after_call = query.with_entities(func.avg(
         QueueStatistics.avg_handling_time_inbound
@@ -99,6 +108,7 @@ async def get_calls(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     
@@ -167,12 +177,17 @@ async def get_calls(
             summe_query = db.query(AllQueueStatisticsData)
             booking_query = db.query(BookingData)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-    
+        
+    if domain != "all":
+        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+        summe_query = summe_query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+        total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
         # ).all() 
-        calls = summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).scalar() or 0
+        calls = query.with_entities(func.sum(QueueStatistics.calls)).scalar() or 0
         # total_answered_calls = db.query(func.sum(QueueStatistics.answered_calls)).scalar() or 0
         asr = summe_query.with_entities(
             func.avg(AllQueueStatisticsData.asr)
@@ -278,11 +293,11 @@ async def get_calls(
         "total_calls": calls, 
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
-        "SLA":round(get_sla_percentage(summe_query, start_date=start_date, end_date=end_date), 2),
-        "avg wait time (min)": f"{int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date)/60)}min {int(get_average_wait_time(query, start_date=start_date, end_date=end_date)%60)}sek",
-        "max. wait time (min)": f"{int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date) / 60)}min {int(get_max_wait_time(query, start_date=start_date, end_date=end_date) % 60)}sek",
-        "After call work time (min)": f"{int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date) / 60)}min {int(get_inbound_after_call(query, start_date=start_date, end_date=end_date) % 60)}sek",
-        "avg handling time (min)": f"{int((avg_handling_time or 0) / 60)}min {int((avg_handling_time or 0) % 60)}sek",
+        "SLA":round(get_sla_percentage(summe_query, start_date=start_date, end_date=end_date, domain=domain), 2),
+        "avg wait time (min)": f"{int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain)/60)}:{int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain)%60)}",
+        "max. wait time (min)": f"{int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)}:{int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)}",
+        "After call work time (min)": f"{int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)}:{int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)}",
+        "avg handling time (min)": f"{int((avg_handling_time or 0) / 60)}:{int((avg_handling_time or 0) % 60)}",
         "Dropped calls": int(dropped_calls or 0),
         # "Call availability": pass,
         "Daily Call Volume": result  
@@ -301,6 +316,7 @@ async def get_calls_sub_kpis(
         example="2024-12-30"
     ),
     company: str = "all",
+    domain: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)):
     # User and Permission Validation
@@ -340,6 +356,9 @@ async def get_calls_sub_kpis(
         else:
             query = db.query(QueueStatistics)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            
+    if domain !="all":
+        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
 
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")
@@ -437,6 +456,7 @@ async def get_call_performance(
         False, description="Set to True to retrieve all data without date filtering."
     ),
     company: str = "all",
+    domain: str = "all",
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)
 ):
@@ -451,20 +471,37 @@ async def get_call_performance(
     # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
-    filters=[]        
-    def safe_sum_query(query, column=QueueStatistics.calls):
-        """Safely execute sum query with fallback to 0"""
-        try:
-            return query.with_entities(func.sum(column)).scalar() or 0
-        except Exception:
-            return 0
+    filters=[]
+    if domain!="all":        
+        def safe_sum_query(query, domain, column=QueueStatistics.calls):
+            """Safely execute sum query with fallback to 0"""
+            try:
+                return query.with_entities(func.sum(column)).filter(
+                    QueueStatistics.queue_name.like(f"%{domain}%")).scalar() or 0
+            except Exception:
+                return 0
+        
+        def safe_avg_query(query, domain, column=QueueStatistics.avg_handling_time_inbound):
+            """Safely execute average query with fallback to 0"""
+            try:
+                return query.with_entities(func.avg(column)).filter(
+                    QueueStatistics.queue_name.like(f"%{domain}%")).scalar() or 0
+            except Exception:
+                return 0
+    else:
+        def safe_sum_query(query, domain="all", column=QueueStatistics.calls):
+            """Safely execute sum query with fallback to 0"""
+            try:
+                return query.with_entities(func.sum(column)).scalar() or 0
+            except Exception:
+                return 0
     
-    def safe_avg_query(query, column=QueueStatistics.avg_handling_time_inbound):
-        """Safely execute average query with fallback to 0"""
-        try:
-            return query.with_entities(func.avg(column)).scalar() or 0
-        except Exception:
-            return 0
+        def safe_avg_query(query, domain="all", column=QueueStatistics.avg_handling_time_inbound):
+            """Safely execute average query with fallback to 0"""
+            try:
+                return query.with_entities(func.avg(column)).scalar() or 0
+            except Exception:
+                return 0
     
     def get_call_reason_sum(column_name,start_date, end_date):
         """Safely get sum of call reasons"""
@@ -549,8 +586,8 @@ async def get_call_performance(
             queue_filter = query.filter(QueueStatistics.queue_name.like(queue_name))
             filtered_query = filter_query_by_date(queue_filter)
             
-            queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query)
-            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 1)
+            queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query, domain=domain)
+            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query, domain=domain) / 60, 1)
             # if "5vorFlug Service" in queue_name:
             #     queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Service")))
             #     queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Service"))) / 60, 2)

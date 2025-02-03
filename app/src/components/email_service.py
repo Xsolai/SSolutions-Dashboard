@@ -4,10 +4,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = "sabasaeed410@gmail.com"
-SENDER_PASSWORD = "bzns rnnc yaic jjko"
+SMTP_SERVER = "smtp.ionos.de"
+SMTP_PORT = 465
+SENDER_EMAIL = "dashboard-noreply@solasolution.de"
+SENDER_PASSWORD = "Ecomtask%2024"
 ADMIN_EMAIL = "solasolution@ai-mitarbeiter.de"
 
 def send_thank_you_email(recipient_email, subject, body):

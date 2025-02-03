@@ -478,38 +478,63 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
 
 def time_formatter(hours, minutes, seconds):
     if int(hours)>0:
-        return f"{hours}std {minutes}min {seconds}sek"
+        return f"{hours}:{minutes}:{seconds}"
     if int(hours)<=0 and int(minutes)>0:
-        return f"{minutes}min {seconds}sek"
+        return f"{minutes}:{seconds}"
     else:
-        return f"{seconds}sek"
+        return f"00:00:{seconds}"
     
+# def time_format(time):
+#     """Convert time in various formats to minutes."""
+#     try:
+#         if isinstance(time, tuple):
+#             pass
+
+#         if '.' in time[0]:
+#             print("float ", time[0])
+#             return float(time[0])  # Assuming this represents minutes directly
+
+#         # Handle time formats
+#         if ':' in time[0]:
+#             if len(time[0].split(':')) == 2:
+#                 # Format: 'mm:ss'
+#                 dt = datetime.strptime(time[0], "%M:%S")
+#                 # total_minutes = dt.minute + dt.second
+#                 return (dt.minute, dt.second)
+#             elif len(time[0].split(':')) == 3:
+#                 # Format: 'hh:mm:ss'
+#                 # dt = datetime.strptime(time[0], "%H:%M:%S")
+#                 hours, minutes, seconds = time[0].split(":")[0], time[0].split(":")[1], time[0].split(":")[2]
+#                 # print(hours, minutes, seconds)
+#                 # total_minutes = int(hours) * 60 + int(minutes)
+#                 return (int(hours), int(minutes), int(seconds))
+
+#         return 0  # Return 0 if format is unrecognized
+#     except Exception as e:
+#         print(f"Error converting time '{time}': {e}")
+#         return 0
 def time_format(time):
-    """Convert time in various formats to minutes."""
+    """Convert time to (hours, minutes, seconds)."""
     try:
         if isinstance(time, tuple):
-            pass
+            return time  # ✅ Already a tuple, return it
 
         if '.' in time[0]:
             print("float ", time[0])
-            return float(time[0])  # Assuming this represents minutes directly
+            minutes = int(float(time[0]))
+            seconds = int((float(time[0]) - minutes) * 60)
+            return 0, minutes, seconds
 
-        # Handle time formats
         if ':' in time[0]:
-            if len(time[0].split(':')) == 2:
-                # Format: 'mm:ss'
+            parts = time[0].split(':')
+            if len(parts) == 2:  # Format: 'mm:ss'
                 dt = datetime.strptime(time[0], "%M:%S")
-                # total_minutes = dt.minute + dt.second
-                return (dt.minute, dt.second)
-            elif len(time[0].split(':')) == 3:
-                # Format: 'hh:mm:ss'
-                # dt = datetime.strptime(time[0], "%H:%M:%S")
-                hours, minutes, seconds = time[0].split(":")[0], time[0].split(":")[1], time[0].split(":")[2]
-                # print(hours, minutes, seconds)
-                # total_minutes = int(hours) * 60 + int(minutes)
-                return (int(hours), int(minutes), int(seconds))
+                return 0, dt.minute, dt.second  
+            elif len(parts) == 3:  # Format: 'hh:mm:ss'
+                hours, minutes, seconds = map(int, parts)
+                return hours, minutes, seconds
 
-        return 0  # Return 0 if format is unrecognized
+        return 0, 0, 0 
     except Exception as e:
         print(f"Error converting time '{time}': {e}")
-        return 0
+        return 0, 0, 0 
