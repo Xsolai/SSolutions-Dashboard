@@ -316,7 +316,7 @@ async def get_anaytics_email_data(
         {
             "interval_start": f"{interval}m",
             "interval_end": f"{interval + 10}m",
-            "total_processing_time_sec": float(f"{int(total/60)}.{int(total % 60)}")
+            "total_processing_time_sec": f"00:{str(int(total/60)).zfill(2)}:{str(int(total % 60)).zfill(2)}"
         }
         for interval, total in sorted(interval_data.items())
     ]
