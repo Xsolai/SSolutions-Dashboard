@@ -279,9 +279,9 @@ async def get_calls(
                 },
                 "Time metrics":{
                     "weekday": row.weekday,
-                    "avg_wait_time_sec": float(f"{int((row.avg_wait_time)/60)}.{int((row.avg_wait_time)%60)}"),
-                    "max_wait_time_sec": float(f"{int((row.max_wait_time)/60)}.{int((row.max_wait_time)%60)}"),
-                    "avg_handling_time": float(f"{int((row.avg_handling_time)/60)}.{int((row.avg_handling_time)%60)}")
+                    "avg_wait_time_sec": f"00:{str(int((row.avg_wait_time)/60)).zfill(2)}:{str(int((row.avg_wait_time)%60)).zfill(2)}",
+                    "max_wait_time_sec": f"00:{str(int((row.max_wait_time)/60)).zfill(2)}:{str(int((row.max_wait_time)%60)).zfill(2)}",
+                    "avg_handling_time": f"00:{str(int((row.avg_handling_time)/60)).zfill(2)}:{str(int((row.avg_handling_time)%60)).zfill(2)}"
                 },
                 "% metrics":{
                     "weekday": row.weekday,

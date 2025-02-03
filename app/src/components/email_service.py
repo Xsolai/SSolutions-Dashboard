@@ -45,7 +45,8 @@ def send_reset_password_email(recipient_email, subject, body):
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        server.send_message(msg)
+        # server.send_message(msg)
+        server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
         server.quit()
 
         print("Reset password email sent successfully!")
@@ -82,7 +83,9 @@ def send_registration_otp(recipient_email, subject, otp):
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()  # Start TLS for secure connection
             server.login(SENDER_EMAIL, SENDER_PASSWORD)  # Login to the email server
-            server.send_message(msg)  # Send the email
+            # server.send_message(msg)  # Send the email
+            server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+            server.quit()
         
         print("Registration email sent successfully!")
 
@@ -123,7 +126,9 @@ def send_email_to_admin(user):
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()  # Start TLS for secure connection
             server.login(SENDER_EMAIL, SENDER_PASSWORD)  # Login to the email server
-            server.send_message(msg)  # Send the email
+            # server.send_message(msg)  # Send the email
+            server.sendmail(SENDER_EMAIL, user.email, msg.as_string())
+            server.quit()
         
         print("Registration email sent successfully!")
 
@@ -176,7 +181,9 @@ def send_email_to_user(status: str, email):
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()  # Start TLS for secure connection
             server.login(SENDER_EMAIL, SENDER_PASSWORD)  # Login to the email server
-            server.send_message(msg)  # Send the email
+            # server.send_message(msg)  # Send the email
+            server.sendmail(SENDER_EMAIL, email, msg.as_string())  # Send the email
+            server.quit()
         
         print("Registration email sent successfully!")
 
