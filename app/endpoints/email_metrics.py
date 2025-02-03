@@ -183,9 +183,9 @@ async def get_email_overview(
             )
         ).scalar() or 0
         
-        new_cases = email_query.with_entities(
+        archived = email_query.with_entities(
             func.sum(
-                EmailData.new_cases
+                EmailData.archived
             )
         ).scalar() or 0
         
@@ -241,9 +241,9 @@ async def get_email_overview(
             EmailData.date.between(start_date, end_date)
         ).scalar() or 0
         
-        new_cases = email_query.with_entities(
+        archived = email_query.with_entities(
             func.sum(
-                EmailData.new_cases
+                EmailData.archived
             )
         ).filter(
             EmailData.date.between(start_date, end_date)
@@ -268,7 +268,7 @@ async def get_email_overview(
     # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
     "Total Processing Time (min)": time_formatter(int(total_processing_time_hour), int(total_processing_time_min), int(total_processing_time_seconds)),
     "total emails received": total_emails,
-    "total new cases": new_cases,
+    "archived emails": archived,
     "service_level_gross": round(service_level_gross, 2),
     "daily_service_level_gross": service_level_gross_trend
 }
