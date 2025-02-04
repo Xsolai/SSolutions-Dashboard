@@ -4,14 +4,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
-# SMTP_SERVER = "smtp.ionos.de"
-# SMTP_PORT = 465
-# SENDER_EMAIL = "dashboard-noreply@solasolution.de"
-# SENDER_PASSWORD = "Ecomtask%2024"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = "sabasaeed410@gmail.com"
-SENDER_PASSWORD = "xwfw lkbg uwws ulnt"
+SMTP_SERVER = "smtp.ionos.de"
+SMTP_PORT = 465
+SENDER_EMAIL = "dashboard-noreply@www.solasolution.de"
+SENDER_PASSWORD = "Ecomtask%2024"
+# SMTP_SERVER = "smtp.gmail.com" 
+# SMTP_PORT = 587
+# SENDER_EMAIL = "sabasaeed410@gmail.com"
+# SENDER_PASSWORD = "xwfw lkbg uwws ulnt"
 ADMIN_EMAIL = "solasolution@ai-mitarbeiter.de"
 
 def send_thank_you_email(recipient_email, subject, body):
@@ -71,8 +71,9 @@ def send_reset_password_email(recipient_email, subject, body):
         # server.login(SENDER_EMAIL, SENDER_PASSWORD)
         # server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
         # server.quit()
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
+        # with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP_SSL("smtp.ionos.de", 465)  as server:
+            # server.starttls()
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.send_message(msg)
 
@@ -171,13 +172,39 @@ def send_email_to_user(status: str, email):
             body = f"""
             Sehr geehrter Nutzer,
 
-            wir freuen uns, Ihnen mitteilen zu können, dass Ihre Registrierung erfolgreich bestätigt wurde.
-            Ab sofort können Sie sich mit den bei der Registrierung angegebenen Zugangsdaten einloggen und auf Ihr Konto zugreifen.
+wir freuen uns, Ihnen mitteilen zu können, dass Ihre Registrierung **erfolgreich** bestätigt wurde.
 
-            Falls Sie Fragen haben oder Unterstützung benötigen, steht Ihnen unser Team gerne zur Verfügung.
-            
-            Mit freundlichen Grüßen
-            Ihr Solasolution-Team
+Ab sofort können Sie sich mit den bei der Registrierung angegebenen Zugangsdaten einloggen und auf Ihr Konto zugreifen.
+
+Zum Dashboard: [www.dashboard.solasolution.de](http://www.dashboard.solasolution.de/)
+
+Falls Sie Fragen haben oder Unterstützung benötigen, steht Ihnen unser Team gerne unter [support@ecomtask.de](mailto:support@ecomtask.de) zur Verfügung.
+
+**Mit freundlichem Gruß | Kind regards**
+
+**Sascha Nitsche**
+
+**Geschäftsführer | CEO**
+
+**TRAVEL INDUSTRY MANAGER**
+
+solasolution GmbH
+
+Güterstr. 23b
+
+45219 Essen | Germany
+
+[mail@solasolution.de](mailto:mail@solasolution.de)
+
+[www.solasolution.de](http://www.solasolution.de/)
+
+Geschäftsführer: Sascha Peter Nitsche | Amtsgericht Essen HRB 30646 | Steuernummer: 112-57911285
+
+Der Inhalt dieser E-Mail ist ausschließlich fuer den bezeichneten Adressaten bestimmt. Wenn Sie nicht der vorgesehene Adressat dieser E-Mail oder dessen Vertreter sein sollten, so beachten Sie bitte, dass jede Form der Kenntnisnahme, Veroeffentlichung, Vervielfaeltigung oder Weitergabe des Inhalts dieser E-Mail unzulaessig ist. Wir bitten Sie, sich in diesem Fall mit dem Absender der E-Mail in Verbindung zu setzen. The information contained in this email is intended solely for the addressee. Access to this email by anyone else is unauthorized. If you are not the intended recipient, any form of disclosure, reproduction, distribution or any action taken or refrained from in reliance on it, is prohibited and may be unlawful. Please notify the sender immediately.
+
+Impressum: https://solasolution.de/impressum/
+
+Datenschutz: Bitte beachten Sie unsere Hinweise zur Datenverarbeitung gem. Art. 13 DSGVO abrufbar unter: https://solasolution.de/datenschutzhinweise
             """
         elif status == "rejected":
             subject = "Ihr Registrierungsantrag wurde abgelehnt"
