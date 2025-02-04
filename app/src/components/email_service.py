@@ -4,10 +4,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
-SMTP_SERVER = "smtp.ionos.de"
-SMTP_PORT = 465
-SENDER_EMAIL = "dashboard-noreply@solasolution.de"
-SENDER_PASSWORD = "Ecomtask%2024"
+# SMTP_SERVER = "smtp.ionos.de"
+# SMTP_PORT = 465
+# SENDER_EMAIL = "dashboard-noreply@solasolution.de"
+# SENDER_PASSWORD = "Ecomtask%2024"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SENDER_EMAIL = "sabasaeed410@gmail.com"
+SENDER_PASSWORD = "xwfw lkbg uwws ulnt"
 ADMIN_EMAIL = "solasolution@ai-mitarbeiter.de"
 
 def send_thank_you_email(recipient_email, subject, body):
@@ -31,29 +35,51 @@ def send_thank_you_email(recipient_email, subject, body):
 
 
 
+# def send_reset_password_email(recipient_email, subject, body):
+#     """
+#     Sends a reset password email to the user.
+#     """
+#     try:
+#         msg = MIMEMultipart()
+#         msg["From"] = SENDER_EMAIL
+#         msg["To"] = recipient_email
+#         msg["Subject"] = subject
+#         msg.attach(MIMEText(body, "plain"))
+
+#         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+#         server.starttls()
+#         server.login(SENDER_EMAIL, SENDER_PASSWORD)
+#         # server.send_message(msg)
+#         server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+#         server.quit()
+
+#         print("Reset password email sent successfully!")
+
+#     except Exception as e:
+#         print(f"Failed to send reset password email: {e}")
+
 def send_reset_password_email(recipient_email, subject, body):
-    """
-    Sends a reset password email to the user.
-    """
     try:
         msg = MIMEMultipart()
-        msg["From"] = ADMIN_EMAIL
+        msg["From"] = SENDER_EMAIL
         msg["To"] = recipient_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
 
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        # server.send_message(msg)
-        server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
-        server.quit()
+        # Use SMTP_SSL instead of SMTP for port 465
+        # server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)  
+        # server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        # server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+        # server.quit()
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.send_message(msg)
 
         print("Reset password email sent successfully!")
 
     except Exception as e:
-        print(f"Failed to send reset password email: {e}")
-        
+        print(f"Failed to send reset password email: {e}")        
         
 def send_registration_otp(recipient_email, subject, otp):
     """

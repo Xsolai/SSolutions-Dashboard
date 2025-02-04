@@ -141,8 +141,13 @@ async def get_email_overview(
             email_query = db.query(EmailData)
     
     if domain != "all":
-        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
-        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        if domain=="Sales" :
+            query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+            email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+            
+        else:
+            query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+            email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
         
     total_processing_time_seconds = 0.00001
     total_processing_time_min = 0

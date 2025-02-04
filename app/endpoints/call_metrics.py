@@ -187,7 +187,7 @@ async def get_calls(
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
         # ).all() 
-        calls = query.with_entities(func.sum(QueueStatistics.calls)).scalar() or 0
+        calls = summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).scalar() or 0
         # total_answered_calls = db.query(func.sum(QueueStatistics.answered_calls)).scalar() or 0
         asr = summe_query.with_entities(
             func.avg(AllQueueStatisticsData.asr)
@@ -219,8 +219,8 @@ async def get_calls(
         # calls = db.query(QueueStatistics).filter(
         # QueueStatistics.date.between(start_date, end_date)
         # ).all()
-        calls = query.with_entities(func.sum(QueueStatistics.calls)).filter(
-            QueueStatistics.date.between(start_date, end_date)
+        calls = summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         # total_answered_calls = db.query(func.sum(QueueStatistics.accepted)).filter(
         #     QueueStatistics.date.between(start_date, end_date)
@@ -358,7 +358,10 @@ async def get_calls_sub_kpis(
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             
     if domain !="all":
-        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+        if "Sale" in domain:
+            query = query.filter(QueueStatistics.queue_name.notlike(f"%Service%"))
+        else:
+            query = query.filter(QueueStatistics.queue_name.notlike(f"%Sales%"))
 
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")

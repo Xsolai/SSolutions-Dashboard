@@ -791,7 +791,7 @@ async def get_booking_data(time_input: float = 6*60,
         # "PE": pe_count,
         "SB": sb_booked_count,
         "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0,
-        "SB Booking Rate (%)": 100 if sb_booking_rate > 100 else sb_booking_rate,
+        "SB Booking Rate (%)": 100 if sb_booking_rate > 100 else round(sb_booking_rate,2),
         "Processing time" : sb_input * time_input,
         "Booking status": {
             "Booked": booked_count,
