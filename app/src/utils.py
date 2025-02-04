@@ -1,7 +1,7 @@
 from app.database.models.models import (FileProcessingHistory, User, 
                                         Permission, QueueStatistics, 
                                         WorkflowReportGuruKF, EmailData,
-                                        OrderJoin, SoftBookingKF)
+                                        OrderJoin, SoftBookingKF, AllQueueStatisticsData)
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
@@ -333,13 +333,16 @@ def domains_checker(db, user_id, filter_5vf, filter_bild):
     print("accessible_companies: ", accessible_companies)
     
     filters = []
+    summe_filters = []
     if "5vorflug" in accessible_companies:
         print("containss")
         filters.append(QueueStatistics.queue_name.like(f"%{filter_5vf}%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%{filter_5vf}%"))
         # total_call_reasons = 0
     if "bild" in accessible_companies:
         print("containss bild")
         filters.append(QueueStatistics.queue_name.like(f"%{filter_bild}%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%{filter_bild}%"))
         # total_call_reasons = 0
     if "guru" in accessible_companies:
         print("contains guru")
@@ -348,7 +351,7 @@ def domains_checker(db, user_id, filter_5vf, filter_bild):
         return []
         
     # print("Filters: ", filters)
-    return filters
+    return filters, summe_filters
 
 def domains_checker_email(db, user_id, filter_5vf, filter_bild):
     
@@ -458,13 +461,16 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
     print("accessible_companies: ", accessible_companies)
     
     filters = []
+    order_filters = []
     if "5vorflug" in accessible_companies:
         print("containss")
         filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
+        order_filters.append(OrderJoin.customer.like(f"%{filter_5vf}%"))
         # total_call_reasons = 0
     if "bild" in accessible_companies:
         print("containss bild")
         filters.append(SoftBookingKF.customer.like(f"%{filter_bild}%"))
+        order_filters.append(OrderJoin.customer.like(f"%{filter_bild}%"))
         # total_call_reasons = 0
     if "guru" in accessible_companies:
         print("contains guru")
@@ -473,7 +479,7 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
         # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
     # print("Filters: ", filters)
-    return filters
+    return filters, order_filters
 
 
 def time_formatter(hours, minutes, seconds):

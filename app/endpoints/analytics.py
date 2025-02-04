@@ -534,7 +534,7 @@ async def get_sales_and_service(
             query = db.query(QueueStatistics)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     else:
-        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
@@ -719,11 +719,11 @@ async def get_booking_data(time_input: float = 6*60,
             query = db.query(SoftBookingKF)
             order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
     else:
-        filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(SoftBookingKF).filter(or_(*filters))
-            order_query = db.query(OrderJoin).filter(or_(*filters), OrderJoin.task_created.isnot(None))
+            order_query = db.query(OrderJoin).filter(or_(*order_filters), OrderJoin.task_created.isnot(None))
         else:
             query = db.query(SoftBookingKF)
             order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
@@ -845,7 +845,7 @@ async def get_booking_data_sub_kpis(
         else:
             query = db.query(SoftBookingKF)
     else:
-        filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(SoftBookingKF).filter(or_(*filters))

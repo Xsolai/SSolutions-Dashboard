@@ -165,11 +165,11 @@ async def get_calls(
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         print("excecuted for admin or guru")
     else:
-        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
-            summe_query = db.query(AllQueueStatisticsData).filter(or_(*filters))
+            summe_query = db.query(AllQueueStatisticsData).filter(or_(*summe_filters))
             booking_query = db.query(BookingData).filter(or_(*filters))
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         else:
@@ -348,7 +348,7 @@ async def get_calls_sub_kpis(
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         print("excecuted for admin or guru")
     else:
-        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
@@ -600,7 +600,7 @@ async def get_call_performance(
             #     queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Sales"))) / 60, 2)
         print("Executed admin...")
     else:
-        filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
