@@ -301,8 +301,8 @@ const UebersichtTab = () => {
     //   description: "im Vergleich zur letzten Periode"
     // },
     { 
-      title: "Neue Fälle", 
-      value: (overviewData['total new cases'] || 0).toLocaleString(), 
+      title: "Archivierte E-Mails", 
+      value: (overviewData['archived emails'] || 0).toLocaleString(), 
       icon: Reply,
       change: subKPIs['total new cases change'],
       description: "im Vergleich zur letzten Periode"
@@ -348,11 +348,11 @@ const UebersichtTab = () => {
               Vertrieb
             </button>
             <button
-              onClick={() => setDomain("services")}
+              onClick={() => setDomain("service")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "services" 
+                ${domain === "service" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
@@ -513,11 +513,11 @@ const LeistungTab = () => {
               Vertrieb
             </button>
             <button
-              onClick={() => setDomain("services")}
+              onClick={() => setDomain("service")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "services" 
+                ${domain === "service" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }

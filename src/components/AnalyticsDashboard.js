@@ -195,8 +195,6 @@ const handleCompanyChange = (company) => {
       ...(selectedCompany && { company: selectedCompany })
     }).toString();
 
-
-
     try {
       const [
         salesServiceData,
@@ -210,7 +208,6 @@ const handleCompanyChange = (company) => {
         fetch('https://solasolution.ecomtask.de/analytics_booking_subkpis', config),
         fetch(`https://solasolution.ecomtask.de/analytics_conversion?${queryString}`, config)
       ]);
-
   
       const [
         salesServiceDataJson,
@@ -618,14 +615,14 @@ const ConversionTab = () => {
   const conversionData = data.conversionData || {};
   const cbData = conversionData?.['Conversion Performance']?.CB || {};
   const salesData = conversionData?.['Conversion Performance']?.Sales || {};
-  const cbMetrics = conversionData?.CB || {};
+  const cbMetrics = conversionData?.['sales_effective_calls'] || {};
   const salesMetrics = conversionData?.Sales || {};
 
   const cbChartData = [{
     bookings: cbData?.['Bookings CB'] || 0,
     wrong: cbData?.['Wrong calls'] || 0,
     handled: cbData?.['CB calls handled'] || 0,
-    conversion: cbMetrics?.['CB Conversion'] || 0
+    conversion: cbMetrics || 0
   }];
 
   const salesChartData = [{
@@ -648,7 +645,7 @@ const ConversionTab = () => {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard
-          title="CB Konversion"
+          title="Verkaufswirksame Anrufe"
           value={`${cbMetrics?.['CB Conversion']?.toFixed(1) || '0'}%`}
           icon={TrendingUp}
         />

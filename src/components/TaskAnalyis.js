@@ -341,11 +341,11 @@ const TaskAnalysisDashboard = () => {
               Vertrieb
             </button>
             <button
-              onClick={() => setDomain("services")}
+              onClick={() => setDomain("service")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "services" 
+                ${domain === "service" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
@@ -504,11 +504,11 @@ const PerformanceTab = () => {
               Vertrieb
             </button>
             <button
-              onClick={() => setDomain("services")}
+              onClick={() => setDomain("service")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "services" 
+                ${domain === "service" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
