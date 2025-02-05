@@ -642,7 +642,7 @@ async def get_sales_and_service(
             "ACC": round(sale_metrics.sale_ACC or 0, 2),
             "SL": round(sale_metrics.sale_SL or 0, 2),
             "AHT_sec": round((sale_metrics.sale_AHT_sec/60 if sale_metrics.sale_AHT_sec else 0) or 0, 2),
-            "longest_waiting_time_sec": (sale_metrics.sale_longest_waiting_time_sec/60 if sale_metrics.sale_longest_waiting_time_sec else 0) or 0 or 0,
+            "longest_waiting_time_sec": round((sale_metrics.sale_longest_waiting_time_sec/60 if sale_metrics.sale_longest_waiting_time_sec else 0) or 0, 1 ),
             # "total_talk_time_sec": round((sale_metrics.sale_total_talk_time_sec/60 if sale_metrics.sale_total_talk_time_sec else 0) or 0, 2)
         },
         "service_metrics": {
