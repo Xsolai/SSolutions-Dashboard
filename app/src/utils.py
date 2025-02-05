@@ -523,7 +523,7 @@ def time_format(time):
     """Convert time to (hours, minutes, seconds)."""
     try:
         if isinstance(time, tuple):
-            return time  # ✅ Already a tuple, return it
+            return time 
 
         if '.' in time[0]:
             print("float ", time[0])

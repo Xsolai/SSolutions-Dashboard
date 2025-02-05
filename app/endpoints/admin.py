@@ -104,7 +104,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
             analytics_booking_api=True,
             analytics_booking_subkpis_api=True,
             analytics_conversion_api=True,
-            date_filter="yesterday",
+            date_filter="yesterday,last_week,last_month,last_year,all",
             domains="".join(user.email.split("@")[1].split(".")[0])
         )
         db.add(default_permission)
@@ -331,7 +331,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
                     analytics_booking_api=True,
                     analytics_booking_subkpis_api=True,
                     analytics_conversion_api=True,
-                    date_filter="yesterday",
+                    date_filter="yesterday,last_week,last_month,last_year,all",
                     domains="".join(user.email.split("@")[1].split(".")[0])
                 )
                 db.add(default_permission)
@@ -390,7 +390,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
                 analytics_booking_api=True,
                 analytics_booking_subkpis_api=True,
                 analytics_conversion_api=True,
-                date_filter="yesterday",
+                date_filter="yesterday,last_week,last_month,last_year,all",
                  domains="".join(created_user.email.split("@")[1].split(".")[0])
             )
             db.add(default_permission)

@@ -182,8 +182,13 @@ async def get_anaytics_email_data(
             email_query = db.query(EmailData)
             
     if domain != "all":
-        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
-        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        if domain=="Sales" :
+            query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+            email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+            
+        else:
+            query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+            email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     
     # Retrieve data from database
     if start_date is None:
@@ -286,12 +291,11 @@ async def get_anaytics_email_data(
 
     # Convert extra seconds into minutes
     total_dwell_min += total_dwell_time_seconds // 60
-    total_dwell_time_seconds = total_dwell_time_seconds % 60  # Keep remaining seconds
+    total_dwell_time_seconds = total_dwell_time_seconds % 60
 
     # Convert extra minutes into hours
     total_dwell_hours += total_dwell_min // 60
-    total_dwell_min = total_dwell_min % 60  # Keep remaining minutes
-
+    total_dwell_min = total_dwell_min % 60 
     for pt in processing_times:
         minutes,seconds = time_to_minutes(pt)
         total_processing_time_seconds += seconds
@@ -316,7 +320,8 @@ async def get_anaytics_email_data(
         {
             "interval_start": f"{interval}m",
             "interval_end": f"{interval + 10}m",
-            "total_processing_time_sec": f"00:{str(int(total/60)).zfill(2)}:{str(int(total % 60)).zfill(2)}"
+            # "total_processing_time_sec": f"{str(int(total/60)).zfill(2)}:{str(int(total % 60)).zfill(2)}"
+            "total_processing_time_sec": f"{str(int(total // 3600)).zfill(2)}:{str(int((total % 3600) // 60)).zfill(2)}:{str(int(total % 60))}"
         }
         for interval, total in sorted(interval_data.items())
     ]
