@@ -133,6 +133,10 @@ const chartConfig = {
   }
 };
 
+const convertToSeconds = (timeString) => {
+  const [hours, minutes, seconds] = timeString.split(":").map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+};
 
 const EmailAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('uebersicht');
@@ -197,13 +201,6 @@ const EmailAnalysisDashboard = () => {
           ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
           ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
           include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany })
-                }).toString();
-
-        const queryString2 = new URLSearchParams({
-          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false,
           ...(selectedCompany && { company: selectedCompany }),
           ...(domain && { domain: domain })
                 }).toString();
@@ -219,11 +216,11 @@ const EmailAnalysisDashboard = () => {
             .then(res => res.json()),
           fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString2}`, config)
+          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString2}`, config)
+          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString2}`, config)
+          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
             .then(res => res.json())
         ]);
 
@@ -270,6 +267,11 @@ const UebersichtTab = () => {
   const slGross = emailData['SL Gross'] || 0;
   const processingTime = emailData['Total Dwell Time (sec)'] || 0;
   const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
+
+  const processedTimeDataConverted = processedTimeData.map((item) => ({
+    ...item,
+    total_processing_time_sec: convertToSeconds(item.total_processing_time_sec)
+  }));  
   
   const uebersichtStats = [
     { 
@@ -414,7 +416,7 @@ const UebersichtTab = () => {
         <ChartCard title="Bearbeitungszeit-Trend">
           <div className="h-[300px]">
             <ResponsiveContainer>
-              <LineChart data={processedTimeData}>
+              <LineChart data={processedTimeDataConverted}>
                 <XAxis 
                   dataKey="interval_start"
                   tick={{ fill: '#001E4A' }}

@@ -175,6 +175,12 @@ const chartConfig = {
   }
 };
 
+const convertTimeToSeconds = (timeStr) => {
+  if (typeof timeStr !== "string") return timeStr; // Ensure it's a string
+  const [hours, minutes, seconds] = timeStr.split(":").map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
 const CallAnalysisDashboard = () => {
   const [activeTab, setActiveTab] = useState('uebersicht');
   const [dateRange, setDateRange] = useState({
@@ -362,6 +368,15 @@ const CallAnalysisDashboard = () => {
       const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       return daysOfWeek.indexOf(a['call metrics'].weekday) - daysOfWeek.indexOf(b['call metrics'].weekday);
     });
+
+    sortedDailyCallData.forEach((entry) => {
+      entry["Time metrics"].avg_wait_time_sec = convertTimeToSeconds(
+        entry["Time metrics"].avg_wait_time_sec
+      );
+      entry["Time metrics"].max_wait_time_sec = convertTimeToSeconds(
+        entry["Time metrics"].max_wait_time_sec
+      );
+    });    
 
     return (
       <div className="space-y-4">
