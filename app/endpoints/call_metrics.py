@@ -81,13 +81,13 @@ def get_inbound_after_call(query, start_date, end_date, domain):
         query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         after_call = query.with_entities(func.avg(
-        QueueStatistics.avg_handling_time_inbound
+        AllQueueStatisticsData.avg_handling_time_inbound
         )).scalar() or 0
     else:
         after_call = query.with_entities(func.avg(
-            QueueStatistics.avg_handling_time_inbound
+            AllQueueStatisticsData.avg_handling_time_inbound
         )).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
     return after_call
 
@@ -660,15 +660,15 @@ async def get_call_performance(
             queue_filter = query.filter(QueueStatistics.queue_name == queue_name)
             filtered_query = filter_query_by_date(queue_filter)
             
-            queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query)
-            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query) / 60, 1)
+            queue_stats[f"{display_name} Calls"] = safe_sum_query(filtered_query, domain=domain)
+            queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filtered_query, domain=domain) / 60, 1)
             if "5vorFlugService" in queue_name:
-                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")))
-                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService"))) / 60, 2)
+                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")), domain=domain)
+                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugService")), domain=domain) / 60, 2)
                 
             elif "5vorFlugSales" in queue_name:
-                queue_stats[f"{display_name} Calls"] = safe_sum_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales")))
-                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))) / 60, 2)
+                queue_stats[f"{display_name} Calls"] = safe_sum_query((filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))), domain=domain)
+                queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales")), domain=domain) / 60, 2)
         
     return {
         "Call Reasons Breakdown": call_reasons,
