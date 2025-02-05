@@ -43,32 +43,41 @@ def time_to_seconds(time):
         return 0
     
 def time_to_minutes(time):
-    """Convert time in various formats to minutes."""
+    """Convert time in various formats to minutes and seconds."""
     try:
+        # If the input is a float or int, treat it as minutes
+        if isinstance(time, (float, int)):
+            minutes = int(time)
+            seconds = int((time - minutes) * 60)
+            return (minutes, seconds)
+
+        # If time is a tuple, extract the first element
         if isinstance(time, tuple):
-            pass
+            time = time[0]
 
-        if '.' in time[0]:
-            print("float ", time[0])
-            return float(time[0])  # Assuming this represents minutes directly
+        # Ensure it's a string before processing
+        if isinstance(time, str):
+            # If it's already in decimal format (e.g., "12.5"), convert to minutes
+            if '.' in time:
+                return (int(float(time)), int((float(time) % 1) * 60))
 
-        # Handle time formats
-        if ':' in time[0]:
-            if len(time[0].split(':')) == 2:
-                # Format: 'mm:ss'
-                dt = datetime.strptime(time[0], "%M:%S")
-                # total_minutes = dt.minute + dt.second
-                return (dt.minute, dt.second)
-            elif len(time[0].split(':')) == 3:
-                # Format: 'hh:mm:ss'
-                dt = datetime.strptime(time[0], "%H:%M:%S")
-                total_minutes = dt.hour * 60 + dt.minute
-                return (total_minutes, dt.second)
+            # Handle time formats like 'mm:ss' or 'hh:mm:ss'
+            if ':' in time:
+                parts = time.split(':')
+                if len(parts) == 2:
+                    dt = datetime.strptime(time, "%M:%S")
+                    return (dt.minute, dt.second)
+                elif len(parts) == 3:
+                    dt = datetime.strptime(time, "%H:%M:%S")
+                    total_minutes = dt.hour * 60 + dt.minute
+                    return (total_minutes, dt.second)
 
-        return 0  # Return 0 if format is unrecognized
+        # If input doesn't match any format, return (0, 0)
+        return (0, 0)
+    
     except Exception as e:
         print(f"Error converting time '{time}': {e}")
-        return 0
+        return (0, 0)
 
 
 @router.get("/email_overview")
