@@ -358,10 +358,8 @@ async def get_calls_sub_kpis(
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             
     if domain !="all":
-        if "Sale" in domain:
-            query = query.filter(QueueStatistics.queue_name.notlike(f"%Service%"))
-        else:
-            query = query.filter(QueueStatistics.queue_name.notlike(f"%Sales%"))
+        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+        
 
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")

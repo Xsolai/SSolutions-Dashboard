@@ -348,7 +348,7 @@ def domains_checker(db, user_id, filter_5vf, filter_bild):
         print("contains guru")
         # filters.append(QueueStatistics.queue_name.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
         # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-        return []
+        return [], []
         
     # print("Filters: ", filters)
     return filters, summe_filters
@@ -475,7 +475,7 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
     if "guru" in accessible_companies:
         print("contains guru")
         # filters.append(SoftBookingKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
-        return []
+        return [], []
         # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
     # print("Filters: ", filters)
