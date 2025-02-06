@@ -632,7 +632,7 @@ const LeistungTab = () => {
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
         <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-6">
-          <div className="flex flex-row gap-4">
+          <div className="flex flex-row flex-wrap gap-4">
             <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
             <CompanyDropdown onCompanyChange={handleCompanyChange} />
             <button
