@@ -225,6 +225,7 @@ const EmailAnalysisDashboard = () => {
         ]);
 
         setEmailData(emailRes);
+        console.log(emailRes);
         setEmailSubKPIs(emailSubKPIsRes);
         setOverviewData(overviewRes);
         setSubKPIs(subKPIsRes);
@@ -283,7 +284,7 @@ const UebersichtTab = () => {
     },
     { 
       title: "Gesamte E-Mails", 
-      value: (overviewData['total emails received'] || 0).toLocaleString(), 
+      value: (emailData['email recieved'] || 0).toLocaleString(), 
       icon: Inbox,
       change: subKPIs['total emails recieved change'],
       description: "im Vergleich zur letzten Periode"
