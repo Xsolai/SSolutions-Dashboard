@@ -225,7 +225,6 @@ const EmailAnalysisDashboard = () => {
         ]);
 
         setEmailData(emailRes);
-        console.log(emailRes);
         setEmailSubKPIs(emailSubKPIsRes);
         setOverviewData(overviewRes);
         setSubKPIs(subKPIsRes);
@@ -338,11 +337,11 @@ const UebersichtTab = () => {
               Alle
             </button>
             <button
-              onClick={() => setDomain("sales")}
+              onClick={() => setDomain("Sales")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black
                 border transition-all duration-200
-                ${domain === "sales" 
+                ${domain === "Sales" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
@@ -351,11 +350,11 @@ const UebersichtTab = () => {
               Vertrieb
             </button>
             <button
-              onClick={() => setDomain("service")}
+              onClick={() => setDomain("Service")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "service" 
+                ${domain === "Service" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
@@ -503,11 +502,11 @@ const LeistungTab = () => {
               Alle
             </button>
             <button
-              onClick={() => setDomain("sales")}
+              onClick={() => setDomain("Sales")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black
                 border transition-all duration-200
-                ${domain === "sales" 
+                ${domain === "Sales" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
@@ -516,11 +515,11 @@ const LeistungTab = () => {
               Vertrieb
             </button>
             <button
-              onClick={() => setDomain("service")}
+              onClick={() => setDomain("Service")}
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "service" 
+                ${domain === "Service" 
                   ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
