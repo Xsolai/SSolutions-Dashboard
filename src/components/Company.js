@@ -35,9 +35,9 @@ const CompanyDropdown = ({ onCompanyChange }) => {
     checkAdminAndFetchCompanies();
   }, []);
 
-  if (!isAdmin) return null;
+  // if (!isAdmin) return null;
 
-  if (!isAdmin) return null;
+  // if (!isAdmin) return null;
 
   return (
     <select
