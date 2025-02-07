@@ -231,8 +231,8 @@ def get_companies(
     current_user: schemas.User = Depends(oauth2.get_current_user)
 ):
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
-    if not current_user or current_user.role.lower() != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can access this resource.")
+    # if not current_user or current_user.role.lower() != "admin":
+    #     raise HTTPException(status_code=403, detail="Only admins can access this resource.")
     companies = db.query(models.SoftBookingKF.customer).distinct().all()
     if not companies:
         raise HTTPException(status_code=404, detail="No customer found.")
