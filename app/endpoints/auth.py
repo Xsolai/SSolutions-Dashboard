@@ -374,5 +374,6 @@ def blacklist_token(db, token: str, reason: str):
     blacklisted_token = BlacklistedToken(token=token, reason=reason)
     db.add(blacklisted_token)
     db.commit()
+    db.refresh(blacklisted_token)
     print(f"Token blacklisted: {token}")
     logging.info(f"Token blacklisted: {token}")
