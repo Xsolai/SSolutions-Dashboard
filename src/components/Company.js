@@ -16,7 +16,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
         });
         const profileData = await profileResponse.json();
 
-        if (profileData.role === 'admin') {
+        if (profileData.role === 'admin' || profileData.role === 'customer') { // changing to customers for now
           setIsAdmin(true);
           // If admin, fetch companies
           const companiesResponse = await fetch('https://solasolution.ecomtask.de/admin/companies', {
