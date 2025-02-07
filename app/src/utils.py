@@ -484,11 +484,11 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
 
 def time_formatter(hours, minutes, seconds):
     if int(hours)>0:
-        return f"{hours}:{minutes}:{seconds}"
+        return f"{str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}"
     if int(hours)<=0 and int(minutes)>0:
-        return f"{minutes}:{seconds}"
+        return f"{str(minutes).zfill(2)}:{str(seconds).zfill(2)}"
     else:
-        return f"00:00:{seconds}"
+        return f"00:00:{str(seconds).zfill(2)}"
     
 # def time_format(time):
 #     """Convert time in various formats to minutes."""
