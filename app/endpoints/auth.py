@@ -364,7 +364,7 @@ async def logout(request: Request, db: Session = Depends(get_db)):
         logging.error(f"Logout Error: {str(exc)}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
-def blacklist_token(db: Session, token: str, reason: str):
+def blacklist_token(db, token: str, reason: str):
     # Check if the token already exists in the blacklisted tokens table
     existing_token = db.query(BlacklistedToken).filter(BlacklistedToken.token == token).first()
     if existing_token:
