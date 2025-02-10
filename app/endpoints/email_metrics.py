@@ -148,6 +148,31 @@ async def get_email_overview(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+            
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like("%5vorFlug%")  
+                )
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.notlike("%5vorFlug%"),
+                EmailData.customer.notlike("%Bild%")  
+                )
+            elif "Bild" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Bild%")  
+                )
     
     if domain != "all":
         if domain=="Sales" :
@@ -157,6 +182,7 @@ async def get_email_overview(
         else:
             query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
             email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+            
         
     total_processing_time_seconds = 0.00001
     total_processing_time_min = 0
@@ -354,6 +380,30 @@ async def get_email_overview_sub_kpis(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like("%5vorFlug%")  
+                )
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.notlike("%5vorFlug%"),
+                EmailData.customer.notlike("%Bild%")  
+                )
+            elif "Bild" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Bild%")  
+                )
     if domain != "all":
         query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
         email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
@@ -518,6 +568,30 @@ async def get_mailbox_SL(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like("%5vorFlug%")  
+                )
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.notlike("%5vorFlug%"),
+                EmailData.customer.notlike("%Bild%")  
+                )
+            elif "Bild" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Bild%")  
+                )
     
     if domain != "all":
         query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))

@@ -180,6 +180,30 @@ async def get_anaytics_email_data(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like("%5vorFlug%")  
+                )
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.notlike("%5vorFlug%"),
+                EmailData.customer.notlike("%Bild%")  
+                )
+            elif "Bild" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Bild%")  
+                )
             
     if domain != "all":
         if domain=="Sales" :
@@ -425,6 +449,30 @@ async def get_anaytics_email_data_sub_kpis(
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like("%5vorFlug%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like("%5vorFlug%")  
+                )
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
+                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.notlike("%5vorFlug%"),
+                EmailData.customer.notlike("%Bild%")  
+                )
+            elif "Bild" in company:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Bild%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Bild%")  
+                )
             
     if domain != "all":
         query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
@@ -547,6 +595,20 @@ async def get_sales_and_service(
         else:
             query = db.query(QueueStatistics)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                QueueStatistics.queue_name.like("%5vorFlug%")  
+            )
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                QueueStatistics.queue_name.notlike("%5vorFlug%"),
+                QueueStatistics.queue_name.notlike("%BILD%")
+                )
+            elif "Bild" in company:
+                query = query.filter(
+                QueueStatistics.queue_name.like("%BILD%")  
+            )
 
     if domain != "all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
@@ -732,6 +794,32 @@ async def get_booking_data(time_input: float = 6*60,
         else:
             query = db.query(SoftBookingKF)
             order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                SoftBookingKF.customer.like("%5vF%")  
+            )
+                order_query = order_query.filter(OrderJoin.customer.like("%5vF%"), 
+                                                        OrderJoin.task_created.isnot(None))
+                
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                SoftBookingKF.customer.notlike("%5vF%"),
+                SoftBookingKF.customer.notlike("%BILD%")
+            )
+                order_query = order_query.filter(OrderJoin.task_created.isnot(None), 
+                                                        OrderJoin.customer.notlike("%5vF%"), 
+                                                        OrderJoin.customer.notlike("%BILD%"))
+            elif "Bild" in company:
+                query = query.filter(
+                SoftBookingKF.customer.like("%BILD%")  
+            )
+                order_query = order_query.filter(OrderJoin.customer.like("%BILD%"), 
+                                                        OrderJoin.task_created.isnot(None))
+        else:
+            query = query
+            order_query = order_query
+        
             
     booked = "OK"
     cancelled = "XX"
@@ -851,11 +939,36 @@ async def get_booking_data_sub_kpis(
             query = db.query(SoftBookingKF)
     else:
         filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        order_query = db.query(OrderJoin).filter(or_(*order_filters), OrderJoin.task_created.isnot(None))
         # print("Filters: ", filters)
         if filters:
             query = db.query(SoftBookingKF).filter(or_(*filters))
+            order_query = db.query(OrderJoin).filter(or_(*order_filters), OrderJoin.task_created.isnot(None))
         else:
             query = db.query(SoftBookingKF)
+            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+        if company!="all":
+            if "5vorflug" in company:
+                query = query.filter(
+                SoftBookingKF.customer.like("%5vF%")  
+            )
+                order_query = order_query.filter(OrderJoin.customer.like("%5vF%"), 
+                                                        OrderJoin.task_created.isnot(None))
+                
+            elif "Urlaubsguru" in company:
+                query = query.filter(
+                SoftBookingKF.customer.notlike("%5vF%"),
+                SoftBookingKF.customer.notlike("%BILD%")
+            )
+                order_query = order_query.filter(OrderJoin.task_created.isnot(None), 
+                                                        OrderJoin.customer.notlike("%5vF%"), 
+                                                        OrderJoin.customer.notlike("%BILD%"))
+            elif "Bild" in company:
+                query = query.filter(
+                SoftBookingKF.customer.like("%BILD%")  
+            )
+                order_query = order_query.filter(OrderJoin.customer.like("%BILD%"), 
+                                                        OrderJoin.task_created.isnot(None))
     
     # start_date, end_date = get_date_subkpis_booking("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis_booking("last_week")
@@ -1024,7 +1137,7 @@ async def get_conversion_data(
         restricted_companies = ["5vorflug", "bild"]
 
         # Check if all three companies are in accessible_companies
-        if "5vorflug" in accessible_companies and "bild" in accessible_companies and "urlaubsguru" in accessible_companies:
+        if "5vorflug" in accessible_companies and "bild" in accessible_companies and "guru" in accessible_companies:
             print("All companies found, prioritizing 'urlaubsguru'")
             query = db.query(SoftBookingKF)
         else:
@@ -1107,11 +1220,11 @@ async def get_conversion_data(
         BookingData.crs_status == "OK"
         ).scalar() or 0
         
-        print(total_calls)
-        print(accepted_calls)
-        print(abondened_before_ans)
-        print(cb_wrong_calls)
-        print(sucess_bookings)
+        # print(total_calls)
+        # print(accepted_calls)
+        # print(abondened_before_ans)
+        # print(cb_wrong_calls)
+        # print(sucess_bookings)
         
         
     cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)

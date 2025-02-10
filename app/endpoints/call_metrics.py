@@ -178,11 +178,34 @@ async def get_calls(
             booking_query = db.query(BookingData)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
+        if company != "all":
+            if "5vorflug" in company:
+                print("executing for 5vf")
+                query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
+                summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%5vFlug%"))
+                booking_query = booking_query.filter(BookingData.order_agent.like(f"%5VF%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Urlaubsguru" in company:
+                print("executing for guru")
+                query = query.filter(QueueStatistics.queue_name.notlike("%5vorFlug%"),QueueStatistics.queue_name.notlike("%BILD%"))
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.notlike("%5vFlug%"),
+                AllQueueStatisticsData.customer.notlike("%Bild%")
+                )
+                booking_query = booking_query.filter(BookingData.order_agent.like(f"%GURU%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Bild" in company:
+                print("executing for bild")
+                query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+                summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%Bild%"))
+                booking_query = booking_query.filter(BookingData.order_agent.like("%BILD%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        
     if domain != "all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
         summe_query = summe_query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-
+    
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
         #     QueueStatistics.date.between(start_date, end_date)
@@ -357,6 +380,29 @@ async def get_calls_sub_kpis(
             query = db.query(QueueStatistics)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             
+        if company != "all":
+            if "5vorflug" in company:
+                print("executing for 5vf")
+                query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
+                summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%5vFlug%"))
+                booking_query = booking_query.filter(BookingData.order_agent.like(f"%5VF%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Urlaubsguru" in company:
+                print("executing for guru")
+                query = query.filter(QueueStatistics.queue_name.notlike("%5vorFlug%"),QueueStatistics.queue_name.notlike("%BILD%"))
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.notlike("%5vFlug%"),
+                AllQueueStatisticsData.customer.notlike("%Bild%")
+                )
+                booking_query = booking_query.filter(BookingData.order_agent.like(f"%GURU%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Bild" in company:
+                print("executing for bild")
+                query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+                summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%Bild%"))
+                booking_query = booking_query.filter(BookingData.order_agent.like("%BILD%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            
     if domain !="all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
         
@@ -503,6 +549,8 @@ async def get_call_performance(
                 return query.with_entities(func.avg(column)).scalar() or 0
             except Exception:
                 return 0
+            
+    
     
     def get_call_reason_sum(column_name,start_date, end_date):
         """Safely get sum of call reasons"""
@@ -607,6 +655,17 @@ async def get_call_performance(
             query = db.query(QueueStatistics)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        if company != "all":
+                if "5vorflug" in company:
+                    query = query.filter(QueueStatistics.queue_name.like("%5vorFlug%"))
+                elif "Urlaubsguru" in company:
+                    query = query.filter(
+                        QueueStatistics.queue_name.notlike("%5vorFlug%"),
+                        QueueStatistics.queue_name.notlike("%BILD%")
+                    )
+                elif "Bild" in company:
+                    query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+
         # Call Reasons Breakdown
         call_reasons = {
             "cb_sales": get_call_reason_sum('cb_sales', start_date=start_date, end_date=end_date),

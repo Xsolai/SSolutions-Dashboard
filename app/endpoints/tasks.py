@@ -82,6 +82,23 @@ async def get_tasks_kpis(
             query = db.query(OrderJoin).filter(or_(*filters), OrderJoin.task_created.isnot(None))
         else:
             query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+        if company!="all":
+            if "5vorflug" in company:
+                # query = db.query(OrderJoin).join(
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+                query = query.filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
+            elif "Urlaubsguru" in company:
+                # query = db.query(OrderJoin).join(
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+                query = query.filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+            elif "Bild" in company:
+                # query = db.query(OrderJoin).join( 
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+                query = query.filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
+        
     
     if start_date is None:
         orders = db.query(func.count(OrderJoin.order_number)).join(
@@ -198,6 +215,23 @@ async def get_tasks_overview(
             query = db.query(OrderJoin).filter(or_(*filters))
         else:
             query = db.query(OrderJoin)
+        if company!="all":
+            if "5vorflug" in company:
+                # query = db.query(OrderJoin).join(
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+                query = query.filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
+            elif "Urlaubsguru" in company:
+                # query = db.query(OrderJoin).join(
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+                query = query.filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+            elif "Bild" in company:
+                # query = db.query(OrderJoin).join( 
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+                query = query.filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
+        
 
     if start_date is None:
         # No date filter applied
@@ -370,6 +404,23 @@ async def get_tasks_performance(
             query = db.query(OrderJoin).filter(or_(*filters))
         else:
             query = db.query(OrderJoin)
+        if company!="all":
+            if "5vorflug" in company:
+                # query = db.query(OrderJoin).join(
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
+                query = query.filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
+            elif "Urlaubsguru" in company:
+                # query = db.query(OrderJoin).join(
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
+                query = query.filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+            elif "Bild" in company:
+                # query = db.query(OrderJoin).join( 
+                # GuruTask, OrderJoin.order_number == GuruTask.order_number
+                # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
+                query = query.filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
+
     
     if start_date is None:
         assign_users_by_tasks = [
