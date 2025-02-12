@@ -1,0 +1,36 @@
+{
+  "name": "admin-only-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@hookform/resolvers": "^3.9.1",
+    "@mui/icons-material": "^6.3.0",
+    "@mui/material": "^6.3.0",
+    "axios": "^1.7.7",
+    "dayjs": "^1.11.13",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.453.0",
+    "next": "^14.2.18",
+    "next-themes": "^0.3.0",
+    "react": "^18.3.1",
+    "react-date-range": "^2.0.1",
+    "react-datepicker": "^7.5.0",
+    "react-dom": "^18",
+    "react-hook-form": "^7.53.1",
+    "react-hot-toast": "^2.4.1",
+    "recharts": "^2.13.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1"
+  }
+}
