@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
-import CustomDateRangeFilter from './FilterComponent';
-import CompanyDropdown from './Company';
 
 // Brand Colors
 const colors = {
@@ -181,14 +179,14 @@ const convertTimeToSeconds = (timeStr) => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
-const CallAnalysisDashboard = () => {
+const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const [activeTab, setActiveTab] = useState('uebersicht');
-  const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
-    isAllTime: false
-  });
-  const [selectedCompany, setSelectedCompany] = useState('');
+  // const [dateRange, setDateRange] = useState({
+  //   startDate: null,
+  //   endDate: null,
+  //   isAllTime: false
+  // });
+  // const [selectedCompany, setSelectedCompany] = useState('');
   const [overviewData, setOverviewData] = useState(null);
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
@@ -200,24 +198,6 @@ const CallAnalysisDashboard = () => {
     { id: "uebersicht", name: "Übersicht" },
     { id: "performance", name: "Leistungsmetriken" }
   ];
-
-  // Add handleCompanyChange function
-  const handleCompanyChange = (company) => {
-    setSelectedCompany(company);
-    // The data will be refetched automatically due to the useEffect dependency
-  };
-
-  // Initialize with current date
-  useEffect(() => {
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    setDateRange({
-      startDate: currentDate,
-      endDate: currentDate,
-      isAllTime: false
-    });
-  }, []);
 
   const fetchData = async () => {
     try {
@@ -266,34 +246,12 @@ const CallAnalysisDashboard = () => {
       setLoading(false);
     }
   };
-  // Initialize with default date range
-  useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    setDateRange({
-      startDate: yesterday,
-      endDate: yesterday,
-      isAllTime: false
-    });
-  }, []);
-
 
   useEffect(() => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData();
     }
   }, [dateRange, selectedCompany, domain]);
-
-
-  const handleDateRangeChange = (newRange) => {
-    setDateRange({
-      startDate: newRange.startDate,
-      endDate: newRange.endDate,
-      isAllTime: newRange.isAllTime
-    });
-  };
 
   // Updated brand-aligned colors
   const chartColors = {
@@ -754,20 +712,6 @@ const CallAnalysisDashboard = () => {
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-6">
-          <div className="flex flex-row flex-wrap gap-4">
-            <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-            <CompanyDropdown onCompanyChange={handleCompanyChange} />
-            <button
-              className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
-                text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
-              onClick={() => {}}
-            >
-              Download
-            </button>
-          </div>
-        </div>
-
         <div className="border-b border-[#E6E2DF] mb-6">
           <div className="sm:hidden">
             <select

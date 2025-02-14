@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart } from 'recharts';
 import { Mail, PhoneCall, Phone, TrendingUp, TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity, CreditCard } from 'lucide-react';
-import CustomDateRangeFilter from './FilterComponent';
-import CompanyDropdown from './Company';
 
 // Brand Colors
 const colors = {
@@ -130,12 +128,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const AnalyticsDashboard = () => {
-  const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
-    isAllTime: false
-  });
+const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
   const [data, setData] = useState({
     salesServiceData: null,
     bookingData: null,
@@ -151,26 +144,6 @@ const AnalyticsDashboard = () => {
       'Authorization': `Bearer ${access_token}`
     }
   };
-
-// Add to your state declarations
-const [selectedCompany, setSelectedCompany] = useState('');
-
-// Add handleCompanyChange function
-const handleCompanyChange = (company) => {
-  setSelectedCompany(company);
-  fetchData(dateRange); // Refetch data with new company filter
-};
-
-  // Updated initialization to use current date instead of yesterday
-  useEffect(() => {
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    setDateRange({
-      startDate: currentDate,
-      endDate: currentDate,
-      isAllTime: false
-    });
-  }, []);
 
   const fetchData = async (dateParams) => {
     setLoading(true);
@@ -236,34 +209,12 @@ const handleCompanyChange = (company) => {
     }
   };
   
-  // Initialize with default date range
-  useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    setDateRange({
-      startDate: yesterday,
-      endDate: yesterday,
-      isAllTime: false
-    });
-  }, []);
-  
   // Handle date range updates
   useEffect(() => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
       fetchData(dateRange);
     }
   }, [dateRange, selectedCompany]);
-    
-  // Handle date filter changes from calendar component
-  const handleDateRangeChange = (newRange) => {
-    setDateRange({
-      startDate: newRange.startDate,
-      endDate: newRange.endDate,
-      isAllTime: newRange.isAllTime
-    });
-  };
 
     
 const SalesServiceTab = () => {
@@ -643,12 +594,12 @@ const ConversionTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* <StatCard
           title="Verkaufswirksame Anrufe"
           value={`${cbMetrics?.['CB Conversion']?.toFixed(1) || '0'}%`}
           icon={TrendingUp}
-        />
+        /> */}
         <StatCard
           title="Vertrieb Konversion"
           value={`${salesMetrics?.['Sales Conversion']?.toFixed(1) || '0'}%`}
@@ -661,9 +612,9 @@ const ConversionTab = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="CB Leistung">
-          <div className="h-[300px]"> {/* Increased height for better visibility */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
+        {/* <ChartCard title="CB Leistung">
+          <div className="h-[300px]">
             <ResponsiveContainer>
               <ComposedChart data={cbChartData}>
                 <XAxis 
@@ -703,7 +654,7 @@ const ConversionTab = () => {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-        </ChartCard>
+        </ChartCard> */}
 
         <ChartCard title="Vertrieb Leistung">
           <div className="h-[300px]"> {/* Increased height for better visibility */}
@@ -794,20 +745,6 @@ const StyledSelect = ({ value, onChange, options }) => (
 return (
   <div className="bg-[#E6E2DF]/10 rounded-[50px]">
     <div className="max-w-full mx-auto p-4 sm:p-6">
-      <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-4">
-        <div className="flex flex-row flex-wrap gap-4">
-          <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-          <CompanyDropdown onCompanyChange={handleCompanyChange} />
-          <button
-            className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
-              text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
-            onClick={() => {}}
-          >
-            Download
-          </button>
-        </div>
-      </div>
-
       <div className="border-b border-[#E6E2DF] mb-6">
         {/* Mobile Dropdown */}
         <div className="sm:hidden">

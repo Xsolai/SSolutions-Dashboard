@@ -1,3 +1,4 @@
+// src/app/dashboard/page.js
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
@@ -19,6 +20,8 @@ import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import logo from "@/assets/images/logo.png";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TaskAnalysisDashboard from "@/components/TaskAnalyis";
+import CustomDateRangeFilter from "@/components/FilterComponent";
+import CompanyDropdown from "@/components/Company";
 
 const HistorySidebar = ({ isOpen, onClose }) => {
   const [historyData, setHistoryData] = useState([]);
@@ -261,6 +264,31 @@ const Home = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [role, setRole] = useState("");
+  const [dateRange, setDateRange] = useState({
+      startDate: null,
+      endDate: null,
+      isAllTime: false
+  });
+  const [selectedCompany, setSelectedCompany] = useState('');
+  
+  // Add handleCompanyChange function
+  const handleCompanyChange = (company) => {
+    setSelectedCompany(company);
+    // fetchData(dateRange); // Refetch data with new company filter
+  };
+
+  // Initialize with default date range
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -291,13 +319,21 @@ const Home = () => {
     { id: "task-analysis", label: "Aufgabenanalyse" },
   ];
 
+  const handleDateRangeChange = (newRange) => {
+    setDateRange({
+      startDate: newRange.startDate,
+      endDate: newRange.endDate,
+      isAllTime: newRange.isAllTime
+    });
+  };
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-white text-[#001E4A]">
         <div className="py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex-shrink-0">
-              <img src={logo.src} alt="Dashboard Logo" className="w-auto h-8" />
+              <img src={logo.src} alt="Dashboard Logo" className="w-auto h-6 md:h-8" />
             </div>
 
             <div className="flex items-center gap-4">
@@ -370,10 +406,23 @@ const Home = () => {
           )}
 
           <div className="mt-6">
-            {activeTab === "analytics" && <AnalyticsDashboard />}
-            {activeTab === "call-analysis" && <CallAnalysisDashboard />}
-            {activeTab === "email-analysis" && <EmailAnalysisDashboard />}
-            {activeTab === "task-analysis" && <TaskAnalysisDashboard />}
+            <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-4">
+              <div className="flex flex-row flex-wrap gap-4">
+                <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+                <CompanyDropdown onCompanyChange={handleCompanyChange} />
+                <button
+                  className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
+                    text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
+                  onClick={() => {}}
+                >
+                  Download
+                </button>
+              </div>
+            </div>
+            {activeTab === "analytics" && <AnalyticsDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
+            {activeTab === "call-analysis" && <CallAnalysisDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
+            {activeTab === "email-analysis" && <EmailAnalysisDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
+            {activeTab === "task-analysis" && <TaskAnalysisDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
           </div>
         </div>
 
