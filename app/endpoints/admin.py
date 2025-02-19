@@ -445,3 +445,5 @@ def delete_user(user_id: int, db: Session = Depends(get_db),
     except Exception as e:
         print(f"Error deleting user: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete the user.")
+    
+    
