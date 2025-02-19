@@ -1,7 +1,7 @@
 from app.database.models.models import (FileProcessingHistory, User, 
                                         Permission, QueueStatistics, 
                                         WorkflowReportGuruKF, EmailData,
-                                        OrderJoin, SoftBookingKF, AllQueueStatisticsData)
+                                        OrderJoin, SoftBookingKF, AllQueueStatisticsData, GuruTask)
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
@@ -329,29 +329,47 @@ def domains_checker(db, user_id, filter_5vf, filter_bild):
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
         accessible_companies.append("bild")
+    if "adac" in user_domains:
+        accessible_companies.append("ADAC")
+    if "galeria" in user_domains:
+        accessible_companies.append("Galeria")
+    if "urlaub" in user_domains:
+        accessible_companies.append("Urlaub")
     
     print("accessible_companies: ", accessible_companies)
     
     filters = []
     summe_filters = []
     if "5vorflug" in accessible_companies:
-        print("containss")
+        # print("containss")
         filters.append(QueueStatistics.queue_name.like(f"%{filter_5vf}%"))
         summe_filters.append(AllQueueStatisticsData.customer.like(f"%{filter_5vf}%"))
         # total_call_reasons = 0
     if "bild" in accessible_companies:
-        print("containss bild")
+        # print("containss bild")
         filters.append(QueueStatistics.queue_name.like(f"%{filter_bild}%"))
         summe_filters.append(AllQueueStatisticsData.customer.like(f"%{filter_bild}%"))
+    if "Galeria" in accessible_companies:
+        # print("containss bild")
+        filters.append(QueueStatistics.queue_name.like(f"%Galeria%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%Galeria%"))
+    if "ADAC" in accessible_companies:
+        # print("containss bild")
+        filters.append(QueueStatistics.queue_name.like(f"%ADAC%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%ADAC%"))
+    if "Urlaub" in accessible_companies:
+        # print("containss bild")
+        filters.append(QueueStatistics.queue_name.like(f"%Urlaub"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%Urlaub"))
         # total_call_reasons = 0
     if "guru" in accessible_companies:
         print("contains guru")
         # filters.append(QueueStatistics.queue_name.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
         # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-        return [], []
+        return accessible_companies, [], []
         
     # print("Filters: ", filters)
-    return filters, summe_filters
+    return accessible_companies, filters, summe_filters
 
 def domains_checker_email(db, user_id, filter_5vf, filter_bild):
     
@@ -374,6 +392,12 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild):
     if "bild" in user_domains:
         print(f"contains bild")
         accessible_companies.append("bild")
+    if "adac" in user_domains:
+        accessible_companies.append("ADAC")
+    if "galeria" in user_domains:
+        accessible_companies.append("Galeria")
+    if "urlaub" in user_domains:
+        accessible_companies.append("Urlaub")
     
     print("accessible_companies: ", accessible_companies)
     
@@ -388,16 +412,28 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild):
         print("containss bild")
         filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_bild}%"))
         email_filters.append(EmailData.customer.like(f"%{filter_bild}%"))
+    if "ADAC" in accessible_companies:
+        # print("containss bild")
+        filters.append(WorkflowReportGuruKF.customer.like(f"%ADAC%"))
+        email_filters.append(EmailData.customer.like(f"%ADAC%"))
+    if "Galeria" in accessible_companies:
+        # print("containss bild")
+        filters.append(WorkflowReportGuruKF.customer.like(f"%Galeria%"))
+        email_filters.append(EmailData.customer.like(f"%Galeria%"))
+    if "Urlaub" in accessible_companies:
+        print("containss bild")
+        filters.append(WorkflowReportGuruKF.customer.like(f"%Urlaub%"))
+        email_filters.append(EmailData.customer.like(f"%Urlaub%"))
         # total_call_reasons = 0
     if "guru" in accessible_companies:
         print("contains guru")
         # filters.append(WorkflowReportGuruKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
         # email_filters.append(EmailData.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
-        return [],[]
+        return accessible_companies, [],[]
         # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
     # print("Filters: ", filters)
-    return filters, email_filters
+    return accessible_companies, filters, email_filters
 
 def domains_checker_task(db, user_id, filter_5vf, filter_bild):
     
@@ -417,26 +453,41 @@ def domains_checker_task(db, user_id, filter_5vf, filter_bild):
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
         accessible_companies.append("bild")
+    if "adac" in user_domains:
+        accessible_companies.append("ADAC")
+    if "galeria" in user_domains:
+        accessible_companies.append("Galeria")
+    if "urlaub" in user_domains:
+        accessible_companies.append("Urlaub") 
     
     print("accessible_companies: ", accessible_companies)
     
     filters = []
     if "5vorflug" in accessible_companies:
         print("containss")
-        filters.append(OrderJoin.customer.like(f"%{filter_5vf}%"))
-        # total_call_reasons = 0
+        filters.append(GuruTask.customer.like(f"%{filter_5vf}%"))
+        # total_call_reasons = 0 
     if "bild" in accessible_companies:
         print("containss bild")
-        filters.append(OrderJoin.customer.like(f"%{filter_bild}%"))
+        filters.append(GuruTask.customer.like(f"%{filter_bild}%"))
+    if "Galeria" in accessible_companies:
+        print("containss galeria")
+        filters.append(GuruTask.customer.like(f"%Galeria%"))
+    if "ADAC" in accessible_companies:
+        print("containss ADAC")
+        filters.append(GuruTask.customer.like(f"%ADAC%"))
+    if "Urlaub" in accessible_companies:
+        print("containss urlaub")
+        filters.append(GuruTask.customer.like(f"%Urlaub%"))
         # total_call_reasons = 0
     if "guru" in accessible_companies:
         print("contains guru")
         # filters.append(OrderJoin.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
         # filters.append(OrderJoin.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
-        return []
+        return accessible_companies,[]
         
     # print("Filters: ", filters)
-    return filters
+    return accessible_companies, filters
 
 
 def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
@@ -457,6 +508,12 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
         accessible_companies.append("bild")
+    if "adac" in user_domains:
+        accessible_companies.append("ADAC")
+    if "galeria" in user_domains:
+        accessible_companies.append("Galeria")
+    if "urlaub" in user_domains:
+        accessible_companies.append("Urlaub")
     
     print("accessible_companies: ", accessible_companies)
     
@@ -465,21 +522,33 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild):
     if "5vorflug" in accessible_companies:
         print("containss")
         filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
-        order_filters.append(OrderJoin.customer.like(f"%{filter_5vf}%"))
+        order_filters.append(GuruTask.customer.like(f"%5VFL%"))
         # total_call_reasons = 0
     if "bild" in accessible_companies:
         print("containss bild")
         filters.append(SoftBookingKF.customer.like(f"%{filter_bild}%"))
-        order_filters.append(OrderJoin.customer.like(f"%{filter_bild}%"))
+        order_filters.append(GuruTask.customer.like(f"%{filter_bild}%"))
         # total_call_reasons = 0
+    if "ADAC" in accessible_companies:
+        print("containss bild")
+        filters.append(SoftBookingKF.customer.like(f"%ADAC%"))
+        order_filters.append(GuruTask.customer.like(f"%ADAC%"))
+    if "Galeria" in accessible_companies:
+        print("containss bild")
+        filters.append(SoftBookingKF.customer.like(f"%Galeria%"))
+        order_filters.append(GuruTask.customer.like(f"%Galeria%"))
+    if "Urlaub" in accessible_companies:
+        print("containss bild")
+        filters.append(SoftBookingKF.customer.like(f"%Urlaub%"))
+        order_filters.append(GuruTask.customer.like(f"%Urlaub%"))
     if "guru" in accessible_companies:
         print("contains guru")
         # filters.append(SoftBookingKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
-        return [], []
+        return accessible_companies, [], []
         # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
     # print("Filters: ", filters)
-    return filters, order_filters
+    return accessible_companies, filters, order_filters
 
 
 def time_formatter(hours, minutes, seconds):

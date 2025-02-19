@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission, BookingData, OrderJoin
+from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission, BookingData, GuruTask
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta, date
 from sqlalchemy import func, or_
@@ -154,12 +154,10 @@ async def get_anaytics_email_data(
             )
         elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
-            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            WorkflowReportGuruKF.customer.like(f"%Guru%") 
             )
             email_query = db.query(EmailData).filter(
-            EmailData.customer.notlike("%5vorFlug%"),
-            EmailData.customer.notlike("%Bild%")  
+            EmailData.customer.like(f"%Guru%")
             )
         elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
@@ -168,42 +166,94 @@ async def get_anaytics_email_data(
             email_query = db.query(EmailData).filter(
             EmailData.customer.like(f"%Bild%")  
             )
+        elif "ADAC" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%ADAC%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%ADAC%")  
+            )
+        elif "Galeria" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%Galeria%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Galeria%")  
+            )
+        elif "Urlaub" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%Urlaub%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Urlaub%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
     else:
-        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
-        # print("Filters: ", filters)
+        accessible_companies, filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # # print("Filters: ", filters)
         if filters:
             query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
             email_query = db.query(EmailData).filter(or_(*email_filter))
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+            
         if company!="all":
-            if "5vorflug" in company:
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(
                 WorkflowReportGuruKF.customer.like("%5vorFlug%")  
                 )
                 email_query = email_query.filter(
                 EmailData.customer.like("%5vorFlug%")  
                 )
-            elif "Urlaubsguru" in company:
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 query = query.filter(
-                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
-                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                WorkflowReportGuruKF.customer.like(f"%Guru%")  
                 )
                 email_query = email_query.filter(
-                EmailData.customer.notlike("%5vorFlug%"),
-                EmailData.customer.notlike("%Bild%")  
+                EmailData.customer.like(f"%Guru%")
                 )
-            elif "Bild" in company:
+            elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(
                 WorkflowReportGuruKF.customer.like(f"%Bild%")  
                 )
                 email_query = email_query.filter(
                 EmailData.customer.like(f"%Bild%")  
                 )
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%ADAC%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%ADAC%")  
+                )
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Galeria%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Galeria%")  
+                )
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Urlaub%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Urlaub%")  
+                )
+            else:
+                return {
+                    "email recieved": 0,
+                    "email sent": 0,
+                    "email new cases": 0,
+                    "email archived": 0,
+                    "SL Gross": 0,
+                    "Total Dwell Time (sec)": time_formatter(0, 0, 0),
+                    "Processing Time Trend in seconds": [],
+                    "Processing Count Trend": [],
+                }
             
     if domain != "all":
         if domain=="Sales" :
@@ -423,12 +473,10 @@ async def get_anaytics_email_data_sub_kpis(
             )
         elif "Urlaubsguru" in company:
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
-            WorkflowReportGuruKF.customer.notlike("%Bild%")  
+            WorkflowReportGuruKF.customer.like(f"%Guru%") 
             )
             email_query = db.query(EmailData).filter(
-            EmailData.customer.notlike("%5vorFlug%"),
-            EmailData.customer.notlike("%Bild%")  
+            EmailData.customer.like(f"%Guru%")
             )
         elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
@@ -437,43 +485,96 @@ async def get_anaytics_email_data_sub_kpis(
             email_query = db.query(EmailData).filter(
             EmailData.customer.like(f"%Bild%")  
             )
+        elif "ADAC" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%ADAC%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%ADAC%")  
+            )
+        elif "Galeria" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%Galeria%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Galeria%")  
+            )
+        elif "Urlaub" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%Urlaub%")  
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%Urlaub%")  
+            )
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
     else:
-        filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
-        # print("Filters: ", filters)
+        accessible_companies, filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
+        # # print("Filters: ", filters)
         if filters:
             query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
             email_query = db.query(EmailData).filter(or_(*email_filter))
         else:
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
+            
         if company!="all":
-            if "5vorflug" in company:
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(
                 WorkflowReportGuruKF.customer.like("%5vorFlug%")  
                 )
                 email_query = email_query.filter(
                 EmailData.customer.like("%5vorFlug%")  
                 )
-            elif "Urlaubsguru" in company:
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 query = query.filter(
-                WorkflowReportGuruKF.customer.notlike("%5vorFlug%"),
-                WorkflowReportGuruKF.customer.notlike("%Bild%")  
+                WorkflowReportGuruKF.customer.like(f"%Guru%")  
                 )
                 email_query = email_query.filter(
-                EmailData.customer.notlike("%5vorFlug%"),
-                EmailData.customer.notlike("%Bild%")  
+                EmailData.customer.like(f"%Guru%")
                 )
-            elif "Bild" in company:
+            elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(
                 WorkflowReportGuruKF.customer.like(f"%Bild%")  
                 )
                 email_query = email_query.filter(
                 EmailData.customer.like(f"%Bild%")  
                 )
-            
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%ADAC%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%ADAC%")  
+                )
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Galeria%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Galeria%")  
+                )
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%Urlaub%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%Urlaub%")  
+                )
+            else:
+                return {
+                    "email recieved": 0,
+                    "prev email recieved": 0,
+                    "email recieved change": 0,
+                    "email answered": 0,
+                    "prev email answered": 0, 
+                    "email answered change": 0,
+                    "email archived": 0,
+                    "prev email archived": 0,
+                    "email archived change": 0,
+                }
+                        
     if domain != "all":
         query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
         email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
@@ -569,7 +670,7 @@ async def get_sales_and_service(
     db = SessionLocal()
     
     # Apply filtering logic
-    if is_admin_or_employee:
+    if is_admin_or_employee :
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
@@ -583,32 +684,79 @@ async def get_sales_and_service(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
+        elif "Galeria" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Galeria%")  
+        )
+        elif "ADAC" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%ADAC%")  
+        )
+        elif "Urlaub" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Urlaub_%")  
+        )
         else:
             query = db.query(QueueStatistics)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        print("excecuted for admin or guru")
     else:
-        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
-        # print("Filters: ", filters)
+        accessible_companies, filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        print("Accessible companies: ", accessible_companies)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         else:
             query = db.query(QueueStatistics)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-        if company!="all":
-            if "5vorflug" in company:
+        
+        if company != "all":
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
+                print("executing for 5vf")
+                query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
+                print("executing for guru")
+                query = query.filter(QueueStatistics.queue_name.like(f"%guru%"))
+                
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Bild" in company and "bild" in accessible_companies:
+                print("executing for bild")
+                query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
                 query = query.filter(
-                QueueStatistics.queue_name.like("%5vorFlug%")  
-            )
-            elif "Urlaubsguru" in company:
-                query = query.filter(
-                QueueStatistics.queue_name.notlike("%5vorFlug%"),
-                QueueStatistics.queue_name.notlike("%BILD%")
+                QueueStatistics.queue_name.like(f"%Galeria%")  
                 )
-            elif "Bild" in company:
+            elif "ADAC" in company and "ADAC" in accessible_companies:
                 query = query.filter(
-                QueueStatistics.queue_name.like("%BILD%")  
-            )
+                QueueStatistics.queue_name.like(f"%ADAC%")  
+                )
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Urlaub_de%")  
+                )
+            else:
+                return {
+                    "sales_metrics": {
+                        "calls_offered": 0,
+                        "calls_handled": 0,
+                        "ACC": 0,
+                        "SL": 0,
+                        "AHT_sec": 0,
+                        "longest_waiting_time_sec": 0,
+                    },
+                    "service_metrics": {
+                        "calls_offered": 0,
+                        "calls_handled": 0,
+                        "ACC": 0,
+                        "SL": 0,
+                        "AHT_sec": 0,
+                        "longest_waiting_time_sec": 0,
+                    },
+                    "average handling time": 0,
+                    "Total outbound calls": 0,
+                }
 
     if domain != "all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
@@ -765,61 +913,97 @@ async def get_booking_data(time_input: float = 6*60,
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
         )
-            order_query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"), 
-                                                     OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
             
         elif "Urlaubsguru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vF%"),
-            SoftBookingKF.customer.notlike("%BILD%")
+            SoftBookingKF.customer.like(f"%Guru%")
         )
-            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None), 
-                                                     OrderJoin.customer.notlike("%5vF%"), 
-                                                     OrderJoin.customer.notlike("%BILD%"))
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
         elif "Bild" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%BILD%")  
         )
-            order_query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"), 
-                                                     OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
+        elif "ADAC" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%ADAC%")  
+        )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%ADAC%"))
+        elif "Galeria" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like(f"%Galeria%")  
+        )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Galeria%"))
+        elif "Urlaub" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%Urlaub%")  
+        )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%Urlaub%"))
         else:
             query = db.query(SoftBookingKF)
-            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask)
     else:
-        filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
+        accessible_companies, filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(SoftBookingKF).filter(or_(*filters))
-            order_query = db.query(OrderJoin).filter(or_(*order_filters), OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask).filter(or_(*order_filters))
         else:
             query = db.query(SoftBookingKF)
-            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask)
         if company!="all":
-            if "5vorflug" in company:
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(
                 SoftBookingKF.customer.like("%5vF%")  
             )
-                order_query = order_query.filter(OrderJoin.customer.like("%5vF%"), 
-                                                        OrderJoin.task_created.isnot(None))
+                order_query = order_query.filter(GuruTask.customer.like("%5VFL%"))
                 
-            elif "Urlaubsguru" in company:
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 query = query.filter(
-                SoftBookingKF.customer.notlike("%5vF%"),
-                SoftBookingKF.customer.notlike("%BILD%")
+                SoftBookingKF.customer.like(f"%Guru%")
             )
-                order_query = order_query.filter(OrderJoin.task_created.isnot(None), 
-                                                        OrderJoin.customer.notlike("%5vF%"), 
-                                                        OrderJoin.customer.notlike("%BILD%"))
-            elif "Bild" in company:
+                order_query = order_query.filter(GuruTask.customer.like(f"%Guru%"))
+            elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(
                 SoftBookingKF.customer.like("%BILD%")  
             )
-                order_query = order_query.filter(OrderJoin.customer.like("%BILD%"), 
-                                                        OrderJoin.task_created.isnot(None))
-        else:
-            query = query
-            order_query = order_query
-        
+                order_query = order_query.filter(GuruTask.customer.like("%BILD%"))
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                SoftBookingKF.customer.like("%ADAC%")  
+            )
+                order_query = order_query.filter(GuruTask.customer.like("%ADAC%"))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                SoftBookingKF.customer.like(f"%Galeria%")  
+            )
+                order_query = order_query.filter(GuruTask.customer.like(f"%Galeria%"))
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                SoftBookingKF.customer.like("%Urlaub%")  
+            )
+                order_query = order_query.filter(GuruTask.customer.like("%Urlaub%"))
+            
+            else:
+                return {
+                    "Total Bookings": 0,
+                    "Booked": 0,
+                    "Cancelled count": 0,
+                    "Pending": 0,
+                    "OP": 0,
+                    "RQ": 0,
+                    "SB": 0,
+                    "SB Booking Rate (%)": 0,
+                    "Processing time": 0,
+                    "Booking status": {
+                        "Booked": 0,
+                        "Cancelled": 0,
+                        "Pending": 0,
+                        "OP/RQ": 0,
+                        "SB": 0
+                    }
+                }
             
     booked = "OK"
     cancelled = "XX"
@@ -845,11 +1029,11 @@ async def get_booking_data(time_input: float = 6*60,
         sb_input = query.with_entities(
             func.count(SoftBookingKF.original_status)
         ).scalar() or 0
-        avg_duration = order_query.with_entities(func.avg(OrderJoin.duration)).filter(
-            OrderJoin.task_created.isnot(None), 
-            OrderJoin.task_type.isnot(None), 
-            OrderJoin.date.between(start_date_order, end_date_order),
-            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
+        # avg_duration = order_query.with_entities(func.avg(OrderJoin.duration)).filter(
+        #     OrderJoin.task_created.isnot(None), 
+        #     OrderJoin.task_type.isnot(None), 
+        #     OrderJoin.date.between(start_date_order, end_date_order),
+        #     func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
     else:
         total_bookings = query.with_entities(func.count(SoftBookingKF.original_status)).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
         booked_count = query.with_entities(func.count(SoftBookingKF.status)).filter(SoftBookingKF.status == booked, SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
@@ -866,11 +1050,11 @@ async def get_booking_data(time_input: float = 6*60,
             func.count(SoftBookingKF.original_status)
         ).filter(SoftBookingKF.service_creation_time.between(start_date, end_date)).scalar() or 0
         # total_tasks = order_query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        avg_duration = order_query.with_entities(func.avg(OrderJoin.duration)).filter(
-            OrderJoin.task_created.isnot(None), 
-            OrderJoin.task_type.isnot(None), 
-            OrderJoin.date.between(start_date_order, end_date_order),
-            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
+        # avg_duration = order_query.with_entities(func.avg(OrderJoin.duration)).filter(
+        #     OrderJoin.task_created.isnot(None), 
+        #     OrderJoin.task_type.isnot(None), 
+        #     OrderJoin.date.between(start_date_order, end_date_order),
+        #     func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
     #     print(avg_duration)
     # print(avg_duration)
     # Return metrics as a dictionary
@@ -883,7 +1067,7 @@ async def get_booking_data(time_input: float = 6*60,
         "RQ": rq_count,
         # "PE": pe_count,
         "SB": sb_booked_count,
-        "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0,
+        # "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0,
         "SB Booking Rate (%)": 100 if sb_booking_rate > 100 else round(sb_booking_rate,2),
         "Processing time" : sb_input * time_input,
         "Booking status": {
@@ -926,50 +1110,85 @@ async def get_booking_data_sub_kpis(
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%5vF%")  
         )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
+            
         elif "Urlaubsguru" in company:
             query = db.query(SoftBookingKF).filter(
-            SoftBookingKF.customer.notlike("%5vF%"),
-            SoftBookingKF.customer.notlike("%BILD%")
+            SoftBookingKF.customer.like(f"%Guru%")
         )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
         elif "Bild" in company:
             query = db.query(SoftBookingKF).filter(
             SoftBookingKF.customer.like("%BILD%")  
         )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
+        elif "ADAC" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%ADAC%")  
+        )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%ADAC%"))
+        elif "Galeria" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like(f"%Galeria%")  
+        )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Galeria%"))
+        elif "Urlaub" in company:
+            query = db.query(SoftBookingKF).filter(
+            SoftBookingKF.customer.like("%Urlaub%")  
+        )
+            order_query = db.query(GuruTask).filter(GuruTask.customer.like("%Urlaub%"))
         else:
             query = db.query(SoftBookingKF)
+            order_query = db.query(GuruTask)
     else:
-        filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
-        order_query = db.query(OrderJoin).filter(or_(*order_filters), OrderJoin.task_created.isnot(None))
+        accessible_companies, filters, order_filters = domains_checker_booking(db, user.id, filter_5vf="5vF", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(SoftBookingKF).filter(or_(*filters))
-            order_query = db.query(OrderJoin).filter(or_(*order_filters), OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask).filter(or_(*order_filters))
         else:
             query = db.query(SoftBookingKF)
-            order_query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+            order_query = db.query(GuruTask)
         if company!="all":
-            if "5vorflug" in company:
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(
                 SoftBookingKF.customer.like("%5vF%")  
             )
-                order_query = order_query.filter(OrderJoin.customer.like("%5vF%"), 
-                                                        OrderJoin.task_created.isnot(None))
+                order_query = order_query.filter(GuruTask.customer.like("%5VFL%"))
                 
-            elif "Urlaubsguru" in company:
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 query = query.filter(
-                SoftBookingKF.customer.notlike("%5vF%"),
-                SoftBookingKF.customer.notlike("%BILD%")
+                SoftBookingKF.customer.like(f"%Guru%")
             )
-                order_query = order_query.filter(OrderJoin.task_created.isnot(None), 
-                                                        OrderJoin.customer.notlike("%5vF%"), 
-                                                        OrderJoin.customer.notlike("%BILD%"))
-            elif "Bild" in company:
+                order_query = order_query.filter(GuruTask.customer.like(f"%Guru%"))
+            elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(
                 SoftBookingKF.customer.like("%BILD%")  
             )
-                order_query = order_query.filter(OrderJoin.customer.like("%BILD%"), 
-                                                        OrderJoin.task_created.isnot(None))
-    
+                order_query = order_query.filter(GuruTask.customer.like("%BILD%"))
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                SoftBookingKF.customer.like("%ADAC%")  
+            )
+                order_query = order_query.filter(GuruTask.customer.like("%ADAC%"))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                SoftBookingKF.customer.like(f"%Galeria%")  
+            )
+                order_query = order_query.filter(GuruTask.customer.like(f"%Galeria%"))
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                SoftBookingKF.customer.like("%Urlaub%")  
+            )
+                order_query = order_query.filter(GuruTask.customer.like("%Urlaub%"))
+            
+            else:
+                return {
+                    "Total Bookings change": 0,
+                    "Pending change": 0,
+                    "SB Booking Rate (%) change": 0
+                }
+            
     # start_date, end_date = get_date_subkpis_booking("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis_booking("last_week")
     start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis_booking(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
@@ -1056,6 +1275,12 @@ async def get_conversion_data(
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
         accessible_companies.append("bild")
+    if "adac" in user_domains:
+        accessible_companies.append("ADAC")
+    if "galeria" in user_domains:
+        accessible_companies.append("Galeria")
+    if "urlaub" in user_domains:
+        accessible_companies.append("Urlaub")
     
     # print("accessible_companies: ", accessible_companies)
     # if "5vorflug" in accessible_companies:
@@ -1134,17 +1359,19 @@ async def get_conversion_data(
 
     # List of companies to check for raising exceptions
     else:
-        restricted_companies = ["5vorflug", "bild"]
+        restricted_companies = ["5vorflug", "bild", "Galeria", "ADAC", "Urlaub"]
 
-        # Check if all three companies are in accessible_companies
-        if "5vorflug" in accessible_companies and "bild" in accessible_companies and "guru" in accessible_companies:
-            print("All companies found, prioritizing 'urlaubsguru'")
-            query = db.query(SoftBookingKF)
+        if "guru" in accessible_companies:
+            print("Permission granted for 'guru'. Skipping restricted company checks.")
+            query = db.query(BookingData)
+            sale_query = db.query(QueueStatistics).filter(
+                QueueStatistics.queue_name.notlike("%Service%")
+            )
         else:
-            # Iterate through the restricted companies
+            # Check if any restricted company is in accessible_companies
             for company in restricted_companies:
                 if company in accessible_companies:
-                    print(f"contains {company}")
+                    print(f"Access denied for company: {company}")
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail={
@@ -1152,14 +1379,6 @@ async def get_conversion_data(
                             "message": f"You don't have permission to access {company}.",
                         }
                     )
-
-    # Handle "urlaubsguru" separately if present and not already handled
-    if "guru" in accessible_companies:
-        print("executing else containss")
-        query = db.query(BookingData)
-        sale_query = db.query(QueueStatistics).filter(
-                QueueStatistics.queue_name.notlike("%Service%")
-            )
 
     db = SessionLocal()
     if start_date is None:
@@ -1169,14 +1388,15 @@ async def get_conversion_data(
         sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
         bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
         # turnover_cb = round(query.with_entities(func.sum(BookingData.id)).scalar() or 0,2)
-        sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
+        sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0 
         
         total_calls = sale_query.with_entities(func.sum(QueueStatistics.calls)).scalar() or 0
         accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).scalar() or 0
         abondened_before_ans = sale_query.with_entities(func.sum(QueueStatistics.abandoned_before_answer)).scalar() or 0
         cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
         sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
-        BookingData.crs_status == "OK"
+        BookingData.crs_status == "OK",
+        BookingData.crs_status == "RP"
         ).scalar() or 0
     
     else:
@@ -1217,7 +1437,7 @@ async def get_conversion_data(
         ).scalar() or 0
         sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
         BookingData.date.between(start_date, end_date),
-        BookingData.crs_status == "OK"
+        (BookingData.crs_status == "OK") | (BookingData.crs_status == "RP")
         ).scalar() or 0
         
         # print(total_calls)
@@ -1229,11 +1449,11 @@ async def get_conversion_data(
         
     cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
     # sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
-    sales_effective_calls = accepted_calls - (abondened_before_ans + cb_wrong_calls)
-    sales_conversion = round((sucess_bookings/sales_effective_calls)*100, 2) 
+    sales_effective_calls = accepted_calls - (abondened_before_ans + cb_wrong_calls) 
+    sales_conversion = round((sucess_bookings/sales_effective_calls if sales_effective_calls>0 else 1)*100, 2) 
     # Return metrics as a dictionary
     return {
-        "sales_effective_calls": sales_effective_calls,
+        "success bookings": sucess_bookings,
         "CB":{
             "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
             },
@@ -1256,6 +1476,5 @@ async def get_conversion_data(
             "Sales volume": sales_volume,
             "Sales Conversion": 100 if sales_conversion > 100 else sales_conversion
             }
-        }
-        
-        }
+        }  
+    }

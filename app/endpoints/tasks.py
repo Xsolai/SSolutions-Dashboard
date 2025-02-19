@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from app.database.models.models import GuruTask, OrderJoin, User
+from app.database.models.models import GuruTask, GuruTask, User
 from app.database.db.db_connection import SessionLocal,  get_db
 from sqlalchemy import func, or_, String
 from datetime import datetime, timedelta, date
@@ -48,114 +48,66 @@ async def get_tasks_kpis(
     
     # Determine user access level
     email_filter = current_user.get("email")
-    # email_contains_5vflug = "5vorflug" in email_filter
-    # email_contains_bild = "bild" in email_filter
     is_guru_email = "urlaubsguru" in email_filter
     is_admin_or_employee = user.role in ["admin", "employee"]
-    
-    # if is_admin_or_employee:
-    #     query = db.query(OrderJoin).join(
-    #         GuruTask, OrderJoin.order_number == GuruTask.order_number
-    #     ).distinct()
     if is_admin_or_employee:
         if "5vorflug" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
         elif "Urlaubsguru" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-            query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
         elif "Bild" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
-            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
+        elif "Galeria" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Galeria%"))
+        elif "ADAC" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%ADAC%"))
+        elif "Urlaub" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%Urlaub%"))
         else:
-            query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+            query = db.query(GuruTask)
     else:
-        filters = domains_checker_task(db, user.id, filter_5vf="5vF", filter_bild="BILD")
-        # print("Filters: ", filters)
+        accessible_companies, filters = domains_checker_task(db, user.id, filter_5vf="5VFL", filter_bild="BILD")
+        print("Accessible companies: ", accessible_companies)
         if filters:
-            query = db.query(OrderJoin).filter(or_(*filters), OrderJoin.task_created.isnot(None))
+            query = db.query(GuruTask).filter(or_(*filters))
         else:
-            query = db.query(OrderJoin).filter(OrderJoin.task_created.isnot(None))
+            query = db.query(GuruTask)
         if company!="all":
-            if "5vorflug" in company:
-                # query = db.query(OrderJoin).join(
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-                query = query.filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
-            elif "Urlaubsguru" in company:
-                # query = db.query(OrderJoin).join(
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-                query = query.filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
-            elif "Bild" in company:
-                # query = db.query(OrderJoin).join( 
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
-                query = query.filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%5VFL%"))
+            elif "guru" in company and "guru" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru%"))
+            elif "Bild" in company and "bild" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%BILD%"))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Galeria%"))
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%ADAC%"))
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%Urlaub%"))
+            else:
+                return {
+                    "Total orders": 0,
+                    "# of assigned users": 0,
+                    "Task types": 0,
+                }
         
     
     if start_date is None:
-        orders = db.query(func.count(OrderJoin.order_number)).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).scalar() or 0
-        
-        total_orders = query.with_entities(func.count(func.distinct(OrderJoin.order_number)).label("total_orders")).filter(OrderJoin.task_created.isnot(None), OrderJoin.task_type.isnot(None)).scalar() or 0
-        # total_orders = (
-        #     query.with_entities(
-        #         func.count(
-        #             func.distinct(func.concat(OrderJoin.order_number, '|', OrderJoin.task_created, '|', OrderJoin.task_type))
-        #         ).label("total_orders")
-        #     )
-        #     .filter(OrderJoin.task_created.isnot(None), OrderJoin.task_type.isnot(None))
-        #     .scalar()
-        #     or 0
-        # )
-        assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
-        total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None)).scalar() or 0
-        avg_duration = query.with_entities(func.avg(OrderJoin.duration)).filter(
-            OrderJoin.task_created.isnot(None), 
-            OrderJoin.task_type.isnot(None), 
-            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
+        total_orders = query.with_entities(func.count((GuruTask.order_number)).label("total_orders")).scalar() or 0
+        assign_users_by_tasks = query.with_entities(func.count(func.distinct(GuruTask.assigned_user)).label("distinct_assign_users_by_tasks")).scalar() or 0
+        total_tasks = query.with_entities(func.count(func.distinct(GuruTask.task_type)).label("distinct_task_types")).scalar() or 0
     else:
-        orders = db.query(func.count(OrderJoin.order_number)).join(
-            GuruTask, OrderJoin.order_number == GuruTask.order_number
-        ).filter(OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        # total_orders = query.with_entities(func.count(func.distinct(OrderJoin.order_number)).label("total_orders")).filter(OrderJoin.task_type.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        total_orders = (
-            query.with_entities(
-                func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )
-                ).label("total_orders")
-            )
-            .filter(OrderJoin.task_created.isnot(None), OrderJoin.task_type.isnot(None), OrderJoin.date.between(start_date, end_date))
-            .scalar()
-            or 0
-        )
-        assign_users_by_tasks = query.with_entities(func.count(func.distinct(OrderJoin.user)).label("distinct_assign_users_by_tasks")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        total_tasks = query.with_entities(func.count(func.distinct(OrderJoin.task_type)).label("distinct_task_types")).filter(OrderJoin.task_created.isnot(None), OrderJoin.date.between(start_date, end_date)).scalar() or 0
-        avg_duration = query.with_entities(func.avg(OrderJoin.duration)).filter(
-            OrderJoin.task_created.isnot(None), 
-            OrderJoin.task_type.isnot(None), 
-            OrderJoin.date.between(start_date, end_date),
-            func.strftime('%H:%M', OrderJoin.time_modified).between('08:00', '21:30')).scalar() or 0
+        total_orders = query.with_entities(
+                func.count(GuruTask.order_number)).filter(GuruTask.date.between(start_date, end_date)).scalar()or 0
+        assign_users_by_tasks = query.with_entities(func.count(func.distinct(GuruTask.assigned_user)).label("distinct_assign_users_by_tasks")).filter( GuruTask.date.between(start_date, end_date)).scalar() or 0
+        total_tasks = query.with_entities(func.count(func.distinct(GuruTask.task_type)).label("distinct_task_types")).filter( GuruTask.date.between(start_date, end_date)).scalar() or 0
     return {
         # "orders": orders,
-        # "Total orders": total_orders,
+        "Total orders": total_orders,
         "# of assigned users": assign_users_by_tasks,
         "Task types": total_tasks,
-        "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0
+        # "avg_duration in minutes": round(avg_duration, 2) if avg_duration else 0
     }
     
 @router.get("/tasks_overview")
@@ -192,129 +144,85 @@ async def get_tasks_overview(
     
     if is_admin_or_employee:
         if "5vorflug" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%5vF%")).distinct() 
-            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
         elif "Urlaubsguru" in company:
-            # query = db.query(OrderJoin).join( 
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number 
-            # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct() 
-            query = db.query(OrderJoin).filter(OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
         elif "Bild" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
-            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
+        elif "Galeria" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Galeria%"))
+        elif "ADAC" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%ADAC%"))
+        elif "Urlaub" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%Urlaub%"))
         else:
-            query = db.query(OrderJoin)
+            query = db.query(GuruTask)
     else:
-        filters = domains_checker_task(db, user.id, filter_5vf="5vF", filter_bild="BILD")
-        # print("Filters: ", filters)
+        accessible_companies, filters = domains_checker_task(db, user.id, filter_5vf="5VFL", filter_bild="BILD")
+        print("Accessible companies: ", accessible_companies)
         if filters:
-            query = db.query(OrderJoin).filter(or_(*filters))
+            query = db.query(GuruTask).filter(or_(*filters))
         else:
-            query = db.query(OrderJoin)
+            query = db.query(GuruTask)
         if company!="all":
-            if "5vorflug" in company:
-                # query = db.query(OrderJoin).join(
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-                query = query.filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
-            elif "Urlaubsguru" in company:
-                # query = db.query(OrderJoin).join(
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-                query = query.filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
-            elif "Bild" in company:
-                # query = db.query(OrderJoin).join( 
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
-                query = query.filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%5VFL%"))
+            elif "guru" in company and "guru" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru%"))
+            elif "Bild" in company and "bild" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%BILD%"))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Galeria%"))
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%ADAC%"))
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%Urlaub%"))
+            else:
+                return {
+                    "Tasks by categories": 0,
+                    "Tasks created by date": 0,
+                    "Tasks created by weekday": 0,
+                }
         
-
     if start_date is None:
         # No date filter applied
         status_by_cat_data = query.with_entities(
-            OrderJoin.task_type.label("tasks"),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("count"),
-        ).filter(OrderJoin.task_type.isnot(None)).group_by(OrderJoin.task_type).all()
+            GuruTask.task_type.label("tasks"),
+            func.count(GuruTask.order_number).label("count"),
+        ).filter(GuruTask.task_type.isnot(None)).group_by(GuruTask.task_type).all()
 
         status_by_date_data = query.with_entities(
-            func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("count"),
-        ).filter(OrderJoin.task_created.isnot(None)).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
+            func.strftime('%Y-%m', GuruTask.creation_time).label('month'),
+            func.count(GuruTask.order_number).label("count"),
+        ).group_by(func.strftime('%Y-%m', GuruTask.creation_time)).all()
 
         status_by_day_data = query.with_entities(
-            func.strftime('%w', OrderJoin.task_created).label('weekday'),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("count"),
-        ).filter(OrderJoin.task_created.isnot(None)).group_by(func.strftime('%w', OrderJoin.task_created)).all()
+            func.strftime('%w', GuruTask.creation_time).label('weekday'),
+            func.count(GuruTask.order_number).label("count"),
+        ).group_by(func.strftime('%w', GuruTask.creation_time)).all()
     else:
         status_by_cat_data = query.with_entities(
-            OrderJoin.task_type.label("tasks"),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("count"),
+            GuruTask.task_type.label("tasks"),
+            func.count(GuruTask.order_number).label("count"),
         ).filter(
-            OrderJoin.task_type.isnot(None),
-            OrderJoin.date.between(start_date, end_date)
-        ).group_by(OrderJoin.task_type).all()
+            GuruTask.task_type.isnot(None),
+            GuruTask.date.between(start_date, end_date)
+        ).group_by(GuruTask.task_type).all() 
 
         status_by_date_data = query.with_entities(
-            func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("count"),
+            func.strftime('%Y-%m', GuruTask.creation_time).label('month'),
+            func.count(GuruTask.order_number).label("count"),
         ).filter(
-            OrderJoin.task_created.isnot(None),
-            OrderJoin.date.between(start_date, end_date)
-        ).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
+            GuruTask.date.between(start_date, end_date)
+        ).group_by(func.strftime('%Y-%m', GuruTask.creation_time)).all()
 
         status_by_day_data = query.with_entities(
-            func.strftime('%w', OrderJoin.task_created).label('weekday'),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("count"),
+            func.strftime('%w', GuruTask.creation_time).label('weekday'),
+            func.count(GuruTask.order_number).label("count"),
         ).filter(
-            OrderJoin.task_created.isnot(None),
-            OrderJoin.date.between(start_date, end_date)
-        ).group_by(func.strftime('%w', OrderJoin.task_created)).all()
+            
+            GuruTask.date.between(start_date, end_date)
+        ).group_by(func.strftime('%w', GuruTask.creation_time)).all()
 
 
     # Convert query results to a list of dictionaries
@@ -378,160 +286,129 @@ async def get_tasks_performance(
     
     if is_admin_or_employee:
         if "5vorflug" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%5vF%")).distinct() 
-            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%5vF%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
         elif "Urlaubsguru" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.notlike("%5vF%"))
-            query = db.query(OrderJoin).filter(OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
         elif "Bild" in company:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
-            query = db.query(OrderJoin).filter(OrderJoin.customer.like("%BILD%"))
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
+        elif "Galeria" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Galeria%"))
+        elif "ADAC" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%ADAC%"))
+        elif "Urlaub" in company:
+            query = db.query(GuruTask).filter(GuruTask.customer.like("%Urlaub%"))
         else:
-            # query = db.query(OrderJoin).join(
-            # GuruTask, OrderJoin.order_number == GuruTask.order_number
-            # ).distinct()
-            query = db.query(OrderJoin)
+            query = db.query(GuruTask)
     else:
-        filters = domains_checker_task(db, user.id, filter_5vf="5vF", filter_bild="BILD")
-        # print("Filters: ", filters)
+        accessible_companies, filters = domains_checker_task(db, user.id, filter_5vf="5VFL", filter_bild="BILD")
+        print("Accessible companies: ", accessible_companies)
         if filters:
-            query = db.query(OrderJoin).filter(or_(*filters))
+            query = db.query(GuruTask).filter(or_(*filters))
         else:
-            query = db.query(OrderJoin)
+            query = db.query(GuruTask)
         if company!="all":
-            if "5vorflug" in company:
-                # query = db.query(OrderJoin).join(
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.like("%5vF%")).distinct()
-                query = query.filter(OrderJoin.customer.like("%5vF%"), OrderJoin.task_created.isnot(None))
-            elif "Urlaubsguru" in company:
-                # query = db.query(OrderJoin).join(
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.notlike("%5vF%")).distinct()
-                query = query.filter(OrderJoin.task_created.isnot(None), OrderJoin.customer.notlike("%5vF%"), OrderJoin.customer.notlike("%BILD%"))
-            elif "Bild" in company:
-                # query = db.query(OrderJoin).join( 
-                # GuruTask, OrderJoin.order_number == GuruTask.order_number
-                # ).filter(OrderJoin.customer.like("%BILD%")).distinct()
-                query = query.filter(OrderJoin.customer.like("%BILD%"), OrderJoin.task_created.isnot(None))
-
-    
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%5VFL%"))
+            elif "guru" in company and "guru" in accessible_companies:
+                query = query.filter( GuruTask.customer.like(f"%Guru%"))
+            elif "Bild" in company and "bild" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%BILD%"))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Galeria%"))
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%ADAC%"))
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(GuruTask.customer.like("%Urlaub%"))
+            else:
+                return {
+                    "Tasks assigned to users": 0,
+                    "Tasks assign to users by date": 0,
+                    "Task creation trend": 0,
+                    "Upcoming tasks": 0,
+                }
+                
     if start_date is None:
         assign_users_by_tasks = [
             {"assign_users_by_tasks": row[0], "task_count": row[1]}
             for row in query.with_entities(
-                OrderJoin.user.label("assign_users_by_tasks"),
-                func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("task_count")
-            ).filter(OrderJoin.task_created.isnot(None)).group_by(OrderJoin.user).all()
+                GuruTask.assigned_user.label("assign_users_by_tasks"),
+                func.count(GuruTask.order_number).label("task_count")
+            ).group_by(GuruTask.assigned_user).all()
         ]
         assign_tasks_by_date = [
             {"month":row[0], "assign_tasks_by_date":row[1]}
             for row in query.with_entities(
-            func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-            func.count(func.distinct(OrderJoin.user)).label("assign_tasks_by_date"),
+            func.strftime('%Y-%m', GuruTask.creation_time).label('month'),
+            func.count(func.distinct(GuruTask.assigned_user)).label("assign_tasks_by_date"),
         ).filter(
-            OrderJoin.task_created.isnot(None)
-        ).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
+            
+        ).group_by(func.strftime('%Y-%m', GuruTask.creation_time)).all()
         ]
         
         tasks_trend = query.with_entities(
-            func.date(OrderJoin.task_created).label("date"),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("tasks_count"),
-        ).filter(OrderJoin.task_created.isnot(None)).group_by(func.date(OrderJoin.task_created)).all()
+            func.date(GuruTask.creation_time).label("date"),
+            func.count(GuruTask.order_number).label("tasks_count"),
+        ).group_by(func.date(GuruTask.creation_time)).all()
         
         upcoming_tasks_next_week = query.with_entities(
-            func.date(OrderJoin.task_deadline).label("date"),
-            func.count(OrderJoin.order_number).label("tasks_due")
+            func.date(GuruTask.due_date).label("date"),
+            func.count(GuruTask.order_number).label("tasks_due")
         ).filter(
-            OrderJoin.task_deadline >= datetime.utcnow().date(),
-            OrderJoin.task_deadline < datetime.utcnow().date() + timedelta(days=7),
-            OrderJoin.task_created.isnot(None)
-        ).group_by(func.date(OrderJoin.task_deadline)).all()
+            GuruTask.due_date >= datetime.utcnow().date(),
+            GuruTask.due_date < datetime.utcnow().date() + timedelta(days=7),
+            
+        ).group_by(func.date(GuruTask.due_date)).all()
 
     else:
         assign_users_by_tasks = [
             {"assign_users_by_tasks": row[0], "task_count": row[1]}
             for row in query.with_entities(
-                OrderJoin.user.label("assign_users_by_tasks"),
-                func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("task_count")
-            ).filter(OrderJoin.date.between(start_date, end_date),OrderJoin.task_created.isnot(None)
-                     ).group_by(OrderJoin.user).all()
+                GuruTask.assigned_user.label("assign_users_by_tasks"),
+                func.count(GuruTask.order_number).label("task_count")
+            ).filter(GuruTask.date.between(start_date, end_date),
+                     ).group_by(GuruTask.assigned_user).all()
         ]
         
         # assign_tasks_by_date = [
         #     {"month":row[0], "assign_tasks_by_date":row[1]}
         #     for row in query.with_entities(
-        #     func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-        #     func.count((OrderJoin.user)).label("assign_tasks_by_date"),
+        #     func.strftime('%Y-%m', GuruTask.task_created).label('month'),
+        #     func.count((GuruTask.user)).label("assign_tasks_by_date"),
         # ).filter(
-        #     OrderJoin.date.between(start_date, end_date),
-        #     OrderJoin.task_created.isnot(None)
-        # ).group_by(func.strftime('%Y-%m', OrderJoin.task_created)).all()
+        #     GuruTask.date.between(start_date, end_date),
+        #     
+        # ).group_by(func.strftime('%Y-%m', GuruTask.task_created)).all()
         # ]
         assign_tasks_by_date = [
         {"month": row[0], "assign_tasks_by_date": row[1]}
         for row in query.with_entities(
-            func.strftime('%Y-%m', OrderJoin.task_created).label('month'),
-            func.count(func.distinct(OrderJoin.user)).label("assign_tasks_by_date"),  # Count distinct users
+            func.strftime('%Y-%m', GuruTask.creation_time).label('month'),
+            func.count(func.distinct(GuruTask.assigned_user)).label("assign_tasks_by_date"),
         )
         .filter(
-            # OrderJoin.date.between(start_date, end_date),
-            OrderJoin.task_created.isnot(None)
+            GuruTask.date.between(start_date, end_date),
+            
         )
-        .group_by(func.strftime('%Y-%m', OrderJoin.task_created))
+        .group_by(func.strftime('%Y-%m', GuruTask.creation_time))
         .all()
     ]
         
         tasks_trend = query.with_entities(
-            func.date(OrderJoin.task_created).label("date"),
-            func.count(
-                    func.distinct(
-                    OrderJoin.order_number + "|" +
-                    OrderJoin.user + "|" +
-                    # OrderJoin.task_deadline.cast(String) + "|" +
-                    OrderJoin.task_created.cast(String) + "|" +
-                    OrderJoin.time_modified.cast(String)
-                )).label("tasks_count"),
+            func.date(GuruTask.creation_time).label("date"),
+            func.count(GuruTask.order_number).label("tasks_count"),
         ).filter(
-            # OrderJoin.date.between(start_date, end_date),
-            OrderJoin.task_created.isnot(None)
-        ).group_by(func.date(OrderJoin.task_created)).all()
+            GuruTask.date.between(start_date, end_date),
+            
+        ).group_by(func.date(GuruTask.creation_time)).all()
         
         upcoming_tasks_next_week = query.with_entities(
-            func.date(OrderJoin.task_deadline).label("date"),
-            func.count(OrderJoin.order_number).label("tasks_due")
+            func.date(GuruTask.due_date).label("date"),
+            func.count(GuruTask.order_number).label("tasks_due")
         ).filter(
-            OrderJoin.task_deadline >= datetime.utcnow().date(),
-            OrderJoin.task_deadline < datetime.utcnow().date() + timedelta(days=7),
-            OrderJoin.task_created.isnot(None)
-        ).group_by(func.date(OrderJoin.task_deadline)).all()
+            GuruTask.due_date >= datetime.utcnow().date(),
+            GuruTask.due_date < datetime.utcnow().date() + timedelta(days=7),
+            
+        ).group_by(func.date(GuruTask.due_date)).all()
     
     # Prepare response
     trends_data = [

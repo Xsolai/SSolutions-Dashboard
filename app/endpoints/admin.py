@@ -233,7 +233,7 @@ def get_companies(
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
     # if not current_user or current_user.role.lower() != "admin":
     #     raise HTTPException(status_code=403, detail="Only admins can access this resource.")
-    companies = db.query(models.SoftBookingKF.customer).distinct().all()
+    companies = db.query(models.AllQueueStatisticsData.customer).distinct().all()
     if not companies:
         raise HTTPException(status_code=404, detail="No customer found.")
     # return [{"company": company.customer.lower()} for company in companies]
@@ -249,6 +249,15 @@ def get_companies(
         elif "bild" in company_name:
             # print(company_name)
             result_set.add("Bild")
+        elif "galeria" in company_name:
+            # print(company_name)
+            result_set.add("Galeria")
+        elif "adac" in company_name:
+            # print(company_name)
+            result_set.add("ADAC")
+        elif "urlaub" in company_name:
+            # print(company_name)
+            result_set.add("Urlaub")
     
     result = [{"company": name} for name in result_set] 
     if not result:

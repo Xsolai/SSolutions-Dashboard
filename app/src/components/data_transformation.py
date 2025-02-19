@@ -15,7 +15,6 @@ def normalize_column_names(data):
     )
     return data
 
-
 # def extract_filename_part(file_name):
 #     try:
 #         if "Workflow-Report" in file_name:
@@ -26,6 +25,10 @@ def normalize_column_names(data):
 #             match = re.search(r"\d+_(.*)", file_name)
 #             if match:
 #                 return match.group(1).replace("-", "_").replace(".csv", "")
+#         else:
+#             match = re.search(r"^(.*?_daily)", file_name)
+#             if match:
+#                 return match.group(1)
 #         return file_name
 #     except Exception as e:
 #         logging.exception("Error while extracting filename part")
@@ -40,6 +43,16 @@ def extract_filename_part(file_name):
             match = re.search(r"\d+_(.*)", file_name)
             if match:
                 return match.group(1).replace("-", "_").replace(".csv", "")
+        elif re.search(r"_daily_.*?_Aufgaben", file_name):
+            # Match patterns like "1518_daily_Guru_KF_Aufgaben" or "1518_daily_BILD_Aufgaben_"
+            match = re.search(r"_daily_(.*?)_Aufgaben", file_name)
+            if match:
+                return match.group(1)
+        elif re.search(r"_Aufgaben_daily", file_name):
+            # Match patterns like "Urlaub_Aufgaben_daily" or "Galeria_Aufgaben_daily"
+            match = re.search(r"^(.*?)_Aufgaben_daily", file_name)
+            if match:
+                return match.group(1)
         else:
             match = re.search(r"^(.*?_daily)", file_name)
             if match:
@@ -48,7 +61,6 @@ def extract_filename_part(file_name):
     except Exception as e:
         logging.exception("Error while extracting filename part")
         return None
-
 
 def clean_and_convert_data(data):
     """Clean and convert data types of DataFrame columns."""

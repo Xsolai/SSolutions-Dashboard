@@ -74,24 +74,44 @@ def populate_email_data(data, db: Session, date):
             # Skip row if any value in the row contains "Summe"
             # if any("Summe" in str(value) for value in row):
             #     continue
-            if row.get("Mailbox")=="Summe":
-                # print("Summe found")
-                db_record = EmailData(
-                    date=date,
-                    customer=row.get('file_name', ""),
-                    interval=row.get('Intervall', ""),
-                    mailbox=row.get('Mailbox', ""),
-                    received=row.get('Empfangen [#]', 0),
-                    new_cases=row.get('Neue Vorgänge [#]', 0),
-                    sent=row.get('Gesendet [#]', 0),
-                    archived=row.get('Archiviert [#]', 0),
-                    # trashed=row.get('Papierkorb [#]', 0),
-                    dwell_time_net=row.get('Verweilzeit-Netto [∅ hh:mm:ss]', ""),
-                    processing_time=row.get('Bearbeitungszeit [∅ Min.]', ""),
-                    service_level_gross=row.get('ServiceLevel-Brutto [%]', 0.0),
-                    service_level_gross_reply=row.get('ServiceLevel-Brutto: Antwort [%]', 0.0)
-                )
-                db.add(db_record)
+            if row.get("Mandant"):
+                if row.get("Mailbox")=="Summe" and row.get("Mandant")=="Summe":
+                    # print("Summe found")
+                    db_record = EmailData(
+                        date=date,
+                        customer=row.get('file_name', ""),
+                        interval=row.get('Intervall', ""),
+                        mailbox=row.get('Mailbox', ""),
+                        received=row.get('Empfangen [#]', 0),
+                        new_cases=row.get('Neue Vorgänge [#]', 0),
+                        sent=row.get('Gesendet [#]', 0),
+                        archived=row.get('Archiviert [#]', 0),
+                        # trashed=row.get('Papierkorb [#]', 0),
+                        dwell_time_net=row.get('Verweilzeit-Netto [∅ hh:mm:ss]', ""),
+                        processing_time=row.get('Bearbeitungszeit [∅ Min.]', ""),
+                        service_level_gross=row.get('ServiceLevel-Brutto [%]', 0.0),
+                        service_level_gross_reply=row.get('ServiceLevel-Brutto: Antwort [%]', 0.0)
+                    )
+                    db.add(db_record)
+            elif row.get("Mailbox")=="Summe":
+                    # print("Summe found")
+                    db_record = EmailData(
+                        date=date,
+                        customer=row.get('file_name', ""),
+                        interval=row.get('Intervall', ""),
+                        mailbox=row.get('Mailbox', ""),
+                        received=row.get('Empfangen [#]', 0),
+                        new_cases=row.get('Neue Vorgänge [#]', 0),
+                        sent=row.get('Gesendet [#]', 0),
+                        archived=row.get('Archiviert [#]', 0),
+                        # trashed=row.get('Papierkorb [#]', 0),
+                        dwell_time_net=row.get('Verweilzeit-Netto [∅ hh:mm:ss]', ""),
+                        processing_time=row.get('Bearbeitungszeit [∅ Min.]', ""),
+                        service_level_gross=row.get('ServiceLevel-Brutto [%]', 0.0),
+                        service_level_gross_reply=row.get('ServiceLevel-Brutto: Antwort [%]', 0.0)
+                    )
+                    db.add(db_record)
+                
             db.commit()
             logging.info("Email Data successfully populated into the database.")
         
@@ -164,7 +184,7 @@ def populate_all_queue_statistics(data, db: Session, date, day):
             #     continue
             if row.get("Warteschleife")=="Summe":
                 # Populate the QueueStatistics record, using .get() to avoid KeyError if column is missing
-                print("row: ", row)
+                # print("row: ", row)
                 db_record = AllQueueStatisticsData(
                     date=date,
                     customer=row.get('file_name', ""),
@@ -189,7 +209,7 @@ def populate_all_queue_statistics(data, db: Session, date, day):
                 # print(db_record)
                 # print("AHT utbound:", row.get('avg AHT Outbound', 0))
                 db.add(db_record)
-            print("data added")
+            # print("data added")
             db.commit()
             logging.info("Queue statistics data successfully populated into the database.")
         # print("Queue statistics data successfully populated into the database.")
@@ -279,6 +299,7 @@ def populate_guru_task_data(data, db: Session, date):
     try:
         for _, row in data.iterrows():
             # Ensure all values are properly converted
+            
             order_number = str(row.get('Auftrag Auftragsnummer (Auftrag)', '')).strip() or None
             assigned_user = str(row.get('Notiz/Aufgabe erledigender Benutzer', '')).strip() or None
             due_date = row.get('Notiz/Aufgabe fällig bis')
@@ -294,6 +315,7 @@ def populate_guru_task_data(data, db: Session, date):
             # Create a GuruTask record
             db_record = GuruTask(
                 date=date,
+                customer=row.get('file_name', ""),
                 order_number=order_number,
                 assigned_user=assigned_user,
                 due_date=due_date,

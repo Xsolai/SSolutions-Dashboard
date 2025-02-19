@@ -158,6 +158,36 @@ async def get_calls(
             booking_query = db.query(BookingData).filter(
             BookingData.order_agent.like("%BILD%")  
         )
+        elif "Galeria" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Galeria%")  
+        )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Galeria%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%Galeria%")  
+        )
+        elif "ADAC" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%ADAC%")  
+        )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%ADAC%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%ADAC%")  
+        )
+        elif "Urlaub" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Urlaub%")  
+        )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Urlaub%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%Urlaub%")  
+        )
         else:
             query = db.query(QueueStatistics)
             summe_query = db.query(AllQueueStatisticsData)
@@ -165,8 +195,8 @@ async def get_calls(
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         print("excecuted for admin or guru")
     else:
-        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
-        # print("Filters: ", filters)
+        accessible_companies, filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        print("Accessible companies: ", accessible_companies)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
             summe_query = db.query(AllQueueStatisticsData).filter(or_(*summe_filters))
@@ -179,27 +209,71 @@ async def get_calls(
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
         if company != "all":
-            if "5vorflug" in company:
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
                 print("executing for 5vf")
                 query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
                 summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%5vFlug%"))
                 booking_query = booking_query.filter(BookingData.order_agent.like(f"%5VF%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-            elif "Urlaubsguru" in company:
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 print("executing for guru")
-                query = query.filter(QueueStatistics.queue_name.notlike("%5vorFlug%"),QueueStatistics.queue_name.notlike("%BILD%"))
+                query = query.filter(QueueStatistics.queue_name.like(f"%guru%"))
                 summe_query = summe_query.filter(
-                AllQueueStatisticsData.customer.notlike("%5vFlug%"),
-                AllQueueStatisticsData.customer.notlike("%Bild%")
+                # AllQueueStatisticsData.customer.notlike("%5vFlug%"),
+                # AllQueueStatisticsData.customer.notlike("%Bild%")
+                AllQueueStatisticsData.customer.like(f"%Guru%")
                 )
                 booking_query = booking_query.filter(BookingData.order_agent.like(f"%GURU%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-            elif "Bild" in company:
+            elif "Bild" in company and "bild" in accessible_companies:
                 print("executing for bild")
                 query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
                 summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%Bild%"))
                 booking_query = booking_query.filter(BookingData.order_agent.like("%BILD%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Galeria%")  
+                )
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.like(f"%Galeria%")  
+                )
+                booking_query = booking_query.filter(
+                BookingData.order_agent.like(f"%Galeria%")  
+                )
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%ADAC%")  
+                )
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.like(f"%ADAC%")  
+                )
+                booking_query = booking_query.filter(
+                BookingData.order_agent.like(f"%ADAC%")  
+                )
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Urlaub%")  
+                )
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.like(f"%Urlaub%")  
+                )
+                booking_query = booking_query.filter(
+                BookingData.order_agent.like(f"%Urlaub%")  
+            )
+            else:
+                return {
+                    "total_calls": 0, 
+                    "total_call_reasons": 0, 
+                    "asr": 0,
+                    "SLA":0,
+                    "max. wait time (min)": f"00:00:00",
+                    "After call work time (min)": f"00:00:00",
+                    "avg handling time (min)": f"00:00:00",
+                    "Dropped calls": 0,
+                    # "Call availability": pass,
+                    "Daily Call Volume": []  
+                } 
         
     if domain != "all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
@@ -357,51 +431,155 @@ async def get_calls_sub_kpis(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%5vorFlug%")  
         )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like("%5vFlug%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%5VF%")  
+            )
         elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.notlike("%5vorFlug%"),
             QueueStatistics.queue_name.notlike("%BILD%")
             )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.notlike("%5vFlug%"),
+            AllQueueStatisticsData.customer.notlike("%Bild%")
+            )
+            booking_query = db.query(BookingData).filter(BookingData.order_agent.like(f"%GURU%"))
         elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like("%Bild%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%BILD%")  
+        )
+        elif "Galeria" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Galeria%")  
+        )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Galeria%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%Galeria%")  
+        )
+        elif "ADAC" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%ADAC%")  
+        )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%ADAC%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%ADAC%")  
+        )
+        elif "Urlaub" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Urlaub%")  
+        )
+            summe_query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Urlaub%")  
+        )
+            booking_query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%Urlaub%")  
+        )
         else:
             query = db.query(QueueStatistics)
+            summe_query = db.query(AllQueueStatisticsData)
+            booking_query = db.query(BookingData)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         print("excecuted for admin or guru")
     else:
-        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
-        # print("Filters: ", filters)
+        accessible_companies, filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        print("Accessible companies: ", accessible_companies)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
+            summe_query = db.query(AllQueueStatisticsData).filter(or_(*summe_filters))
+            booking_query = db.query(BookingData).filter(or_(*filters))
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         else:
             query = db.query(QueueStatistics)
+            summe_query = db.query(AllQueueStatisticsData)
+            booking_query = db.query(BookingData)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-            
+        
         if company != "all":
-            if "5vorflug" in company:
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
                 print("executing for 5vf")
                 query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
                 summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%5vFlug%"))
                 booking_query = booking_query.filter(BookingData.order_agent.like(f"%5VF%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-            elif "Urlaubsguru" in company:
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 print("executing for guru")
-                query = query.filter(QueueStatistics.queue_name.notlike("%5vorFlug%"),QueueStatistics.queue_name.notlike("%BILD%"))
+                query = query.filter(QueueStatistics.queue_name.like(f"%guru%"))
                 summe_query = summe_query.filter(
-                AllQueueStatisticsData.customer.notlike("%5vFlug%"),
-                AllQueueStatisticsData.customer.notlike("%Bild%")
+                # AllQueueStatisticsData.customer.notlike("%5vFlug%"),
+                # AllQueueStatisticsData.customer.notlike("%Bild%")
+                AllQueueStatisticsData.customer.like(f"%Guru%")
                 )
                 booking_query = booking_query.filter(BookingData.order_agent.like(f"%GURU%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-            elif "Bild" in company:
+            elif "Bild" in company and "bild" in accessible_companies:
                 print("executing for bild")
                 query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
                 summe_query = summe_query.filter(AllQueueStatisticsData.customer.like("%Bild%"))
                 booking_query = booking_query.filter(BookingData.order_agent.like("%BILD%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Galeria%")  
+                )
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.like(f"%Galeria%")  
+                )
+                booking_query = booking_query.filter(
+                BookingData.order_agent.like(f"%Galeria%")  
+                )
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%ADAC%")  
+                )
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.like(f"%ADAC%")  
+                )
+                booking_query = booking_query.filter(
+                BookingData.order_agent.like(f"%ADAC%")  
+                )
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Urlaub")  
+                )
+                summe_query = summe_query.filter(
+                AllQueueStatisticsData.customer.like(f"%Urlaub")  
+                )
+                booking_query = booking_query.filter(
+                BookingData.order_agent.like(f"%Urlaub")  
+            )
+            else:
+                return {
+                    "total_calls": 0,
+                    "total_calls_change": 0,
+                    "asr": 0,
+                    "asr_change": 0,
+                    "SLA": 0,
+                    "SLA_change": 0,
+                    "avg wait time": 0,
+                    "avg wait time_change": 0,
+                    "max. wait time": 0,
+                    "max. wait time_change": 0,
+                    "After call work time": 0,
+                    "After call work time_change": 0,
+                    "avg handling time": 0,
+                    "avg_handling_time_change": 0,
+                    "Dropped calls": 0,
+                    "Dropped calls_change": 0,
+                }
+
             
     if domain !="all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
@@ -581,6 +759,18 @@ async def get_call_performance(
             query = db.query(QueueStatistics).filter(
             QueueStatistics.queue_name.like("%BILD%")  
         )
+        elif "Galeria" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Galeria%")  
+        )
+        elif "ADAC" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%ADAC%")  
+        )
+        elif "Urlaub" in company:
+            query = db.query(QueueStatistics).filter(
+            QueueStatistics.queue_name.like(f"%Urlaub%")  
+        )
         else:
             query = db.query(QueueStatistics)
         
@@ -614,6 +804,10 @@ async def get_call_performance(
             ("5vorFlug Sales", "5vorFlug Sales"),
             ("BILD Reisen Service", "BILD Reisen Service"),
             ("BILD Reisen Sales", "BILD Reisen Sales"),
+            ("ADAC Pauschal", "ADAC Pauschal"),
+            ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
+            ("Galeria", "Galeria"),
+            ("Urlaub_de", "Urlaub_de"),
             ("Holidayguru_CB_CH", "Holidayguru CB CH"),
             ("Urlaubsguru AT", "Urlaubsguru AT"),
             ("Urlaubsguru DE", "Urlaubsguru DE"),
@@ -646,7 +840,7 @@ async def get_call_performance(
             #     queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlug Sales"))) / 60, 2)
         print("Executed admin...")
     else:
-        filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
+        accessible_companies, filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
         # print("Filters: ", filters)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
@@ -656,15 +850,35 @@ async def get_call_performance(
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         if company != "all":
-                if "5vorflug" in company:
-                    query = query.filter(QueueStatistics.queue_name.like("%5vorFlug%"))
-                elif "Urlaubsguru" in company:
-                    query = query.filter(
-                        QueueStatistics.queue_name.notlike("%5vorFlug%"),
-                        QueueStatistics.queue_name.notlike("%BILD%")
-                    )
-                elif "Bild" in company:
-                    query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+            if "5vorflug" in company and "5vorflug" in accessible_companies:
+                print("executing for 5vf")
+                query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Urlaubsguru" in company and "guru" in accessible_companies:
+                print("executing for guru")
+                query = query.filter(QueueStatistics.queue_name.like(f"%guru%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Bild" in company and "bild" in accessible_companies:
+                print("executing for bild")
+                query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif "Galeria" in company and "Galeria" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Galeria%")  
+                )
+            elif "ADAC" in company and "ADAC" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%ADAC%")  
+                )
+            elif "Urlaub" in company and "Urlaub" in accessible_companies:
+                query = query.filter(
+                QueueStatistics.queue_name.like(f"%Urlaub%")  
+                )
+            else:
+                return {
+                    "Call Reasons Breakdown": [],
+                    "Call By queue": []
+                }
 
         # Call Reasons Breakdown
         call_reasons = {
@@ -693,8 +907,14 @@ async def get_call_performance(
         #     ("GuruBILD_Service", "GuruBILD_Service")
         # ]
         queues = [
-            ("5vorFlugService", "5vorFlug Service"),
-            ("5vorFlugSales", "5vorFlug Sales"),
+            ("5vorFlug Service", "5vorFlug Service"),
+            ("5vorFlug Sales", "5vorFlug Sales"),
+            ("BILD Reisen Service", "BILD Reisen Service"),
+            ("BILD Reisen Sales", "BILD Reisen Sales"),
+            ("ADAC Pauschal", "ADAC Pauschal"),
+            ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
+            ("Galeria", "Galeria"),
+            ("Urlaub_de", "Urlaub_de"),
             ("Holidayguru_CB_CH", "Holidayguru CB CH"),
             ("Urlaubsguru AT", "Urlaubsguru AT"),
             ("Urlaubsguru DE", "Urlaubsguru DE"),
@@ -706,10 +926,6 @@ async def get_call_performance(
             ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
             ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
             ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
-            ("5vorFlug Service", "5vorFlug Service"),
-            ("5vorFlug Sales", "5vorFlug Sales"),
-            ("BILD Reisen Service", "BILD Reisen Service"),
-            ("BILD Reisen Sales", "BILD Reisen Sales"),
             ("Holidayguru CB CH", "Holidayguru CB CH"),
             ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH")
         ]

@@ -270,6 +270,7 @@ class GuruTask(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True) 
     date = Column(Date)
+    customer = Column(String, nullable=True)
     order_number = Column(String, nullable=False)  # Auftrag Auftragsnummer (Auftrag)
     assigned_user = Column(String)  # Notiz/Aufgabe erledigender Benutzer
     due_date = Column(DateTime, nullable=True)# Notiz/Aufgabe fällig bis
