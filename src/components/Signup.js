@@ -47,7 +47,7 @@ const SignupForm = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('https://solasolution.ecomtask.de/auth/register', {
+      const response = await axios.post('https://solasolution.ecomtask.de/dev/auth/register', {
         username: data.username,
         email: data.email,
         password: data.password,

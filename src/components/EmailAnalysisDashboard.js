@@ -188,15 +188,15 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
         };
 
         const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/analytics_email?${queryString}`, config)
             .then(res => res.json()),
-          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+          fetch('https://solasolution.ecomtask.de/dev/analytics_email_subkpis', config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/email_overview?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/email_overview_sub_kpis?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/email_performance?${queryString}`, config)
             .then(res => res.json())
         ]);
 

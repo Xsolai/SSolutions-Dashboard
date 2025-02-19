@@ -176,10 +176,10 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
         conversionData
       ] = await Promise.all([
         // Fixed API endpoint names to match backend
-        fetch(`https://solasolution.ecomtask.de/analytics_sales_service?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/analytics_booking?${queryString}`, config),
-        fetch('https://solasolution.ecomtask.de/analytics_booking_subkpis', config),
-        fetch(`https://solasolution.ecomtask.de/analytics_conversion?${queryString}`, config)
+        fetch(`https://solasolution.ecomtask.de/dev/analytics_sales_service?${queryString}`, config),
+        fetch(`https://solasolution.ecomtask.de/dev/analytics_booking?${queryString}`, config),
+        fetch('https://solasolution.ecomtask.de/dev/analytics_booking_subkpis', config),
+        fetch(`https://solasolution.ecomtask.de/dev/analytics_conversion?${queryString}`, config)
       ]);
   
       const [

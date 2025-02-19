@@ -31,7 +31,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get("https://solasolution.ecomtask.de/history", {
+        const response = await axios.get("https://solasolution.ecomtask.de/dev/history", {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -207,7 +207,7 @@ const ProfileDropdown = ({ role }) => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("https://solasolution.ecomtask.de/auth/logout", {
+      const response = await fetch("https://solasolution.ecomtask.de/dev/auth/logout", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -293,7 +293,7 @@ const Home = () => {
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
-        const response = await fetch("https://solasolution.ecomtask.de/profile", {
+        const response = await fetch("https://solasolution.ecomtask.de/dev/profile", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
