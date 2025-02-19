@@ -409,9 +409,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
 
     except Exception as e:
         print(f"Error during user registration: {e}")
-        raise HTTPException(status_code=500, detail="Failed to register user.")
-
-    
+        raise HTTPException(status_code=500, detail="Failed to register user.")    
     
 @router.post("/admin/delete_user/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db),
