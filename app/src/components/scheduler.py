@@ -39,7 +39,7 @@ def run_task():
         logging.info("Task started successfully")
 
         # Download attachments
-        # download_attachments()
+        download_attachments()
         logging.info("Attachments downloaded")
 
         # Today's date for file processing
