@@ -193,6 +193,8 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
         bookingSubKPIs.json(),
         conversionData.json()
       ]);
+
+      console.log(conversionDataJson);
   
       // Update state with fetched data
       setData({
@@ -607,7 +609,7 @@ const ConversionTab = () => {
         />
         <StatCard
           title="Umsatz"
-          value={cbData?.['Turnover'] || '0'}
+          value={conversionData?.['success bookings'] || '0'}
           icon={CreditCard}
         />
       </div>
