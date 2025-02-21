@@ -222,6 +222,7 @@ const UebersichtTab = () => {
 
   const slGross = emailData['SL Gross'] || 0;
   const processingTime = emailData['Total Dwell Time (sec)'] || 0;
+  const totalProcessingTime = emailData['Total Processing Time (sec)'] || 0;
   const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
 
   const processedTimeDataConverted = processedTimeData.map((item) => ({
@@ -327,7 +328,7 @@ const UebersichtTab = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="SL Brutto"
           value={`${slGross.toFixed(1)}%`}
@@ -336,6 +337,11 @@ const UebersichtTab = () => {
         <StatCard
           title="Durchschnittliche Verweilzeit"
           value={`${processingTime}`}
+          icon={Clock}
+          />
+        <StatCard
+          title="Durchschnittliche Bearbeitungszeit"
+          value={`${totalProcessingTime}`}
           icon={Clock}
           />
       </div>

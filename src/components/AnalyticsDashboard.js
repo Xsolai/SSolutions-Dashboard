@@ -608,7 +608,7 @@ const ConversionTab = () => {
           icon={TrendingUp}
         />
         <StatCard
-          title="Umsatz"
+          title="Buchungen"
           value={conversionData?.['success bookings'] || '0'}
           icon={CreditCard}
         />

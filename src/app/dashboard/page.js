@@ -385,7 +385,10 @@ const Home = () => {
                       ? "bg-[#F0B72F] text-[#001E4A]"
                       : "text-[#F0B72F] hover:bg-[#001E4A]/10"
                   }`}
-                  onClick={() => setActiveTab(link.id)}
+                  onClick={() => {
+                    setActiveTab(link.id);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
                   {link.label}
                 </button>
