@@ -327,6 +327,35 @@ const Home = () => {
     });
   };
 
+  const handleDownload = async () => {
+    try {
+      const response = await axios.post(
+        "https://solasolution.ecomtask.de/dev/export/excel", // Replace with your actual API endpoint
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          responseType: "blob", // Important for file downloads
+        }
+      );
+  
+      // Create a link and trigger the download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "export.xlsx"); // Set the filename
+      document.body.appendChild(link);
+      link.click();
+  
+      // Cleanup
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  };  
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-white text-[#001E4A]">
@@ -416,7 +445,7 @@ const Home = () => {
                 <button
                   className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
                     text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
-                  onClick={() => {}}
+                  onClick={handleDownload}
                 >
                   Download
                 </button>
