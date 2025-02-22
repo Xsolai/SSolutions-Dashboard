@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, GuruCallReason, SoftBookingKF, User, Permission, BookingData, GuruTask
+from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, AllQueueStatisticsData, GuruCallReason, SoftBookingKF, User, Permission, BookingData, GuruTask
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta, date
 from sqlalchemy import func, or_
@@ -344,6 +344,9 @@ async def get_anaytics_email_data(
     
     total_processing_time_seconds = 0.0001
     total_processing_time_min = 0.0001
+    total_processing_time_sec = 0.0001
+    total_processing_time_mins = 0.0001
+    total_processing_time_hour = 0
     total_dwell_time_seconds = 0.0001
     total_dwell_min = 0.0001
     total_dwell_hours = 0
@@ -370,6 +373,21 @@ async def get_anaytics_email_data(
     # Convert extra minutes into hours
     total_dwell_hours += total_dwell_min // 60
     total_dwell_min = total_dwell_min % 60 
+    
+    for pt in processing_times:
+        hours, minutes, seconds = time_format(pt)
+        total_processing_time_sec += seconds
+        total_processing_time_mins += minutes
+        total_processing_time_hour += hours
+
+    # Convert extra seconds into minutes
+    total_processing_time_mins += total_processing_time_sec // 60
+    total_processing_time_sec = total_processing_time_sec % 60
+
+    # Convert extra minutes into hours
+    total_processing_time_hour += total_processing_time_mins // 60
+    total_processing_time_mins = total_processing_time_mins % 60 
+    
     for pt in processing_times:
         minutes,seconds = time_to_minutes(pt)
         total_processing_time_seconds += seconds
@@ -433,6 +451,7 @@ async def get_anaytics_email_data(
         # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
         # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
         "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours/3), int(total_dwell_min/3), int(total_dwell_time_seconds/3)) if company == "all" else time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)),
+        "Total Processing Time (sec)": time_formatter(int(total_processing_time_hour/3), int(total_processing_time_mins/3), int(total_processing_time_sec/3)) if company == "all" else time_formatter(int(total_processing_time_hour), int(total_processing_time_mins), int(total_processing_time_sec)),
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
@@ -1307,29 +1326,52 @@ async def get_conversion_data(
             query = db.query(BookingData).filter(
             BookingData.order_agent.like("%5VF%")  
             )
-            sale_query = db.query(QueueStatistics).filter(
-                QueueStatistics.queue_name.notlike("%Service%"),
-                QueueStatistics.queue_name.like("%5vorFlug%")
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
+                AllQueueStatisticsData.customer.like("%5vorFlug%")
             )
         elif "Urlaubsguru" in company:
             query = db.query(BookingData).filter(BookingData.order_agent.like(f"%GURU%"))
-            sale_query = db.query(QueueStatistics).filter(
-                QueueStatistics.queue_name.notlike("%Service%"),
-                QueueStatistics.queue_name.notlike("%5vorFlug%"),
-                QueueStatistics.queue_name.notlike("%BILD%")
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
+                AllQueueStatisticsData.customer.like(f"%Guru%")
             )
         elif "Bild" in company:
             query = db.query(BookingData).filter(
             BookingData.order_agent.like("%BILD%")  
         )
-            sale_query = db.query(QueueStatistics).filter(
-                QueueStatistics.queue_name.notlike("%Service%"),
-                QueueStatistics.queue_name.like("%BILD%")
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
+                AllQueueStatisticsData.customer.like("%BILD%")
+            )
+        elif "Galeria" in company:
+            query = db.query(BookingData).filter(
+            BookingData.order_agent.like(f"%Galeria%")  
+        )
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
+                AllQueueStatisticsData.customer.like(f"%Galeria%")
+            )
+        elif "ADAC" in company:
+            query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%ADAC%")  
+        )
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
+                AllQueueStatisticsData.customer.like("%ADAC%")
+            )
+        elif "Urlaub" in company:
+            query = db.query(BookingData).filter(
+            BookingData.order_agent.like("%Urlaub%")  
+        )
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
+                AllQueueStatisticsData.customer.like("%Urlaub%")
             )
         else:
             query = db.query(BookingData)
-            sale_query = db.query(QueueStatistics).filter(
-                QueueStatistics.queue_name.notlike("%Service%")
+            sale_query = db.query(AllQueueStatisticsData).filter(
+                AllQueueStatisticsData.customer.like("%Sales%"),
             )
     # if "5vorflug" in accessible_companies:
     #     print("containss")
@@ -1365,7 +1407,7 @@ async def get_conversion_data(
             print("Permission granted for 'guru'. Skipping restricted company checks.")
             query = db.query(BookingData)
             sale_query = db.query(QueueStatistics).filter(
-                QueueStatistics.queue_name.notlike("%Service%")
+                QueueStatistics.queue_name.like("%Sales%")
             )
         else:
             # Check if any restricted company is in accessible_companies
@@ -1396,7 +1438,7 @@ async def get_conversion_data(
         cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
         sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
         BookingData.crs_status == "OK",
-        BookingData.crs_status == "RP"
+        BookingData.crs_status == "RF"
         ).scalar() or 0
     
     else:
@@ -1423,34 +1465,39 @@ async def get_conversion_data(
         ).scalar() or 0
         
         # calculations for conversion and effective calls
-        total_calls = sale_query.with_entities(func.sum(QueueStatistics.calls)).filter(
-        QueueStatistics.date.between(start_date, end_date)
+        total_calls = sale_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
+        AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
-        accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).filter(
-        QueueStatistics.date.between(start_date, end_date)
+        accepted_calls = sale_query.with_entities(func.sum(AllQueueStatisticsData.accepted)).filter(
+        AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
-        abondened_before_ans = sale_query.with_entities(func.sum(QueueStatistics.abandoned_before_answer)).filter(
-        QueueStatistics.date.between(start_date, end_date)
+        abondened_before_ans = sale_query.with_entities(func.sum(AllQueueStatisticsData.abandoned_before_answer)).filter(
+        AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
         GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0
+        ).scalar() or 0 
+        guru_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
+        GuruCallReason.date.between(start_date, end_date)
+        ).scalar() or 0 
         sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
-        BookingData.date.between(start_date, end_date),
-        (BookingData.crs_status == "OK") | (BookingData.crs_status == "RP")
+        BookingData.date.between(start_date, end_date), 
+        (BookingData.crs_status == "OK") | (BookingData.crs_status == "RF")
         ).scalar() or 0
         
-        # print(total_calls)
-        # print(accepted_calls)
-        # print(abondened_before_ans)
-        # print(cb_wrong_calls)
-        # print(sucess_bookings)
+        wrong_calls = cb_wrong_calls+guru_wrong_calls
+        
+        print("total_calls", total_calls)
+        print("accepted",accepted_calls)
+        print("missed",abondened_before_ans)
+        print("wrong",wrong_calls)
+        print(sucess_bookings)
         
         
     cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
     # sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
-    sales_effective_calls = accepted_calls - (abondened_before_ans + cb_wrong_calls) 
-    sales_conversion = round((sucess_bookings/sales_effective_calls if sales_effective_calls>0 else 1)*100, 2) 
+    sales_effective_calls = total_calls - abondened_before_ans - wrong_calls
+    sales_conversion = round((sales_effective_calls/sucess_bookings if sucess_bookings>0 else 1), 2) 
     # Return metrics as a dictionary
     return {
         "success bookings": sucess_bookings,

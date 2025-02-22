@@ -264,8 +264,14 @@ async def get_email_overview(
         total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
             
         total_emails = query.with_entities(
+            func.count(
+                WorkflowReportGuruKF.id
+            )
+        ).scalar() or 0
+        
+        total_emails_recieved = email_query.with_entities(
             func.sum(
-                WorkflowReportGuruKF.received
+                EmailData.received
             )
         ).scalar() or 0
         
@@ -319,7 +325,15 @@ async def get_email_overview(
         total_processing_time_hour += total_processing_time_min // 60
         total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
         
-        total_emails = email_query.with_entities(
+        total_emails = query.with_entities(
+            func.count(
+                WorkflowReportGuruKF.id
+            )
+        ).filter(
+            WorkflowReportGuruKF.date.between(start_date, end_date)
+        ).scalar() or 0
+        
+        total_emails_recieved = email_query.with_entities(
             func.sum(
                 EmailData.received
             )
@@ -353,7 +367,8 @@ async def get_email_overview(
     # "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
     # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
     "Total Processing Time (min)": time_formatter(int(total_processing_time_hour), int(total_processing_time_min), int(total_processing_time_seconds)),
-    "total emails received": total_emails,
+    "total emails": total_emails,
+    "total emails received": total_emails_recieved,
     "archived emails": archived,
     "service_level_gross": round(service_level_gross, 2),
     "daily_service_level_gross": service_level_gross_trend

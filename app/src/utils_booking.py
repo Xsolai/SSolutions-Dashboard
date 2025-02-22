@@ -297,3 +297,137 @@ def validate_user_and_date_permissions_subkpis_booking(
         )
     
     return start_date, end_date
+
+def validate_user_and_date_permissions_export(db, current_user):
+    """
+    Validate the user's permissions and return the appropriate date range.
+
+    Args:
+        db: Database session
+        current_user: The current user object
+
+    Returns:
+        Tuple[datetime, datetime]: Validated start_date and end_date.
+    """
+    # Retrieve the user from the database
+    user = db.query(User).filter(User.email == current_user.get("email")).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    # Retrieve the user permissions from the database
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    if not user_permissions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No permissions found for the user."
+        )
+
+    # Parse the comma-separated date filters
+    filters = [
+        filter_type.strip()
+        for filter_type in user_permissions.date_filter.split(",")
+        if filter_type.strip()
+    ]
+
+    # Define today's date and calculate possible ranges
+    today = datetime.now().date()
+    current_month_start = today.replace(day=1)
+    current_month_end = (datetime.now() - timedelta(days=1)).date()
+    yesterday = today - timedelta(days=1)
+    last_week_start = today - timedelta(days=today.weekday() + 7)
+    last_week_end = today - timedelta(days=today.weekday() + 1)
+    last_month_end = current_month_start - timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
+
+    # Prioritize larger date ranges first
+    if "all" in filters:
+        return current_month_start, current_month_end  
+    elif "last_year" in filters:
+        return current_month_start, current_month_end  
+    elif "last_month" in filters:
+        return current_month_start, current_month_end  
+    elif "last_week" in filters:
+        return last_week_start, last_week_end
+    elif "yesterday" in filters:
+        return yesterday, yesterday
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid permissions or no matching date range found."
+        )
+        
+def validate_user_and_date_permissions_booking_export(db, current_user):
+    """
+    Validate the user's permissions and return the appropriate date range.
+
+    Args:
+        db: Database session
+        current_user: The current user object
+
+    Returns:
+        Tuple[datetime, datetime]: Validated start_date and end_date.
+    """
+    # Retrieve the user from the database
+    user = db.query(User).filter(User.email == current_user.get("email")).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    # Retrieve the user permissions from the database
+    user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
+    if not user_permissions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No permissions found for the user."
+        )
+
+    # Parse the comma-separated date filters
+    filters = [
+        filter_type.strip()
+        for filter_type in user_permissions.date_filter.split(",")
+        if filter_type.strip()
+    ]
+
+    # Define today's date and calculate possible ranges
+    today = datetime.now().date()
+    current_month_start = today.replace(day=1)
+    current_month_end = (current_month_start + timedelta(days=1)).replace(day=1) - timedelta(days=1)
+
+    # Set start and end times for the date range
+    current_month_start = datetime.combine(current_month_start, datetime.min.time())
+    current_month_end = datetime.combine(current_month_end, datetime.max.time())
+
+    last_week_start = today - timedelta(days=today.weekday() + 7)
+    last_week_end = today - timedelta(days=today.weekday() + 1)
+
+    # Set start and end times for last week
+    last_week_start = datetime.combine(last_week_start, datetime.min.time())
+    last_week_end = datetime.combine(last_week_end, datetime.max.time())
+
+    yesterday = today - timedelta(days=1)
+
+    # Set start and end times for yesterday
+    yesterday_start = datetime.combine(yesterday, datetime.min.time())
+    yesterday_end = datetime.combine(yesterday, datetime.max.time())
+
+    # Prioritize larger date ranges first
+    if "all" in filters:
+        return current_month_start, current_month_end  
+    elif "last_year" in filters:
+        return current_month_start, current_month_end  
+    elif "last_month" in filters:
+        return current_month_start, current_month_end  
+    elif "last_week" in filters:
+        return last_week_start, last_week_end
+    elif "yesterday" in filters:
+        return yesterday_start, yesterday_end
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid permissions or no matching date range found."
+        )

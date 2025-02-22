@@ -140,12 +140,10 @@ async def get_calls(
             )
         elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%"),
-            QueueStatistics.queue_name.notlike("%BILD%")
+            QueueStatistics.queue_name.like(f"%guru%")
             )
             summe_query = db.query(AllQueueStatisticsData).filter(
-            AllQueueStatisticsData.customer.notlike("%5vFlug%"),
-            AllQueueStatisticsData.customer.notlike("%Bild%")
+            AllQueueStatisticsData.customer.like(f"%Guru%")
             )
             booking_query = db.query(BookingData).filter(BookingData.order_agent.like(f"%GURU%"))
         elif "Bild" in company:
@@ -275,6 +273,21 @@ async def get_calls(
                     "Daily Call Volume": []  
                 } 
         
+    #  if domain != "all":
+    #     if "Sales" in domain:
+    #         query = query.filter(QueueStatistics.queue_name.notlike(f"%Service%"))
+    #         summe_query = summe_query.filter(AllQueueStatisticsData.customer.notlike(f"%Service%"))
+    #         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+    #     elif "Service" in domain:
+    #         query = query.filter(QueueStatistics.queue_name.notlike(f"%Sales%"))
+    #         summe_query = summe_query.filter(AllQueueStatisticsData.customer.notlike(f"%Sales%"))
+    #         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        
+    #     else:
+    #         query = query.filter(QueueStatistics.queue_name.notlike(f"%{domain}%"))
+    #         summe_query = summe_query.filter(AllQueueStatisticsData.customer.notlike(f"%{domain}%"))
+    #         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        
     if domain != "all":
         query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
         summe_query = summe_query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
@@ -341,7 +354,7 @@ async def get_calls(
             AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         
-        #Graph data
+        #Graph data 
         weekday_data = summe_query.with_entities(
         AllQueueStatisticsData.weekday.label("weekday"),  # Group by weekday
             func.sum(AllQueueStatisticsData.calls).label("total_calls"),
