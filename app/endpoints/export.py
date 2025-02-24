@@ -576,6 +576,11 @@ router = APIRouter(tags=["Export API"])
 
 def get_export_data(call_query, all_call_query, email_query, all_email_query, booking_query, 
                     start_date, end_date, start_date_booking, end_date_booking, domain, company):
+    
+    yesterday_date = (datetime.now() - timedelta(days=1)).date()
+    yesterday_date_start = datetime.combine(yesterday_date, datetime.min.time())
+    yesterday_date_end = datetime.combine(yesterday_date, datetime.max.time())
+    # print(yesterday_date, yesterday_date_start, yesterday_date_end)
     # Call metrics
     calls = all_call_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
         AllQueueStatisticsData.date.between(start_date, end_date)
@@ -605,13 +610,14 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     ).scalar() or 0
 
     # Booking metrics 
-    total_bookings = booking_query.with_entities(func.count(SoftBookingKF.original_status)).filter(
+    total_bookings = booking_query.with_entities(func.count(SoftBookingKF.id)).filter(
         SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
     ).scalar() or 0
     sb_bookings = booking_query.with_entities(func.count(SoftBookingKF.id)).filter(
         (SoftBookingKF.status == "OK") | (SoftBookingKF.status == "RF"), 
         SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
     ).scalar() or 0
+    print("Bookings: ", total_bookings, sb_bookings)
 
     # Apply domain filtering if domain is not "all"
     if domain != "all":
@@ -629,12 +635,12 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
             booking_query = booking_query.filter(SoftBookingKF.customer.like(f"%{domain}%"))
 
     # Daily calls trend
-    calls_data = call_query.with_entities(
-        QueueStatistics.date.label("date"),
-        func.sum(QueueStatistics.calls).label("total_calls")
+    calls_data = all_call_query.with_entities(
+        AllQueueStatisticsData.date.label("date"),
+        func.sum(AllQueueStatisticsData.calls).label("total_calls")
     ).filter(
-        QueueStatistics.date.between(start_date, end_date)
-    ).group_by(QueueStatistics.date).all()
+        AllQueueStatisticsData.date.between(start_date, end_date)
+    ).group_by(AllQueueStatisticsData.date).all()
 
     calls_trend = {
         row.date.strftime("%Y-%m-%d") if row.date else None: row.total_calls
@@ -644,7 +650,7 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     # Daily emails trend
     emails_data = all_email_query.with_entities(
         EmailData.date.label("date"), 
-        func.sum(EmailData.id).label("total_emails")
+        func.sum(EmailData.received).label("total_emails")
     ).filter(
         EmailData.date.between(start_date, end_date)
     ).group_by(EmailData.date).all()
@@ -652,31 +658,32 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
         row.date.strftime("%Y-%m-%d") if row.date else None: row.total_emails
         for row in emails_data
     }
-    
+    print("calls trend: ", calls_trend)
+    print("emails trend: ", email_trend)
     # Other call metrics
     calls_offered = all_call_query.with_entities(func.sum(AllQueueStatisticsData.offered)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
     calls_handled = all_call_query.with_entities(func.sum(AllQueueStatisticsData.accepted)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
     acc = all_call_query.with_entities(func.sum(AllQueueStatisticsData.asr)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
     sla = all_call_query.with_entities(func.sum(AllQueueStatisticsData.sla_20_20)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
     max_wait_time = all_call_query.with_entities(func.sum(AllQueueStatisticsData.max_wait_time)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
     aht = all_call_query.with_entities(func.sum(AllQueueStatisticsData.avg_handling_time_inbound)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
     total_call_time = all_call_query.with_entities(func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0  
     call_outbound = all_call_query.with_entities(func.sum(AllQueueStatisticsData.outbound_accepted)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
+        AllQueueStatisticsData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
 
     # Email processing metrics
@@ -684,11 +691,11 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     total_processing_time_min = 0
     total_processing_time_hour = 0
     service_level_gross = all_email_query.with_entities(func.avg(EmailData.service_level_gross)).filter(
-        EmailData.date.between(start_date, end_date)
+        EmailData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
 
     processing_times = all_email_query.with_entities(EmailData.processing_time).filter(
-        EmailData.date.between(start_date, end_date)
+        EmailData.date.between(yesterday_date, yesterday_date)
     ).all()
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     for pt in processing_times:
@@ -703,15 +710,19 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     total_processing_time_min = total_processing_time_min % 60
 
     recieved = all_email_query.with_entities(func.sum(EmailData.received)).filter(
-        EmailData.date.between(start_date, end_date)
+        EmailData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
 
     sent = all_email_query.with_entities(func.sum(EmailData.sent)).filter(
-        EmailData.date.between(start_date, end_date)
+        EmailData.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
 
     archived = all_email_query.with_entities(func.sum(EmailData.archived)).filter(
-        EmailData.date.between(start_date, end_date)
+        EmailData.date.between(yesterday_date, yesterday_date)
+    ).scalar() or 0
+    
+    all_emails = email_query.with_entities(func.count(WorkflowReportGuruKF.id)).filter(
+        WorkflowReportGuruKF.date.between(yesterday_date, yesterday_date)
     ).scalar() or 0
 
     return {
@@ -733,12 +744,12 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
             "ASR": acc,
             "SLA": sla,
             "Max Waiting Time": f"00:{str(int(max_wait_time/60)).zfill(2)}:{str(int(max_wait_time)%60).zfill(2)}",
-            "AHT": aht,
+            "AHT": f"00:{str(int((aht or 0) / 60)).zfill(2)}:{str(int((aht or 0) % 60)).zfill(2)}",
             "Total_Call_Time": total_call_time,
             "Outbound_Calls": call_outbound,
         },
         "email_metrics": {
-            "total_emails": total_emails,
+            "total_emails": all_emails,
             "received": recieved,
             "sent": sent,
             "archived": archived,
@@ -781,23 +792,27 @@ def create_section(workbook, start_row, section_name, dates, data, bold_font, se
     col_offset = 2
     calls_data = data['table']['calls']
     emails_data = data['table']['emails']
-    prev_email_value = 0
+    # prev_email_value = 0
 
     for idx, date in enumerate(dates):
         col = idx + col_offset + 1
         date_str = date.strftime('%Y-%m-%d')
         workbook.cell(row=start_row, column=col, value=days[date.weekday()])
         workbook.cell(row=start_row + 1, column=col, value=date.strftime('%d/%m/%Y'))
-        call_value = calls_data.get(date_str, 0)
-        if section_type == "Service":
+        call_value = calls_data.get(date_str, 0) 
+        email_value = emails_data.get(date_str, 0)
+        if section_type == "Service": 
+            print("call value: ", call_value)
             call_value = int(call_value * 0.857)
         workbook.cell(row=calls_row, column=col, value=call_value)
-        current_email_value = emails_data.get(date_str, prev_email_value)
-        daily_email_value = current_email_value - prev_email_value if idx > 0 else current_email_value
-        if section_type == "Service":
-            daily_email_value = int(daily_email_value * 0.553)
-        workbook.cell(row=mails_row, column=col, value=daily_email_value)
-        prev_email_value = current_email_value
+        # current_email_value = emails_data.get(date_str, prev_email_value)
+        # daily_email_value = current_email_value - prev_email_value if idx > 0 else current_email_value
+        if section_type == "Service": 
+            pass
+            # print("email value: ", daily_email_value)
+            # daily_email_value = int(daily_email_value * 0.553)
+        workbook.cell(row=mails_row, column=col, value=email_value)
+        # prev_email_value = current_email_value
 
     for row in range(start_row, start_row + section_height):
         for col in range(1, len(dates) + col_offset + 1):
@@ -961,7 +976,6 @@ async def export_excel(
     start_date, end_date = validate_user_and_date_permissions_export(db=db, current_user=current_user)
     start_date_booking, end_date_booking = validate_user_and_date_permissions_booking_export(db=db, current_user=current_user)
     is_admin_or_employee = user.role in ["admin", "employee"]
-
     if is_admin_or_employee:
         companies_to_export = ["5vorflug", "bild", "guru", "Galeria", "ADAC", "Urlaub"]
     else:

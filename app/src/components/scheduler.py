@@ -44,7 +44,7 @@ def run_task():
 
         # Today's date for file processing
         TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-        # TODAY_DATE = "18-Feb-2025"  # Hardcoded for now
+        # TODAY_DATE = "23-Feb-2025"  # Hardcoded for now
         YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
 
         weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
