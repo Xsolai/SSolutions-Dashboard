@@ -367,6 +367,7 @@ async def get_email_overview(
     # "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
     # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
     "Total Processing Time (min)": time_formatter(int(total_processing_time_hour), int(total_processing_time_min), int(total_processing_time_seconds)),
+    "Total Processing Time (dec)": round(((int(total_processing_time_hour)*3600)+(int(total_processing_time_min)*60)+int(total_processing_time_seconds))/60, 2),
     "total emails": total_emails,
     "total emails received": total_emails_recieved,
     "archived emails": archived,

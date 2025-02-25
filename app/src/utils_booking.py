@@ -396,7 +396,7 @@ def validate_user_and_date_permissions_booking_export(db, current_user):
     # Define today's date and calculate possible ranges
     today = datetime.now().date()
     current_month_start = today.replace(day=1)
-    current_month_end = (current_month_start + timedelta(days=1)).replace(day=1) - timedelta(days=1)
+    current_month_end = (datetime.now() - timedelta(days=1)).date()
 
     # Set start and end times for the date range
     current_month_start = datetime.combine(current_month_start, datetime.min.time())

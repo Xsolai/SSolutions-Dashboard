@@ -194,7 +194,7 @@ async def get_calls(
         print("excecuted for admin or guru")
     else:
         accessible_companies, filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
-        print("Accessible companies: ", accessible_companies)
+        # print("Accessible companies: ", accessible_companies)
         if filters:
             query = db.query(QueueStatistics).filter(or_(*filters))
             summe_query = db.query(AllQueueStatisticsData).filter(or_(*summe_filters))
@@ -311,7 +311,6 @@ async def get_calls(
             AllQueueStatisticsData.abandoned_before_answer
         )).scalar()
         
-        
         # Graph
         weekday_data = summe_query.with_entities(
         AllQueueStatisticsData.weekday.label("weekday"),  # Group by weekday
@@ -408,6 +407,10 @@ async def get_calls(
         "max. wait time (min)": f"00:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)).zfill(2)}:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)).zfill(2)}",
         "After call work time (min)": f"00:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)).zfill(2)}:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)).zfill(2)}",
         "avg handling time (min)": f"00:{str(int((avg_handling_time or 0) / 60)).zfill(2)}:{str(int((avg_handling_time or 0) % 60)).zfill(2)}",
+        "avg wait time (dec)": round((get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60),2),
+        "max. wait time (dec)": round((get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60),2),
+        "After call work time (dec)":round((get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60), 2),
+        "avg handling time (dec)": round((avg_handling_time or 0) / 60, 2),
         "Dropped calls": int(dropped_calls or 0),
         # "Call availability": pass,
         "Daily Call Volume": result  
