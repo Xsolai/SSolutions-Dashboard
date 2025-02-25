@@ -56,7 +56,7 @@ const Loading = () => (
 );
 
 // Component for statistics cards
-const StatCard = ({ title, value, icon: Icon, change, description }) => (
+const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
       <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
@@ -64,7 +64,16 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
         <Icon className="h-5 w-5 text-[#F0B72F]" />
       </div>
     </div>
-    <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] mb-2">{value}</div>
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A]">
+        {value}
+      </div>
+      {timeInSeconds !== undefined && (
+        <div className="text-base font-nexa-book text-[#001E4A]">
+          {timeInSeconds} min
+        </div>
+      )}
+    </div>
     {change !== undefined && description && (
       <p className="text-[15px] font-nexa-book text-[#001E4A]/70">
         <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>
@@ -291,6 +300,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Durchschnittliche Wartezeit",
         value: `${overviewData?.['avg wait time (min)'] || 0}`,
+        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg wait time (min)']) / 60).toFixed(2),
         icon: Clock,
         change: subKPIs['avg wait time_change'],
         description: "im Vergleich zur letzten Periode"
@@ -298,6 +308,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Maximale Wartezeit",
         value: `${overviewData?.['max. wait time (min)'] || 0}`,
+        timeInSeconds: (convertTimeToSeconds(overviewData?.['max. wait time (min)']) / 60).toFixed(2),
         icon: Clock,
         change: subKPIs['max. wait time_change'],
         description: "im Vergleich zur letzten Periode"
@@ -305,6 +316,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Durchschnittliche Bearbeitungszeit",
         value: `${overviewData?.['avg handling time (min)'] || 0}`,
+        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg handling time (min)']) / 60).toFixed(2),
         icon: Clock,
         change: subKPIs['avg_handling_time_change'],
         description: "im Vergleich zur letzten Periode"

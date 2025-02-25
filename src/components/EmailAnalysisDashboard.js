@@ -78,7 +78,7 @@ const Loading = () => (
 );
 
 // Base Components
-const StatCard = ({ title, value, icon: Icon, change, description }) => (
+const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
       <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
@@ -86,7 +86,16 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
         <Icon className="h-5 w-5 text-[#F0B72F]" />
       </div>
     </div>
-    <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] mb-2">{value}</div>
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A]">
+        {value}
+      </div>
+      {timeInSeconds !== undefined && (
+        <div className="text-base font-nexa-book text-[#001E4A]">
+          {timeInSeconds} min
+        </div>
+      )}
+    </div>
     {change !== undefined && description && (
       <p className="text-[14px] font-nexa-book text-[#001E4A]/70">
         <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>
@@ -134,6 +143,11 @@ const chartConfig = {
 const convertToSeconds = (timeString) => {
   const [hours, minutes, seconds] = timeString.split(":").map(Number);
   return hours * 3600 + minutes * 60 + seconds;
+};
+
+const convertToSeconds2 = (timeString) => {
+  const [minutes, seconds] = timeString.split(":").map(Number);
+  return minutes * 60 + seconds;
 };
 
 const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
@@ -228,7 +242,7 @@ const UebersichtTab = () => {
   const processedTimeDataConverted = processedTimeData.map((item) => ({
     ...item,
     total_processing_time_sec: convertToSeconds(item.total_processing_time_sec)
-  }));  
+  }));
   
   const uebersichtStats = [
     { 
@@ -338,11 +352,13 @@ const UebersichtTab = () => {
           title="Durchschnittliche Verweilzeit"
           value={`${processingTime}`}
           icon={Clock}
+          timeInSeconds={(convertToSeconds(processingTime) / 60).toFixed(2)}
           />
         <StatCard
           title="Durchschnittliche Bearbeitungszeit"
           value={`${totalProcessingTime}`}
           icon={Clock}
+          timeInSeconds={(convertToSeconds2(totalProcessingTime) / 60).toFixed(2)}
           />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
