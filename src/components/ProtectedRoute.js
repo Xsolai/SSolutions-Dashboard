@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children }) => {
         }
 
         // Verify the token with the backend
-        const response = await fetch("https://solasolution.ecomtask.de/dev/auth/verify-token", {
+        const response = await fetch("https://solasolution.ecomtask.de/auth/verify-token", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

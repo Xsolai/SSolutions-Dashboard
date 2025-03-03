@@ -32,7 +32,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get("https://solasolution.ecomtask.de/dev/history", {
+        const response = await axios.get("https://solasolution.ecomtask.de/history", {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -208,7 +208,7 @@ const ProfileDropdown = ({ role }) => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("https://solasolution.ecomtask.de/dev/auth/logout", {
+      const response = await fetch("https://solasolution.ecomtask.de/auth/logout", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -294,7 +294,7 @@ const Home = () => {
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
-        const response = await fetch("https://solasolution.ecomtask.de/dev/profile", {
+        const response = await fetch("https://solasolution.ecomtask.de/profile", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
@@ -331,7 +331,7 @@ const Home = () => {
   const handleDownload = async () => {
     try {
       const response = await axios.post(
-        "https://solasolution.ecomtask.de/dev/export/excel", // Replace with your actual API endpoint
+        "https://solasolution.ecomtask.de/export/excel", // Replace with your actual API endpoint
         {},
         {
           headers: {

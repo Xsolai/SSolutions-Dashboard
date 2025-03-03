@@ -72,7 +72,7 @@ const CreateUserForm = ({ open, onClose, onUserCreated }) => {
     setIsLoading(true);
     try {
       const access_token = localStorage.getItem('access_token');
-      const response = await fetch('https://solasolution.ecomtask.de/dev/admin/create_user', {
+      const response = await fetch('https://solasolution.ecomtask.de/admin/create_user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -479,7 +479,7 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://solasolution.ecomtask.de/dev/admin/companies', {
+      const response = await fetch('https://solasolution.ecomtask.de/admin/companies', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
         },
@@ -589,7 +589,7 @@ const PermissionForm = ({ open, onClose, user }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('https://solasolution.ecomtask.de/dev/admin/view-role-permissions', {
+      const response = await fetch('https://solasolution.ecomtask.de/admin/view-role-permissions', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
         },
@@ -627,7 +627,7 @@ const PermissionForm = ({ open, onClose, user }) => {
         ...permissions,
       });
 
-      const response = await fetch(`https://solasolution.ecomtask.de/dev/assign-permission?${queryParams.toString()}`, {
+      const response = await fetch(`https://solasolution.ecomtask.de/assign-permission?${queryParams.toString()}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -967,7 +967,7 @@ const Page = () => {
     }));
 
     try {
-      const response = await fetch(`https://solasolution.ecomtask.de/dev/admin/approve/${userId}`, {
+      const response = await fetch(`https://solasolution.ecomtask.de/admin/approve/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${access_token}`,
@@ -1029,7 +1029,7 @@ const Page = () => {
     }));
 
     try {
-      const response = await fetch(`https://solasolution.ecomtask.de/dev/admin/reject/${userId}`, {
+      const response = await fetch(`https://solasolution.ecomtask.de/admin/reject/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${access_token}`,
@@ -1086,7 +1086,7 @@ const Page = () => {
     const access_token = localStorage.getItem('access_token');
 
     try {
-      const response = await fetch(`https://solasolution.ecomtask.de/dev/admin/delete_user/${userId}`, {
+      const response = await fetch(`https://solasolution.ecomtask.de/admin/delete_user/${userId}`, {
         method: 'POST', // Changed from DELETE to POST
         headers: {
           'Authorization': `Bearer ${access_token}`,
@@ -1117,7 +1117,7 @@ const Page = () => {
     try {
       setLoading(true);
       const access_token = localStorage.getItem('access_token');
-      const response = await fetch('https://solasolution.ecomtask.de/dev/admin/users', {
+      const response = await fetch('https://solasolution.ecomtask.de/admin/users', {
         headers: {
           'Authorization': `Bearer ${access_token}`,
         },

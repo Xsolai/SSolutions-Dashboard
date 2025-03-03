@@ -9,7 +9,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
       try {
         const access_token = localStorage.getItem('access_token');
         // First check if user is admin using profile API
-        const profileResponse = await fetch('https://solasolution.ecomtask.de/dev/profile', {
+        const profileResponse = await fetch('https://solasolution.ecomtask.de/profile', {
           headers: {
             'Authorization': `Bearer ${access_token}`
           }
@@ -19,7 +19,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
         if (profileData.role === 'admin' || profileData.role === 'customer') { // changing to customers for now
           setIsAdmin(true);
           // If admin, fetch companies
-          const companiesResponse = await fetch('https://solasolution.ecomtask.de/dev/admin/companies', {
+          const companiesResponse = await fetch('https://solasolution.ecomtask.de/admin/companies', {
             headers: {
               'Authorization': `Bearer ${access_token}`
             }

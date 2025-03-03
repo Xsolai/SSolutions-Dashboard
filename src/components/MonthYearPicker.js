@@ -73,7 +73,7 @@ const MonthYearPicker = ({ isOpen, onClose }) => {
       const dateParam = `${selectedYear}-${monthStr}`;
       
       const response = await axios.post(
-        `https://solasolution.ecomtask.de/dev/export/excel?month=${dateParam}`,
+        `https://solasolution.ecomtask.de/export/excel?month=${dateParam}`,
         {},
         {
           headers: {
