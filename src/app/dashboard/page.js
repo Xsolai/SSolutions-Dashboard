@@ -1,3 +1,4 @@
+// src/app/dashboard/page.js
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
@@ -19,6 +20,9 @@ import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import logo from "@/assets/images/logo.png";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TaskAnalysisDashboard from "@/components/TaskAnalyis";
+import CustomDateRangeFilter from "@/components/FilterComponent";
+import CompanyDropdown from "@/components/Company";
+import { ExportButton } from '@/components/MonthYearPicker'; // Create this file with the code above
 
 const HistorySidebar = ({ isOpen, onClose }) => {
   const [historyData, setHistoryData] = useState([]);
@@ -28,7 +32,7 @@ const HistorySidebar = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get("https://solasolution.ecomtask.de/history", {
+        const response = await axios.get("https://solasolution.ecomtask.de/dev/history", {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -204,7 +208,7 @@ const ProfileDropdown = ({ role }) => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("https://solasolution.ecomtask.de/auth/logout", {
+      const response = await fetch("https://solasolution.ecomtask.de/dev/auth/logout", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -261,11 +265,36 @@ const Home = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [role, setRole] = useState("");
+  const [dateRange, setDateRange] = useState({
+      startDate: null,
+      endDate: null,
+      isAllTime: false
+  });
+  const [selectedCompany, setSelectedCompany] = useState('');
+  
+  // Add handleCompanyChange function
+  const handleCompanyChange = (company) => {
+    setSelectedCompany(company);
+    // fetchData(dateRange); // Refetch data with new company filter
+  };
+
+  // Initialize with default date range
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    setDateRange({
+      startDate: yesterday,
+      endDate: yesterday,
+      isAllTime: false
+    });
+  }, []);
 
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
-        const response = await fetch("https://solasolution.ecomtask.de/profile", {
+        const response = await fetch("https://solasolution.ecomtask.de/dev/profile", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
@@ -291,13 +320,50 @@ const Home = () => {
     { id: "task-analysis", label: "Aufgabenanalyse" },
   ];
 
+  const handleDateRangeChange = (newRange) => {
+    setDateRange({
+      startDate: newRange.startDate,
+      endDate: newRange.endDate,
+      isAllTime: newRange.isAllTime
+    });
+  };
+
+  const handleDownload = async () => {
+    try {
+      const response = await axios.post(
+        "https://solasolution.ecomtask.de/dev/export/excel", // Replace with your actual API endpoint
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          responseType: "blob", // Important for file downloads
+        }
+      );
+  
+      // Create a link and trigger the download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "export.xlsx"); // Set the filename
+      document.body.appendChild(link);
+      link.click();
+  
+      // Cleanup
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  };  
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-white text-[#001E4A]">
         <div className="py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex-shrink-0">
-              <img src={logo.src} alt="Dashboard Logo" className="w-auto h-8" />
+              <img src={logo.src} alt="Dashboard Logo" className="w-auto h-6 md:h-8" />
             </div>
 
             <div className="flex items-center gap-4">
@@ -349,7 +415,10 @@ const Home = () => {
                       ? "bg-[#F0B72F] text-[#001E4A]"
                       : "text-[#F0B72F] hover:bg-[#001E4A]/10"
                   }`}
-                  onClick={() => setActiveTab(link.id)}
+                  onClick={() => {
+                    setActiveTab(link.id);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
                   {link.label}
                 </button>
@@ -370,10 +439,17 @@ const Home = () => {
           )}
 
           <div className="mt-6">
-            {activeTab === "analytics" && <AnalyticsDashboard />}
-            {activeTab === "call-analysis" && <CallAnalysisDashboard />}
-            {activeTab === "email-analysis" && <EmailAnalysisDashboard />}
-            {activeTab === "task-analysis" && <TaskAnalysisDashboard />}
+            <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-4">
+              <div className="flex flex-row flex-wrap gap-4">
+                <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
+                <CompanyDropdown onCompanyChange={handleCompanyChange} />
+                <ExportButton />
+              </div>
+            </div>
+            {activeTab === "analytics" && <AnalyticsDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
+            {activeTab === "call-analysis" && <CallAnalysisDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
+            {activeTab === "email-analysis" && <EmailAnalysisDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
+            {activeTab === "task-analysis" && <TaskAnalysisDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
           </div>
         </div>
 

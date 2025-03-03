@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell , CartesianGrid} from 'recharts';
 import { Users, Inbox, CircleCheck, TriangleAlert, Circle } from 'lucide-react';
-import CustomDateRangeFilter from './FilterComponent';
-import CompanyDropdown from './Company';
 
 // Brand Colors
 const chartColors = {
@@ -159,14 +157,8 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
   </div>
 );
 
-const TaskAnalysisDashboard = () => {
+const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
-    isAllTime: false
-  });
-  const [selectedCompany, setSelectedCompany] = useState('');
   const [data, setData] = useState({
     kpis: null,
     overview: null,
@@ -180,23 +172,6 @@ const TaskAnalysisDashboard = () => {
     { id: "overview", name: "Übersicht" },
     { id: "performance", name: "Leistungsmetriken" }
   ];
-
-  // Add handleCompanyChange function
-  const handleCompanyChange = (company) => {
-    setSelectedCompany(company);
-    // The data will be refetched automatically due to the useEffect dependency
-  };
-
-  useEffect(() => {
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    
-    setDateRange({
-      startDate: currentDate,
-      endDate: currentDate,
-      isAllTime: false
-    });
-  }, []);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -231,11 +206,11 @@ const TaskAnalysisDashboard = () => {
         };
 
         const [kpisRes, overviewRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/tasks_kpis?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/tasks_kpis?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/tasks_overview?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/tasks_overview?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/tasks_performance?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/tasks_performance?${queryString}`, config)
             .then(res => res.json())
         ]);
 
@@ -255,27 +230,6 @@ const TaskAnalysisDashboard = () => {
       fetchData();
     }
   }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
-
-    // Initialize with default date range
-    useEffect(() => {
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      setDateRange({
-        startDate: yesterday,
-        endDate: yesterday,
-        isAllTime: false
-      });
-    }, []);
-    
-  const handleDateRangeChange = (newRange) => {
-    setDateRange({
-      startDate: newRange.startDate,
-      endDate: newRange.endDate,
-      isAllTime: newRange.isAllTime
-    });
-  };
   
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;
@@ -575,20 +529,6 @@ const ChartCard = ({ title, children }) => (
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-6">
-          <div className="flex flex-row flex-wrap gap-4">
-            <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-            <CompanyDropdown onCompanyChange={handleCompanyChange} />
-            <button
-              className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
-                text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
-              onClick={() => {}}
-            >
-              Download
-            </button>
-          </div>
-        </div>
-
         <div className="border-b border-[#E6E2DF] mb-6">
           <div className="sm:hidden">
             <select

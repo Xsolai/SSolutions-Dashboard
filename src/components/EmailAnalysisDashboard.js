@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Mail, Send, TrendingUp, Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
-import CustomDateRangeFilter from './FilterComponent';
-import CompanyDropdown from './Company';
 
 // Brand Colors
 const chartColors = {
@@ -80,7 +78,7 @@ const Loading = () => (
 );
 
 // Base Components
-const StatCard = ({ title, value, icon: Icon, change, description }) => (
+const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
       <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
@@ -88,7 +86,16 @@ const StatCard = ({ title, value, icon: Icon, change, description }) => (
         <Icon className="h-5 w-5 text-[#F0B72F]" />
       </div>
     </div>
-    <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A] mb-2">{value}</div>
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A]">
+        {value}
+      </div>
+      {timeInSeconds !== undefined && (
+        <div className="text-base font-nexa-book text-[#001E4A]">
+          {timeInSeconds} min
+        </div>
+      )}
+    </div>
     {change !== undefined && description && (
       <p className="text-[14px] font-nexa-book text-[#001E4A]/70">
         <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>
@@ -138,15 +145,13 @@ const convertToSeconds = (timeString) => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
-const EmailAnalysisDashboard = () => {
-  const [activeTab, setActiveTab] = useState('uebersicht');
-  const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
-    isAllTime: false
-  });
-  const [selectedCompany, setSelectedCompany] = useState('');
+const convertToSeconds2 = (timeString) => {
+  const [minutes, seconds] = timeString.split(":").map(Number);
+  return minutes * 60 + seconds;
+};
 
+const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
+  const [activeTab, setActiveTab] = useState('uebersicht');
   const [emailData, setEmailData] = useState(null);
   const [emailSubKPIs, setEmailSubKPIs] = useState(null);
   const [overviewData, setOverviewData] = useState(null);
@@ -161,21 +166,6 @@ const EmailAnalysisDashboard = () => {
     { id: "uebersicht", name: "Übersicht" },
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
-
-  const handleCompanyChange = (company) => {
-    setSelectedCompany(company);
-  };
-
-  useEffect(() => {
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    
-    setDateRange({
-      startDate: currentDate,
-      endDate: currentDate,
-      isAllTime: false
-    });
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -212,15 +202,15 @@ const EmailAnalysisDashboard = () => {
         };
 
         const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/analytics_email?${queryString}`, config)
             .then(res => res.json()),
-          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+          fetch('https://solasolution.ecomtask.de/dev/analytics_email_subkpis', config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/email_overview?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/email_overview_sub_kpis?${queryString}`, config)
             .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
+          fetch(`https://solasolution.ecomtask.de/dev/email_performance?${queryString}`, config)
             .then(res => res.json())
         ]);
 
@@ -240,38 +230,19 @@ const EmailAnalysisDashboard = () => {
       fetchData();
     }
   }, [dateRange, selectedCompany, domain]);
-  // Initialize with default date range
-  useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    setDateRange({
-      startDate: yesterday,
-      endDate: yesterday,
-      isAllTime: false
-    });
-  }, []);
-  
-  const handleDateRangeChange = (newRange) => {
-    setDateRange({
-      startDate: newRange.startDate,
-      endDate: newRange.endDate,
-      isAllTime: newRange.isAllTime
-    });
-  };
 
 const UebersichtTab = () => {
   if (!overviewData || !subKPIs) return <Loading/>;
 
   const slGross = emailData['SL Gross'] || 0;
   const processingTime = emailData['Total Dwell Time (sec)'] || 0;
+  const totalProcessingTime = emailData['Total Processing Time (sec)'] || 0;
   const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
 
   const processedTimeDataConverted = processedTimeData.map((item) => ({
     ...item,
     total_processing_time_sec: convertToSeconds(item.total_processing_time_sec)
-  }));  
+  }));
   
   const uebersichtStats = [
     { 
@@ -371,7 +342,7 @@ const UebersichtTab = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="SL Brutto"
           value={`${slGross.toFixed(1)}%`}
@@ -381,6 +352,13 @@ const UebersichtTab = () => {
           title="Durchschnittliche Verweilzeit"
           value={`${processingTime}`}
           icon={Clock}
+          timeInSeconds={(convertToSeconds(processingTime) / 60).toFixed(2)}
+          />
+        <StatCard
+          title="Durchschnittliche Bearbeitungszeit"
+          value={`${totalProcessingTime}`}
+          icon={Clock}
+          timeInSeconds={(convertToSeconds2(totalProcessingTime) / 60).toFixed(2)}
           />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -631,20 +609,6 @@ const LeistungTab = () => {
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
-        <div className="bg-white/70 p-4 rounded-xl shadow-sm mb-6">
-          <div className="flex flex-row flex-wrap gap-4">
-            <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
-            <CompanyDropdown onCompanyChange={handleCompanyChange} />
-            <button
-            className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
-              text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
-            onClick={() => {}}
-          >
-            Download
-          </button>
-          </div>
-        </div>
-
         <div className="border-b border-[#E6E2DF] mb-6">
           <div className="sm:hidden">
             <select

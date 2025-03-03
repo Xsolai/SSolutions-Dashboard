@@ -103,7 +103,7 @@ const OTPVerificationPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('https://solasolution.ecomtask.de/auth/verify-otp', {
+      const response = await axios.post('https://solasolution.ecomtask.de/dev/auth/verify-otp', {
         email: userEmail,
         otp: otp.join(''),
       });
@@ -131,7 +131,7 @@ const OTPVerificationPage = () => {
     try {
       toast.loading('Neuer Code wird gesendet...');
   
-      const response = await axios.post('https://solasolution.ecomtask.de/auth/resend-otp', {
+      const response = await axios.post('https://solasolution.ecomtask.de/dev/auth/resend-otp', {
         email: userEmail,
         otp: '000000'
       }, {
