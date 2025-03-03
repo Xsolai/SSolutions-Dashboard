@@ -928,13 +928,11 @@ def time_format(time):
     except Exception as e:
         print(f"Error converting time '{time}': {e}")
         return 0, 0, 0 
-    
-
 
 # def validate_user_and_date_permissions_export(db, current_user):
 #     """
 #     Validate the user's permissions and return the appropriate date range.
-    
+
 #     Args:
 #         db: Database session
 #         current_user: The current user object
@@ -949,7 +947,7 @@ def time_format(time):
 #             status_code=status.HTTP_404_NOT_FOUND,
 #             detail="User not found."
 #         )
-    
+
 #     # Retrieve the user permissions from the database
 #     user_permissions = db.query(Permission).filter(Permission.user_id == user.id).first()
 #     if not user_permissions:
@@ -965,44 +963,51 @@ def time_format(time):
 #         if filter_type.strip()
 #     ]
 
-#     # Define today's date and start of the current month
+#     # Define today's date and calculate possible ranges
 #     today = datetime.now().date()
 #     current_month_start = today.replace(day=1)
-#     current_month_end = today  # End of the current month defaults to today
+#     current_month_end = (datetime.now() - timedelta(days=1)).date()
+#     yesterday = today - timedelta(days=1)
+#     last_week_start = today - timedelta(days=today.weekday() + 7)
+#     last_week_end = today - timedelta(days=today.weekday() + 1)
+#     last_month_end = current_month_start - timedelta(days=1)
+#     last_month_start = last_month_end.replace(day=1)
 
-#     # Determine the date range based on permissions
-#     if "all" in filters or "last_year" in filters or "last_month" in filters:
-#         # If permissions contain "all", "last_year", or "last_month", return current month's range
-#         return current_month_start, current_month_end 
-#     elif "yesterday" in filters and "last_week" in filters and "last_month" in filters and "last_year" in filters:
-#         # If all permissions are present, return current month's range
-#         return current_month_start, current_month_end
-#     elif "last_week" in filters and len(filters) == 1:
-#         # If the only permission is "last_week", return the last week's range
-#         start_date = today - timedelta(days=today.weekday() + 7)
-#         end_date = today - timedelta(days=today.weekday() + 1)
-#         return start_date, end_date
-#     elif "yesterday" in filters and len(filters) == 1:
-#         # If the only permission is "yesterday", return yesterday's date
-#         yesterday = today - timedelta(days=1)
+#     # Prioritize larger date ranges first
+#     if "all" in filters:
+#         return last_month_start, last_month_end  
+#     elif "last_year" in filters:
+#         return last_month_start, last_month_end  
+#     elif "last_month" in filters:
+#         return last_month_start, last_month_end  
+#     elif "last_week" in filters:
+#         return last_week_start, last_week_end
+#     elif "yesterday" in filters:
 #         return yesterday, yesterday
 #     else:
 #         raise HTTPException(
 #             status_code=status.HTTP_403_FORBIDDEN,
 #             detail="Invalid permissions or no matching date range found."
 #         )
-def validate_user_and_date_permissions_export(db, current_user):
+
+def validate_user_and_date_permissions_export(db: Session, current_user: dict, month: str = None):
     """
     Validate the user's permissions and return the appropriate date range.
 
     Args:
         db: Database session
         current_user: The current user object
+        month: (Optional) Month in 'YYYY-MM' format to override the default range
 
     Returns:
-        Tuple[datetime, datetime]: Validated start_date and end_date.
+        Tuple[datetime.date, datetime.date]: Validated start_date and end_date.
     """
     # Retrieve the user from the database
+    today = datetime.now().date()
+    current_month_start = today.replace(day=1)
+    current_month_end = (datetime.now() - timedelta(days=1)).date()
+    if month is None:
+        return current_month_start, current_month_end
     user = db.query(User).filter(User.email == current_user.get("email")).first()
     if not user:
         raise HTTPException(
@@ -1018,37 +1023,35 @@ def validate_user_and_date_permissions_export(db, current_user):
             detail="No permissions found for the user."
         )
 
-    # Parse the comma-separated date filters
     filters = [
-        filter_type.strip()
-        for filter_type in user_permissions.date_filter.split(",")
+        filter_type.strip() 
+        for filter_type in user_permissions.date_filter.split(",") 
         if filter_type.strip()
     ]
+    # Get the largest allowed date range based on permissions
+    allowed_start, allowed_end = get_combined_date_range(user_permissions.date_filter.split(","))
 
-    # Define today's date and calculate possible ranges
-    today = datetime.now().date()
-    current_month_start = today.replace(day=1)
-    current_month_end = (datetime.now() - timedelta(days=1)).date()
-    yesterday = today - timedelta(days=1)
-    last_week_start = today - timedelta(days=today.weekday() + 7)
-    last_week_end = today - timedelta(days=today.weekday() + 1)
-    last_month_end = current_month_start - timedelta(days=1)
-    last_month_start = last_month_end.replace(day=1)
+    # If no month is provided, return the largest allowed range
+    if not month:
+        return allowed_start, allowed_end
 
-    # Prioritize larger date ranges first
-    if "all" in filters:
-        return current_month_start, current_month_end  
-    elif "last_year" in filters:
-        return current_month_start, current_month_end  
-    elif "last_month" in filters:
-        return current_month_start, current_month_end  
-    elif "last_week" in filters:
-        return last_week_start, last_week_end
-    elif "yesterday" in filters:
-        return yesterday, yesterday
+    # If a month is provided, check if the user has permission for it
+    try:
+        requested_month = datetime.strptime(month, "%Y-%m")
+        requested_start_date = requested_month.replace(day=1).date()
+        requested_end_date = (requested_start_date.replace(month=requested_start_date.month + 1) - timedelta(days=1))
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM.")
+
+    print("Allowed: ", allowed_start, allowed_end)
+    print("Requested: ", requested_start_date, requested_end_date)
+    # Validate if the requested month falls within the allowed range
+    if allowed_start <= requested_start_date and allowed_end >= requested_end_date:
+        return requested_start_date, requested_end_date
     else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid permissions or no matching date range found."
-        )
+        if "all" in filters:
+            return current_month_start, allowed_end
 
+    # If the month is not allowed, return the largest permission-based range
+    return allowed_start, allowed_end

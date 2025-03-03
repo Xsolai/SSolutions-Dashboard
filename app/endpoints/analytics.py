@@ -1032,7 +1032,7 @@ async def get_booking_data(time_input: float = 6*60,
     op = "OP"
     rq = "RQ"
     pe = "PE"
-    sb_booked = "SB"
+    sb_booked = "SB" 
     
     if start_date is None:
         # Count records for each status

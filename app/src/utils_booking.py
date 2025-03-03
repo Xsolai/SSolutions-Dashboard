@@ -395,13 +395,16 @@ def validate_user_and_date_permissions_booking_export(db, current_user):
 
     # Define today's date and calculate possible ranges
     today = datetime.now().date()
-    current_month_start = today.replace(day=1)
-    current_month_end = (datetime.now() - timedelta(days=1)).date()
-
+    # current_month_start = today.replace(day=1)
+    # current_month_end = (datetime.now() - timedelta(days=1)).date()
+    last_month_end = today.replace(day=1) - timedelta(days=1)  # Last day of last month
+    last_month_start = last_month_end.replace(day=1)
     # Set start and end times for the date range
-    current_month_start = datetime.combine(current_month_start, datetime.min.time())
-    current_month_end = datetime.combine(current_month_end, datetime.max.time())
-
+    last_month_start = datetime.combine(last_month_start, datetime.min.time())
+    last_month_end = datetime.combine(last_month_end, datetime.max.time())
+    print("Last Month Start:", last_month_start)
+    print("Last Month End:", last_month_end)
+    
     last_week_start = today - timedelta(days=today.weekday() + 7)
     last_week_end = today - timedelta(days=today.weekday() + 1)
 
@@ -417,11 +420,11 @@ def validate_user_and_date_permissions_booking_export(db, current_user):
 
     # Prioritize larger date ranges first
     if "all" in filters:
-        return current_month_start, current_month_end  
+        return last_month_start, last_month_end  
     elif "last_year" in filters:
-        return current_month_start, current_month_end  
+        return last_month_start, last_month_end  
     elif "last_month" in filters:
-        return current_month_start, current_month_end  
+        return last_month_start, last_month_end  
     elif "last_week" in filters:
         return last_week_start, last_week_end
     elif "yesterday" in filters:
