@@ -22,6 +22,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import TaskAnalysisDashboard from "@/components/TaskAnalyis";
 import CustomDateRangeFilter from "@/components/FilterComponent";
 import CompanyDropdown from "@/components/Company";
+import { ExportButton } from '@/components/MonthYearPicker'; // Create this file with the code above
 
 const HistorySidebar = ({ isOpen, onClose }) => {
   const [historyData, setHistoryData] = useState([]);
@@ -442,13 +443,7 @@ const Home = () => {
               <div className="flex flex-row flex-wrap gap-4">
                 <CustomDateRangeFilter onFilterChange={handleDateRangeChange} />
                 <CompanyDropdown onCompanyChange={handleCompanyChange} />
-                <button
-                  className={`px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 
-                    text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90`}
-                  onClick={handleDownload}
-                >
-                  Download
-                </button>
+                <ExportButton />
               </div>
             </div>
             {activeTab === "analytics" && <AnalyticsDashboard dateRange={dateRange} selectedCompany={selectedCompany} />}
