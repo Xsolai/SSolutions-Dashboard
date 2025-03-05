@@ -226,7 +226,6 @@ def get_users(db: Session = Depends(get_db),
         "status": user.status
     } for user in users]
     
-    
 @router.get("/admin/companies")
 def get_companies(
     db: Session = Depends(get_db),
