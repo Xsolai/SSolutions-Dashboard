@@ -276,7 +276,7 @@ def get_companies(
     
     result = [{"company": name} for name in result_set] 
     if not result:
-        return result_set.add(" ")
+        return None
     
     return result 
 
