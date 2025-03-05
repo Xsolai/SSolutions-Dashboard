@@ -7,7 +7,7 @@ from datetime import datetime
 SMTP_SERVER = "smtp.ionos.de"
 SMTP_PORT = 465
 SENDER_EMAIL = "dashboard-noreply@www.solasolution.de"
-SENDER_PASSWORD = "Ecomtask%2024"
+SENDER_PASSWORD = "EcomTask%2024"
 # SMTP_SERVER = "smtp.gmail.com" 
 # SMTP_PORT = 587
 # SENDER_EMAIL = "sabasaeed410@gmail.com"
@@ -17,16 +17,17 @@ ADMIN_EMAIL = "solasolution@ai-mitarbeiter.de"
 def send_thank_you_email(recipient_email, subject, body):
     try:
         msg = MIMEMultipart()
-        msg["From"] = ADMIN_EMAIL
+        msg["From"] = SENDER_EMAIL
         msg["To"] = recipient_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
 
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        server.send_message(msg)
-        server.quit()
+        # server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        # server.starttls()
+        with smtplib.SMTP_SSL("smtp.ionos.de", 465)  as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.send_message(msg)
+            server.quit()
 
         print("Thank-you email sent successfully!")
 
@@ -107,8 +108,9 @@ def send_registration_otp(recipient_email, subject, otp):
         msg.attach(MIMEText(body, "plain"))
         
         # Connect to the SMTP server
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()  # Start TLS for secure connection
+        # with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP_SSL("smtp.ionos.de", 465)  as server:
+            # server.starttls()  # Start TLS for secure connection
             server.login(SENDER_EMAIL, SENDER_PASSWORD)  # Login to the email server
             # server.send_message(msg)  # Send the email
             server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
@@ -150,8 +152,9 @@ def send_email_to_admin(user):
         msg.attach(MIMEText(body, "plain"))
         
         # Connect to the SMTP server
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()  # Start TLS for secure connection
+        # with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        #     server.starttls()  # Start TLS for secure connection
+        with smtplib.SMTP_SSL("smtp.ionos.de", 465)  as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)  # Login to the email server
             # server.send_message(msg)  # Send the email
             server.sendmail(SENDER_EMAIL, user.email, msg.as_string())
@@ -222,17 +225,18 @@ Datenschutz: Bitte beachten Sie unsere Hinweise zur Datenverarbeitung gem. Art. 
         else:
             raise ValueError("Invalid status provided for email notification.")
 
-        
+        send_thank_you_email("tom.piercemai@icloud.com", "Thankyouu", "Test")
         # Prepare email message
         msg = MIMEMultipart()
-        msg["From"] = ADMIN_EMAIL
+        msg["From"] = SENDER_EMAIL
         msg["To"] = email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
         
         # Connect to the SMTP server
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()  # Start TLS for secure connection
+        # with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP_SSL("smtp.ionos.de", 465)  as server:
+            # server.starttls()  # Start TLS for secure connection
             server.login(SENDER_EMAIL, SENDER_PASSWORD)  # Login to the email server
             # server.send_message(msg)  # Send the email
             server.sendmail(SENDER_EMAIL, email, msg.as_string())  # Send the email
