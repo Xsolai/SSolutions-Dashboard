@@ -81,6 +81,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
     #     raise HTTPException(status_code=400, detail="User already processed.")
     
     user.status = "approved"
+    user.is_active = 1
     db.commit()
     db.refresh(user)
     
@@ -127,6 +128,7 @@ def approve_user_request(user_id: str, db: Session = Depends(get_db),
     
     # db.delete(user)
     user.status = "rejected"
+    user.is_active = 0
     db.commit()
     db.refresh(user)
     user_permissions = db.query(models.Permission).filter(models.Permission.user_id == user_id).all()
@@ -299,6 +301,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
         # raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
         role = "customer"
 
+    print(request.email)
     # Check if the user already exists
     user = db.query(models.User).filter(
         (models.User.email == request.email) | (models.User.username == request.username)
@@ -325,7 +328,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
 
             # Construct reset link
             reset_link = f"https://frontend.d1qj820rqysre7.amplifyapp.com/reset-password/{user.id}/{reset_token}"
-
+            print("reset link: ", reset_link)
             # Send reset email
             subject = "Reset Your Password"
             body = (
@@ -383,7 +386,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
 
         # Construct reset link
         reset_link = f"https://frontend.d1qj820rqysre7.amplifyapp.com/reset-password/{created_user.id}/{reset_token}"
-
+        print("reset link: ", reset_link)
         # Send reset email
         subject = "Reset Your Password"
         body = (
@@ -415,7 +418,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
                 analytics_booking_subkpis_api=True,
                 analytics_conversion_api=True,
                 date_filter="yesterday,last_week,last_month,last_year,all",
-                 domains="".join(created_user.email.split("@")[1].split(".")[0])
+                domains="".join(created_user.email.split("@")[1].split(".")[0])
             )
             db.add(default_permission)
             db.commit()
