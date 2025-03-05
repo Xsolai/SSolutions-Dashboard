@@ -157,7 +157,6 @@ class OTPVerificationRequest(BaseModel):
     email: EmailStr
     otp: str
 
-
 @router.post("/register")
 def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     """

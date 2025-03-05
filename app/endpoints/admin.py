@@ -276,7 +276,7 @@ def get_companies(
     
     result = [{"company": name} for name in result_set] 
     if not result:
-        raise HTTPException(status_code=404, detail="No exact matches found.")
+        return result_set.add(" ")
     
     return result 
 
