@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.database.models.models import Permission
 from app.database.models import models
@@ -230,20 +230,34 @@ def get_companies(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)
 ):
+    # print("Current user: ", current_user.get("email"))
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
     # if not current_user or current_user.role.lower() != "admin":
     #     raise HTTPException(status_code=403, detail="Only admins can access this resource.")
-    companies = db.query(models.AllQueueStatisticsData.customer).distinct().all()
-    if not companies:
-        raise HTTPException(status_code=404, detail="No customer found.")
+    user_permissions = db.query(models.Permission).filter(models.Permission.user_id == current_user.id).first()
+    if not user_permissions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No permissions found for the user."
+        )
+
+    companies = [
+        filter_type.strip() 
+        for filter_type in user_permissions.domains.split(",") 
+        if filter_type.strip()
+    ]
+    print("Companies: ", companies)
+    # companies = db.query(models.AllQueueStatisticsData.customer).distinct().all()
+    # if not companies:
+    #     raise HTTPException(status_code=404, detail="No customer found.")
     # return [{"company": company.customer.lower()} for company in companies]
     result_set = set()
     for company in companies:
-        company_name = company.customer.lower()
-        if "5vf" in company_name:
+        company_name = company.lower()
+        if "5vorflug" in company_name:
             # print(company_name)
             result_set.add("5vorflug")
-        elif "guru" in company_name:
+        elif "urlaubsguru" in company_name:
             # print(company_name)
             result_set.add("Urlaubsguru")
         elif "bild" in company_name:
@@ -255,7 +269,7 @@ def get_companies(
         elif "adac" in company_name:
             # print(company_name)
             result_set.add("ADAC")
-        elif "urlaub" in company_name:
+        elif company_name == "urlaub":
             # print(company_name)
             result_set.add("Urlaub")
     
@@ -279,10 +293,11 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
         raise HTTPException(status_code=403, detail="Only admins can create users.")
     if request.email.endswith(EMPLOYEE_DOMAIN):
         role = "employee"
-    elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
-        role = "customer"
+    # elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
+    #     role = "customer"
     else:
-        raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+        # raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+        role = "customer"
 
     # Check if the user already exists
     user = db.query(models.User).filter(

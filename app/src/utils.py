@@ -1036,14 +1036,29 @@ def validate_user_and_date_permissions_export(db: Session, current_user: dict, m
         return allowed_start, allowed_end
 
     # If a month is provided, check if the user has permission for it
+    # try:
+    #     requested_month = datetime.strptime(month, "%Y-%m")
+    #     requested_start_date = requested_month.replace(day=1).date()
+    #     requested_end_date = (requested_start_date.replace(month=requested_start_date.month + 1) - timedelta(days=1))
+
+    # except ValueError:
+    #     raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM.")
+    
     try:
         requested_month = datetime.strptime(month, "%Y-%m")
         requested_start_date = requested_month.replace(day=1).date()
-        requested_end_date = (requested_start_date.replace(month=requested_start_date.month + 1) - timedelta(days=1))
+
+        # If requested month is the current month, set the end date to yesterday
+        if requested_start_date.month == today.month and requested_start_date.year == today.year:
+            requested_end_date = current_month_end
+        else:
+            # Get the last day of the requested month
+            next_month = requested_start_date.replace(day=28) + timedelta(days=4)  # Ensures jump to next month
+            requested_end_date = next_month.replace(day=1) - timedelta(days=1)  # Last day of requested month
 
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM.")
-
+    
     print("Allowed: ", allowed_start, allowed_end)
     print("Requested: ", requested_start_date, requested_end_date)
     # Validate if the requested month falls within the allowed range
