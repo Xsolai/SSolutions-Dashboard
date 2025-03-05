@@ -1412,6 +1412,7 @@ async def get_conversion_data(
                 QueueStatistics.queue_name.like("%Sales%")
             )
         else:
+            
             # Check if any restricted company is in accessible_companies
             # for company in restricted_companies:
             #     if company in accessible_companies:
@@ -1423,13 +1424,32 @@ async def get_conversion_data(
             #                 "message": f"You don't have permission to access {company}.",
             #             }
             #         )
-            raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail={
-                            "error": "Permission Denied",
-                            "message": f"You don't have permission to access {company}.",
-                        }
-                    )
+            return {
+                "success bookings": 0,
+                "CB":{
+                    "CB Conversion": 0
+                    },
+                "Sales":{
+                    "Sales Conversion": 0
+                    },
+                "Conversion Performance":{
+                    "CB":{
+                    "CB calls handled": 0,
+                    "Wrong calls": 0,
+                    "Bookings CB": 0,
+                    # "Turnover": format_revenue(turnover_cb),
+                    # "turnover": turnover_cb,
+                    "CB Conversion": 0
+                    },
+                    "Sales":{
+                    "Sales handles": 0,
+                    "Wrong calls": 0,
+                    "Bookings Sales": 0,
+                    "Sales volume": 0,
+                    "Sales Conversion": 0
+                    }
+                }  
+            }
 
     db = SessionLocal()
     if start_date is None:
