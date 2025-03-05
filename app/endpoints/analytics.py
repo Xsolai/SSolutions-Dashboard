@@ -1413,10 +1413,17 @@ async def get_conversion_data(
             )
         else:
             # Check if any restricted company is in accessible_companies
-            for company in restricted_companies:
-                if company in accessible_companies:
-                    print(f"Access denied for company: {company}")
-                    raise HTTPException(
+            # for company in restricted_companies:
+            #     if company in accessible_companies:
+            #         print(f"Access denied for company: {company}")
+            #         raise HTTPException(
+            #             status_code=status.HTTP_403_FORBIDDEN,
+            #             detail={
+            #                 "error": "Permission Denied",
+            #                 "message": f"You don't have permission to access {company}.",
+            #             }
+            #         )
+            raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail={
                             "error": "Permission Denied",
