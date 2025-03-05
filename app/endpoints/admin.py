@@ -293,10 +293,11 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
         raise HTTPException(status_code=403, detail="Only admins can create users.")
     if request.email.endswith(EMPLOYEE_DOMAIN):
         role = "employee"
-    elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
-        role = "customer"
+    # elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
+    #     role = "customer"
     else:
-        raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+        # raise HTTPException(status_code=400, detail="Email domain not allowed for registration.")
+        role = "customer"
 
     # Check if the user already exists
     user = db.query(models.User).filter(
