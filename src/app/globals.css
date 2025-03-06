@@ -46,7 +46,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-@font-face {
+/* @font-face {
   font-family: 'Nexa-Black';
   src: url('/fonts/nexa-black.woff2') format('woff2'),
        url('/fonts/nexa-black.woff') format('woff');
@@ -62,4 +62,4 @@
   font-weight: normal;
   font-style: normal;
   font-display: swap;
-}
+} */

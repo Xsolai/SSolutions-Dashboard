@@ -14,6 +14,28 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+// Add Nexa fonts with localFont
+const nexaBlack = localFont({
+  src: [
+    { path: "./fonts/nexa-black.woff2", format: "woff2" },
+    { path: "./fonts/nexa-black.woff", format: "woff" }
+  ],
+  variable: "--font-nexa-black",
+  style: "normal",
+  display: "swap",
+});
+
+const nexaBook = localFont({
+  src: [
+    { path: "./fonts/Nexa-Book.woff2", format: "woff2" },
+    { path: "./fonts/Nexa-Book.woff", format: "woff" }
+  ],
+  variable: "--font-nexa-book",
+  weight: "normal",
+  style: "normal",
+  display: "swap",
+});
+
 // Metadata for the app
 export const metadata = {
   title: "solasolution",
@@ -31,7 +53,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${nexaBook.variable} antialiased`}
       >
         {/* Wrap the entire app with VisibilityProvider */}
         <VisibilityProvider>{children}</VisibilityProvider>
