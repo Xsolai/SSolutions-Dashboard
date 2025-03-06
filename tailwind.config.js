@@ -6,12 +6,6 @@ module.exports = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {
-      fontFamily: {
-        'nexa-black': ['var(--font-nexa-black)'],
-        'nexa-book': ['var(--font-nexa-book)'],
-      },
-    },
   },
   plugins: [],
 };
