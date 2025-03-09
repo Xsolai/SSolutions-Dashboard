@@ -3,6 +3,7 @@ import email
 import os
 import re
 from datetime import datetime
+from app.src.logger import logging
 
 # Define your Outlook account credentials
 outlook_email = 'solasolution@ai-mitarbeiter.de'
@@ -17,7 +18,7 @@ def sanitize_filename(filename):
 
 def download_attachments():
     today_date = datetime.now().strftime('%d-%b-%Y')  # Format: DD-Mon-YYYY
-    print("Today's date: ", today_date)
+    logging.info(f"Today's date: {today_date}")
 
     attachments_dir = f'attachments/{today_date}'
     os.makedirs(attachments_dir, exist_ok=True)
@@ -26,7 +27,7 @@ def download_attachments():
         # Connect to the IMAP server
         mail = imaplib.IMAP4_SSL(imap_server)
         mail.login(outlook_email, outlook_password)
-
+        logging.info("Login sucessfull")
         # status, folders = mail.list()
         # print("Available folders:", folders)
         
@@ -34,6 +35,7 @@ def download_attachments():
         folders_to_check = ['inbox', 'Spam']  
 
         for folder in folders_to_check:
+            logging.info(f"\nChecking folder: {folder}")
             print(f"\nChecking folder: {folder}")
             mail.select(folder)  # Select the folder
 
@@ -43,7 +45,7 @@ def download_attachments():
 
             email_ids = data[0].split()
             if not email_ids or email_ids == [b'']:
-                print(f"No emails found in {folder} for today.")
+                logging.info(f"No emails found in {folder} for today.")
                 continue  # Move to the next folder
 
             for email_id in email_ids:
@@ -62,10 +64,11 @@ def download_attachments():
                             sanitized_filename = sanitize_filename(filename)
                             with open(os.path.join(attachments_dir, sanitized_filename), 'wb') as f:
                                 f.write(part.get_payload(decode=True))
+                            logging.info(f'Downloaded attachment: {sanitized_filename} from {folder}')
                             print(f'Downloaded attachment: {sanitized_filename} from {folder}')
 
     except Exception as e:
-        print(f'An error occurred: {e}')
+        logging.info(f'An error occurred: {e}')
     finally:
         mail.logout()
 
