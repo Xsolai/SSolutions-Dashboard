@@ -29,7 +29,7 @@ app.add_middleware(RoleBasedAccessMiddleware)
 @app.on_event("startup")
 async def startup_event():
     # Schedule the data import task to run daily at a fixed time
-    schedule_daily_task(6,00)  # Set your desired hour and minute here 
+    schedule_daily_task(2,40)  # Set your desired hour and minute here 
 
 # Create tables in database
 Base.metadata.create_all(bind=engine)

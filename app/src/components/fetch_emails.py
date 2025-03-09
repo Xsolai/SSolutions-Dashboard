@@ -18,7 +18,7 @@ def sanitize_filename(filename):
 
 def download_attachments():
     today_date = datetime.now().strftime('%d-%b-%Y')  # Format: DD-Mon-YYYY
-    logging.info("Today's date: ", today_date)
+    logging.info(f"Today's date: {today_date}")
 
     attachments_dir = f'attachments/{today_date}'
     os.makedirs(attachments_dir, exist_ok=True)
@@ -36,6 +36,7 @@ def download_attachments():
 
         for folder in folders_to_check:
             logging.info(f"\nChecking folder: {folder}")
+            print(f"\nChecking folder: {folder}")
             mail.select(folder)  # Select the folder
 
             # Search for today's emails
@@ -64,6 +65,7 @@ def download_attachments():
                             with open(os.path.join(attachments_dir, sanitized_filename), 'wb') as f:
                                 f.write(part.get_payload(decode=True))
                             logging.info(f'Downloaded attachment: {sanitized_filename} from {folder}')
+                            print(f'Downloaded attachment: {sanitized_filename} from {folder}')
 
     except Exception as e:
         logging.info(f'An error occurred: {e}')
