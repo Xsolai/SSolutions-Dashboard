@@ -26,7 +26,7 @@ def download_attachments():
         # Connect to the IMAP server
         mail = imaplib.IMAP4_SSL(imap_server)
         mail.login(outlook_email, outlook_password)
-
+        print("Login sucessfull")
         # status, folders = mail.list()
         # print("Available folders:", folders)
         
