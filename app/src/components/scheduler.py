@@ -44,7 +44,7 @@ def run_task():
 
         # Today's date for file processing
         TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-        # TODAY_DATE = "02-Mar-2025"  # Hardcoded for now
+        # TODAY_DATE = "07-Mar-2025"  # Hardcoded for now
         YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
 
         weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
@@ -204,22 +204,27 @@ def run_task():
         for file_type, path in files.items():
             try:
                 data = None  # Initialize data to None
-                if file_type == "call_reason":
-                    data = load_csv_data(path)
-                    # print(data)
-                elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service", "ADAC_daily", "Galeria_daily", "Urlaub_daily"]:
-                    data = load_csv_data(path)
-                elif file_type in ["ID_14", "ID_15", "ID_27", "ID_29", "ID_32", "ID_33", "ID_35", "ID_44", "ID_45"]:
-                    data = load_excel_data(path, skiprows=[0, 1, 2, 3])
-                # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
-                #     email_data = load_excel_data(path, skiprows=[0, 1, 2, 3])
-                #     # print("Found email data")
-                elif file_type in ["guru_task", "bild_task", "5vf_task", "guruKF_task", "urlaub_task", "galeria_task", "ADAC_task"]:
-                    data = load_csv_data(path)
-                elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB", "daily_Urlaub_SB", "daily_Galeria_SB", "daily_ADAC_SB"]:
-                    data = load_csv_data(path)
-                elif file_type == "daily_booking_list":
-                    data = load_csv_data(path)
+                if os.path.exists(path) and os.path.isfile(path): 
+                    if file_type == "call_reason":
+                        data = load_csv_data(path)
+                        # print(data)
+                    elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service", "ADAC_daily", "Galeria_daily", "Urlaub_daily"]:
+                        data = load_csv_data(path)
+                    elif file_type in ["ID_14", "ID_15", "ID_27", "ID_29", "ID_32", "ID_33", "ID_35", "ID_44", "ID_45"]:
+                        data = load_excel_data(path, skiprows=[0, 1, 2, 3])
+                    # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
+                    #     email_data = load_excel_data(path, skiprows=[0, 1, 2, 3])
+                    #     # print("Found email data")
+                    elif file_type in ["guru_task", "bild_task", "5vf_task", "guruKF_task", "urlaub_task", "galeria_task", "ADAC_task"]:
+                        data = load_csv_data(path)
+                    elif file_type in ["daily_Guru_SB", "daily_SB_Guru_KF", "daily_5vF_SB", "daily_BILD_SB", "daily_Urlaub_SB", "daily_Galeria_SB", "daily_ADAC_SB"]:
+                        data = load_csv_data(path)
+                    elif file_type == "daily_booking_list":
+                        data = load_csv_data(path)
+                else:
+                    logging.warning(f"File not found: {path}, {file_type}")
+                    print(f"File not found: {path}, {file_type}")
+                    continue 
 
                 # Populate database only if data is not None and not empty
                 if data is not None and not data.empty:
