@@ -308,7 +308,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Maximale Wartezeit",
         value: `${overviewData?.['max. wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['max. wait time (min)']) / 60).toFixed(2),
+        timeInSeconds: (convertTimeToSeconds(overviewData?.['max. wait time (min)'])).toFixed(2),
         icon: Clock,
         change: subKPIs['max. wait time_change'],
         description: "im Vergleich zur letzten Periode"
