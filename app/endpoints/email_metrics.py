@@ -293,6 +293,8 @@ async def get_email_overview(
             for row in service_level_gross_data
         ]
     else:
+        days_in_range = (end_date - start_date).days + 1
+        # print("days in range = ", days_in_range)
         service_level_gross = email_query.with_entities(
             func.avg(
                 EmailData.service_level_gross
@@ -316,15 +318,33 @@ async def get_email_overview(
             total_processing_time_seconds += seconds
             total_processing_time_min += minutes
             total_processing_time_hour += hours
+        # print("total sec: ", total_processing_time_seconds)
+        # total_processing_time_seconds = total_processing_time_seconds/days_in_range
+        # print("after total sec: ", total_processing_time_seconds)
+        # print("total min: ", total_processing_time_min)
+        # total_processing_time_min = total_processing_time_min/days_in_range
+        # print("after total min: ", total_processing_time_min)
+        # print("total hr: ", total_processing_time_hour)
+        # total_processing_time_hour = total_processing_time_hour/days_in_range
+        # print("after total hr: ", total_processing_time_hour)
+        # # Convert extra seconds into minutes
+        # total_processing_time_min += total_processing_time_seconds // 60
+        # total_processing_time_seconds = total_processing_time_seconds % 60  # Keep remaining seconds
 
-        # Convert extra seconds into minutes
-        total_processing_time_min += total_processing_time_seconds // 60
-        total_processing_time_seconds = total_processing_time_seconds % 60  # Keep remaining seconds
+        # # Convert extra minutes into hours
+        # total_processing_time_hour += total_processing_time_min // 60
+        # total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
+        total_seconds = (total_processing_time_hour * 3600) + (total_processing_time_min * 60) + total_processing_time_seconds
 
-        # Convert extra minutes into hours
-        total_processing_time_hour += total_processing_time_min // 60
-        total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
+        # Divide the total seconds by days_in_range to get average seconds per day
+        avg_seconds_per_day = total_seconds / days_in_range
+
+        # Now convert avg_seconds_per_day back to hours, minutes, seconds
+        avg_hours = int(avg_seconds_per_day // 3600)
+        avg_minutes = int((avg_seconds_per_day % 3600) // 60)
+        avg_seconds = int(avg_seconds_per_day % 60)
         
+        print(avg_hours, avg_minutes, avg_seconds)
         total_emails = query.with_entities(
             func.count(
                 WorkflowReportGuruKF.id
@@ -366,8 +386,8 @@ async def get_email_overview(
     return {
     # "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
     # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
-    "Total Processing Time (min)": time_formatter(int(total_processing_time_hour), int(total_processing_time_min), int(total_processing_time_seconds)),
-    "Total Processing Time (dec)": round(((int(total_processing_time_hour)*3600)+(int(total_processing_time_min)*60)+int(total_processing_time_seconds))/60, 2),
+    "Total Processing Time (min)": time_formatter(avg_hours, avg_minutes, avg_seconds),
+    "Total Processing Time (dec)": round(avg_seconds_per_day / 60, 2),
     "total emails": total_emails,
     "total emails received": total_emails_recieved,
     "archived emails": archived,
@@ -518,8 +538,18 @@ async def get_email_overview_sub_kpis(
                 }
 
     if domain != "all":
-        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
-        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+            email_query = email_query
+            # email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        else:
+            if domain=="Sales" :
+                query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+                email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+                
+            else:
+                query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+                email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")
     total_processing_time_seconds = 0.00001
@@ -752,8 +782,18 @@ async def get_mailbox_SL(
                 }
     
     if domain != "all":
-        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
-        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+            email_query = email_query
+            # email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        else:
+            if domain=="Sales" :
+                query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+                email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+                
+            else:
+                query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+                email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     
     if start_date is None:
         # Query the latest 6 intervals (dates) and service level gross

@@ -485,7 +485,7 @@ def domains_checker(db, user_id, filter_5vf, filter_bild, target_company=None):
             filters = [QueueStatistics.queue_name.like(f"%guru%")]
             summe_filters = [AllQueueStatisticsData.customer.like(f"%Guru%")]
         elif target_company.lower() == "urlaub":
-            filters = [QueueStatistics.queue_name.like("%Urlaub%")]
+            filters = [QueueStatistics.queue_name.like("%Urlaub_de%")]
             summe_filters = [AllQueueStatisticsData.customer.like("%Urlaub%")]
         else:
             filters = []
@@ -497,10 +497,10 @@ def domains_checker(db, user_id, filter_5vf, filter_bild, target_company=None):
     summe_filters = []
     if "5vorflug" in accessible_companies:
         filters.append(QueueStatistics.queue_name.like(f"%{filter_5vf}%"))
-        summe_filters.append(AllQueueStatisticsData.customer.like(f"%{filter_5vf}%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%5vFlug%"))
     if "bild" in accessible_companies:
         filters.append(QueueStatistics.queue_name.like(f"%{filter_bild}%"))
-        summe_filters.append(AllQueueStatisticsData.customer.like(f"%{filter_bild}%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%Bild%"))
     if "Galeria" in accessible_companies:
         filters.append(QueueStatistics.queue_name.like(f"%Galeria%"))
         summe_filters.append(AllQueueStatisticsData.customer.like(f"%Galeria%"))
@@ -508,11 +508,16 @@ def domains_checker(db, user_id, filter_5vf, filter_bild, target_company=None):
         filters.append(QueueStatistics.queue_name.like("%ADAC%"))
         summe_filters.append(AllQueueStatisticsData.customer.like("%ADAC%"))
     if "Urlaub" in accessible_companies:
-        filters.append(QueueStatistics.queue_name.like("%Urlaub%"))
+        filters.append(QueueStatistics.queue_name.like("%Urlaub_de%"))
         summe_filters.append(AllQueueStatisticsData.customer.like("%Urlaub%"))
     if "guru" in accessible_companies:
-        # For guru, assume no filters should be applied.
-        return accessible_companies, [], [] # Return empty filters for guru.
+        filters.append(QueueStatistics.queue_name.like("%guru%"))
+        filters.append(QueueStatistics.queue_name.like("%5vorFlug%"))
+        filters.append(QueueStatistics.queue_name.like("%BILD%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like("%guru%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like("%5vFlug%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like("%Bild%"))
+        # return accessible_companies, filters, summe_filters
     
     return accessible_companies, filters, summe_filters
 
@@ -588,7 +593,12 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild, target_company=N
         filters.append(WorkflowReportGuruKF.customer.like("%Urlaub%"))
         email_filters.append(EmailData.customer.like("%Urlaub%"))
     if "guru" in accessible_companies:
-        return accessible_companies, [], []
+        filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_5vf}%"))
+        filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_bild}%"))
+        filters.append(WorkflowReportGuruKF.customer.like(f"%Guru%"))
+        email_filters.append(EmailData.customer.like(f"%{filter_5vf}%"))
+        email_filters.append(EmailData.customer.like(f"%{filter_bild}%"))
+        email_filters.append(EmailData.customer.like(f"%Guru%"))
     
     return accessible_companies, filters, email_filters
 
@@ -753,7 +763,7 @@ def domains_checker_task(db, user_id, filter_5vf, filter_bild, target_company=No
             filters = [GuruTask.customer.like("%Urlaub%")]
         elif target_company.lower() in ["guru", "urlaubsguru"]:
             # For guru, assume no extra filter is applied.
-            filters = []
+            filters = [GuruTask.customer.like(f"%Guru%")]
         else:
             filters = []
         return accessible_companies, filters
@@ -777,7 +787,10 @@ def domains_checker_task(db, user_id, filter_5vf, filter_bild, target_company=No
         filters.append(GuruTask.customer.like("%Urlaub%"))
     if "guru" in accessible_companies:
         print("contains guru")
-        return accessible_companies, []
+        filters.append(GuruTask.customer.like(f"%{filter_5vf}%"))
+        filters.append(GuruTask.customer.like(f"%{filter_bild}%"))
+        filters.append(GuruTask.customer.like(f"%Guru%"))
+        # return accessible_companies, []
         
     return accessible_companies, filters
 
@@ -862,6 +875,12 @@ def domains_checker_booking(db, user_id, filter_5vf, filter_bild, target_company
         order_filters.append(GuruTask.customer.like("%Urlaub%"))
     if "guru" in accessible_companies:
         print("contains guru")
+        filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
+        order_filters.append(GuruTask.customer.like("%5VFL%"))
+        filters.append(SoftBookingKF.customer.like(f"%{filter_bild}%"))
+        order_filters.append(GuruTask.customer.like(f"%{filter_bild}%"))
+        filters.append(SoftBookingKF.customer.like(f"%Guru%"))
+        order_filters.append(GuruTask.customer.like(f"%Guru%"))
         return accessible_companies, [], []
         
     return accessible_companies, filters, order_filters
