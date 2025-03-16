@@ -273,25 +273,20 @@ async def get_calls(
                     "Daily Call Volume": []  
                 } 
         
-    #  if domain != "all":
-    #     if "Sales" in domain:
-    #         query = query.filter(QueueStatistics.queue_name.notlike(f"%Service%"))
-    #         summe_query = summe_query.filter(AllQueueStatisticsData.customer.notlike(f"%Service%"))
-    #         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-    #     elif "Service" in domain:
-    #         query = query.filter(QueueStatistics.queue_name.notlike(f"%Sales%"))
-    #         summe_query = summe_query.filter(AllQueueStatisticsData.customer.notlike(f"%Sales%"))
-    #         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-        
-    #     else:
-    #         query = query.filter(QueueStatistics.queue_name.notlike(f"%{domain}%"))
-    #         summe_query = summe_query.filter(AllQueueStatisticsData.customer.notlike(f"%{domain}%"))
-    #         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-        
     if domain != "all":
-        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
-        summe_query = summe_query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
-        total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+            summe_query = summe_query
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+        else:
+            query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+            summe_query = summe_query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+            total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+    
+    # if domain != "all":
+    #     query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+    #     summe_query = summe_query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+    #     total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     
     if start_date is None:
         # calls = db.query(QueueStatistics).filter(
@@ -397,6 +392,11 @@ async def get_calls(
                     "sla_percent": round(row.sla or 0, 2),
                     "asr": round(asr, 2)},
             })
+            
+    if "guru" in accessible_companies:
+        total_call_reasons = total_call_reasons
+    else:
+        total_call_reasons = 0
     
     return {
         "total_calls": calls, 
@@ -408,7 +408,7 @@ async def get_calls(
         "After call work time (min)": f"00:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)).zfill(2)}:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)).zfill(2)}",
         "avg handling time (min)": f"00:{str(int((avg_handling_time or 0) / 60)).zfill(2)}:{str(int((avg_handling_time or 0) % 60)).zfill(2)}",
         "avg wait time (dec)": round((get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60),2),
-        "max. wait time (dec)": round((get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60),2),
+        "max. wait time (dec)": (get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain)),
         "After call work time (dec)":round((get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60), 2),
         "avg handling time (dec)": round((avg_handling_time or 0) / 60, 2),
         "Dropped calls": int(dropped_calls or 0),
@@ -597,8 +597,13 @@ async def get_calls_sub_kpis(
                 }
 
             
-    if domain !="all":
-        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+    # if domain !="all":
+    #     query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
+    if domain != "all":
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+        else:
+            query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
         
 
     # start_date, end_date = get_date_subkpis("yesterday")
@@ -768,8 +773,7 @@ async def get_call_performance(
         )
         elif "Urlaubsguru" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%"),
-            QueueStatistics.queue_name.notlike("%BILD%")
+            QueueStatistics.queue_name.like(f"%guru%")
             )
         elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
@@ -888,7 +892,7 @@ async def get_call_performance(
                 )
             elif "Urlaub" in company and "Urlaub" in accessible_companies:
                 query = query.filter(
-                QueueStatistics.queue_name.like(f"%Urlaub%")  
+                QueueStatistics.queue_name.like(f"%Urlaub_de%")  
                 )
             else:
                 return {
@@ -905,23 +909,6 @@ async def get_call_performance(
             "others": get_call_reason_sum('other_guru', start_date=start_date, end_date=end_date)
         }
         
-        # Prepare queue-specific queries
-        # queues = [
-        #     ("Urlaubsguru AT", "Guru ServiceAT"),
-        #     ("Urlaubsguru DE", "Guru ServiceDE"),
-        #     ("Guru_ServiceAT_CB", "Guru ServiceAT_CB"),
-        #     ("Guru_ServiceDE_CB", "Guru ServiceDECB"),
-        #     ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
-        #     ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
-        #     ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
-        #     ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
-        #     ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
-        #     ("UGT Notfall","UGT Notfall"),
-        #     ("5vorFlugService", "5vorFlugService"),
-        #     ("5vorFlugSales", "5vorFlugSales"),
-        #     ("BILD Reisen Sales", "BILD Reisen Sales"),
-        #     ("GuruBILD_Service", "GuruBILD_Service")
-        # ]
         queues = [
             ("5vorFlug Service", "5vorFlug Service"),
             ("5vorFlug Sales", "5vorFlug Sales"),
@@ -960,11 +947,22 @@ async def get_call_performance(
             elif "5vorFlugSales" in queue_name:
                 queue_stats[f"{display_name} Calls"] = safe_sum_query((filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales"))), domain=domain)
                 queue_stats[f"{display_name} AHT"] = round(safe_avg_query(filter_query_by_date(query.filter(QueueStatistics.queue_name == "5vorFlugSales")), domain=domain) / 60, 2)
-        
+    
+        if "guru" in accessible_companies:
+            return {
+                "Call Reasons Breakdown": call_reasons,
+                "Call By queue": queue_stats
+            }  
+        # if accessible_companies in ["ADAC", "Galeria", "Urlaub"]:
+        if any(domain in ["ADAC", "Galeria", "Urlaub"] for domain in accessible_companies):
+            return {
+                "Call Reasons Breakdown": {},
+                "Call By queue": queue_stats
+            }
     return {
-        "Call Reasons Breakdown": call_reasons,
-        "Call By queue": queue_stats
-    }
+            "Call Reasons Breakdown": call_reasons,
+            "Call By queue": queue_stats
+        }    
 
 # @router.get("/call_performance")
 # async def get_call_performance(

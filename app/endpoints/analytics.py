@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, AllQueueStatisticsData, GuruCallReason, SoftBookingKF, User, Permission, BookingData, GuruTask
+from app.database.models.models import  EmailData, WorkflowReportGuruKF, QueueStatistics, AllQueueStatisticsData, GuruCallReason, SoftBookingKF, User, Permission, BookingData, GuruTask, BookingTracking
 from app.database.db.db_connection import  get_db, SessionLocal
 from datetime import datetime, timedelta, date
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_, case
 from collections import defaultdict
 from app.database.scehmas import schemas
 from app.database.auth import oauth2
@@ -254,15 +254,29 @@ async def get_anaytics_email_data(
                     "Processing Time Trend in seconds": [],
                     "Processing Count Trend": [],
                 }
-            
+    
     if domain != "all":
-        if domain=="Sales" :
-            query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
-            email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
-            
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+            email_query = email_query
+            # email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
         else:
-            query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
-            email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+            if domain=="Sales" :
+                query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+                email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+                
+            else:
+                query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+                email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+    
+    # if domain != "all":
+    #     if domain=="Sales" :
+    #         query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+    #         email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+            
+    #     else:
+    #         query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+    #         email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     
     # Retrieve data from database
     if start_date is None:
@@ -401,6 +415,16 @@ async def get_anaytics_email_data(
     
     total_processing_time_min += total_processing_time_seconds // 60
     
+    days_in_range = (end_date - start_date).days + 1
+    total_seconds = (total_processing_time_hour * 3600) + (total_processing_time_min * 60) + total_processing_time_seconds
+
+    # Divide the total seconds by days_in_range to get average seconds per day
+    avg_seconds_per_day = total_seconds / days_in_range
+
+    # Now convert avg_seconds_per_day back to hours, minutes, seconds
+    avg_hours = int(avg_seconds_per_day // 3600)
+    avg_minutes = int((avg_seconds_per_day % 3600) // 60)
+    avg_seconds = int(avg_seconds_per_day % 60)
     # print("Dwell min: ", total_dwell_min)
 
     processing_time_trend = [
@@ -451,7 +475,7 @@ async def get_anaytics_email_data(
         # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
         # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
         "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours/3), int(total_dwell_min/3), int(total_dwell_time_seconds/3)) if company == "all" else time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)),
-        "Total Processing Time (sec)": time_formatter(int(total_processing_time_hour/3), int(total_processing_time_mins/3), int(total_processing_time_sec/3)) if company == "all" else time_formatter(int(total_processing_time_hour), int(total_processing_time_mins), int(total_processing_time_sec)),
+        "Total Processing Time (sec)": time_formatter(avg_hours, avg_minutes, avg_seconds),
         "Total Dwell Time (dec)": round((int(total_dwell_hours/3)*3600+int(total_dwell_min/3)*60+int(total_dwell_time_seconds/3))/60,2) if company == "all" else round((int(total_dwell_hours)+int(total_dwell_min)+int(total_dwell_time_seconds))/60,2),
         "Total Processing Time (dec)": round((int(total_processing_time_hour/3)*3600+int(total_processing_time_mins/3)*60+int(total_processing_time_sec/3))/60,2) if company == "all" else round((int(total_processing_time_hour)+int(total_processing_time_mins)+int(total_processing_time_sec))/60,2),
         "Processing Time Trend in seconds": processing_time_trend,
@@ -597,8 +621,18 @@ async def get_anaytics_email_data_sub_kpis(
                 }
                         
     if domain != "all":
-        query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
-        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+            email_query = email_query
+            # email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        else:
+            if domain=="Sales" :
+                query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
+                email_query = email_query.filter(EmailData.customer.notlike(f"%Service%"))
+                
+            else:
+                query = query.filter(WorkflowReportGuruKF.customer.like(f"%{domain}%"))
+                email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
     # start_date, end_date = get_date_subkpis("yesterday")
     # prev_start_date, prev_end_date = get_date_subkpis("last_week")
     start_date, end_date, prev_start_date, prev_end_date = get_date_rng_subkpis(db=db, current_user=current_user, start_date=start_date, end_date=end_date)
@@ -693,69 +727,68 @@ async def get_sales_and_service(
     # Apply filtering logic
     if is_admin_or_employee :
         if "5vorflug" in company:
-            query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%5vorFlug%")  
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like("%5vFlug%")  
         )
         elif "Urlaubsguru" in company:
-            query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.notlike("%5vorFlug%"),
-            QueueStatistics.queue_name.notlike("%BILD%")
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Guru%")
             )
         elif "Bild" in company:
-            query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%BILD%")  
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like("%Bild%")  
         )
         elif "Galeria" in company:
-            query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%Galeria%")  
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Galeria%")  
         )
         elif "ADAC" in company:
-            query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%ADAC%")  
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%ADAC%")  
         )
         elif "Urlaub" in company:
-            query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%Urlaub_%")  
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%Urlaub%")  
         )
         else:
-            query = db.query(QueueStatistics)
+            query = db.query(AllQueueStatisticsData)
         total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         print("excecuted for admin or guru")
     else:
         accessible_companies, filters, summe_filters = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
         print("Accessible companies: ", accessible_companies)
-        if filters:
-            query = db.query(QueueStatistics).filter(or_(*filters))
+        if summe_filters:
+            query = db.query(AllQueueStatisticsData).filter(or_(*summe_filters))
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         else:
-            query = db.query(QueueStatistics)
+            query = db.query(AllQueueStatisticsData)
             total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
         
         if company != "all":
             if "5vorflug" in company and "5vorflug" in accessible_companies:
                 print("executing for 5vf")
-                query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
+                query = query.filter(AllQueueStatisticsData.customer.like(f"%5vFlug%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             elif "Urlaubsguru" in company and "guru" in accessible_companies:
                 print("executing for guru")
-                query = query.filter(QueueStatistics.queue_name.like(f"%guru%"))
+                query = query.filter(AllQueueStatisticsData.customer.like(f"%Guru%"))
                 
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             elif "Bild" in company and "bild" in accessible_companies:
                 print("executing for bild")
-                query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
+                query = query.filter(AllQueueStatisticsData.customer.like("%Bild%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             elif "Galeria" in company and "Galeria" in accessible_companies:
                 query = query.filter(
-                QueueStatistics.queue_name.like(f"%Galeria%")  
+                AllQueueStatisticsData.customer.like(f"%Galeria%")  
                 )
             elif "ADAC" in company and "ADAC" in accessible_companies:
                 query = query.filter(
-                QueueStatistics.queue_name.like(f"%ADAC%")  
+                AllQueueStatisticsData.customer.like(f"%ADAC%")  
                 )
             elif "Urlaub" in company and "Urlaub" in accessible_companies:
                 query = query.filter(
-                QueueStatistics.queue_name.like(f"%Urlaub_de%")  
+                AllQueueStatisticsData.customer.like(f"%Urlaub%")  
                 )
             else:
                 return {
@@ -780,96 +813,99 @@ async def get_sales_and_service(
                 }
 
     if domain != "all":
-        query = query.filter(QueueStatistics.queue_name.like(f"%{domain}%"))
-        email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+            # email_query = email_query.filter(EmailData.customer.like(f"%{domain}%"))
+        else:
+            query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     
     if start_date is None:
         avg_handling_time = query.with_entities(
         func.avg(
-            QueueStatistics.avg_handling_time_inbound
+            AllQueueStatisticsData.avg_handling_time_inbound
         )
         ).scalar() or 0
         
         total_talk_time = query.with_entities(
             func.sum(
-                QueueStatistics.total_outbound_talk_time_destination
+                AllQueueStatisticsData.total_outbound_talk_time_destination
             )
         ).scalar() or 0
         
         total_outbound_calls = query.with_entities(
             func.sum(
-                QueueStatistics.outbound
+                AllQueueStatisticsData.outbound
             )
         ).scalar() or 0
         
         # Query for Sale Calls
         sale_metrics = query.with_entities(
-            func.sum(QueueStatistics.offered).label("sale_calls_offered"),
-            func.sum(QueueStatistics.accepted).label("sale_calls_handled"),
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 1) * 100).label("sale_ACC"),
-            func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound ).label("sale_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time).label("sale_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("sale_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name.notlike("%Service%")).first()
+            func.sum(AllQueueStatisticsData.offered).label("sale_calls_offered"),
+            func.sum(AllQueueStatisticsData.accepted).label("sale_calls_handled"),
+            func.avg(AllQueueStatisticsData.accepted / func.nullif(AllQueueStatisticsData.offered, 1) * 100).label("sale_ACC"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("sale_SL"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound ).label("sale_AHT_sec"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("sale_longest_waiting_time_sec"),
+            func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination).label("sale_total_talk_time_sec")
+        ).filter(AllQueueStatisticsData.customer.like("%Sales%")).first()
         
         # Query for Service Calls
         service_metrics = query.with_entities(
-            func.sum(QueueStatistics.offered).label("service_calls_offered"),
-            func.sum(QueueStatistics.accepted).label("service_calls_handled"),
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 1) * 100).label("service_ACC"),
-            func.avg(QueueStatistics.sla_20_20).label("service_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound).label("service_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time).label("service_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name.like("%Service%")).first()
+            func.sum(AllQueueStatisticsData.offered).label("service_calls_offered"),
+            func.sum(AllQueueStatisticsData.accepted).label("service_calls_handled"),
+            func.avg(AllQueueStatisticsData.accepted / func.nullif(AllQueueStatisticsData.offered, 1) * 100).label("service_ACC"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("service_SL"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("service_AHT_sec"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("service_longest_waiting_time_sec"),
+            func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
+        ).filter(AllQueueStatisticsData.customer.like("%Service%")).first()
         
     else:
         avg_handling_time = query.with_entities(
             func.avg(
-                QueueStatistics.avg_handling_time_inbound
+                AllQueueStatisticsData.avg_handling_time_inbound
             )
         ).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         
         total_talk_time = query.with_entities(
             func.sum(
-                QueueStatistics.total_outbound_talk_time_destination
+                AllQueueStatisticsData.total_outbound_talk_time_destination
             )
         ).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         
         total_outbound_calls = query.with_entities(
             func.sum(
-                QueueStatistics.outbound
+                AllQueueStatisticsData.outbound
             )
         ).filter(
-            QueueStatistics.date.between(start_date, end_date)
+            AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
         
         # Query for Sale Calls
         sale_metrics = query.with_entities(
-            func.sum(QueueStatistics.offered).label("sale_calls_offered"),
-            func.sum(QueueStatistics.accepted).label("sale_calls_handled"),
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("sale_ACC"),
-            func.avg(QueueStatistics.sla_20_20).label("sale_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound).label("sale_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time).label("sale_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("sale_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name.notlike("%Service%"), QueueStatistics.date.between(start_date, end_date)).first()
+            func.sum(AllQueueStatisticsData.offered).label("sale_calls_offered"),
+            func.sum(AllQueueStatisticsData.accepted).label("sale_calls_handled"),
+            func.avg(AllQueueStatisticsData.accepted / func.nullif(AllQueueStatisticsData.offered, 0) * 100).label("sale_ACC"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("sale_SL"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("sale_AHT_sec"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("sale_longest_waiting_time_sec"),
+            func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination).label("sale_total_talk_time_sec")
+        ).filter(AllQueueStatisticsData.customer.notlike("%Service%"), AllQueueStatisticsData.date.between(start_date, end_date)).first()
         
         # Query for Service Calls
         service_metrics = query.with_entities(
-            func.sum(QueueStatistics.offered).label("service_calls_offered"),
-            func.sum(QueueStatistics.accepted).label("service_calls_handled"),
-            func.avg(QueueStatistics.accepted / func.nullif(QueueStatistics.offered, 0) * 100).label("service_ACC"),
-            func.avg(QueueStatistics.sla_20_20).label("service_SL"),
-            func.avg(QueueStatistics.avg_handling_time_inbound).label("service_AHT_sec"),
-            func.max(QueueStatistics.max_wait_time).label("service_longest_waiting_time_sec"),
-            func.sum(QueueStatistics.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
-        ).filter(QueueStatistics.queue_name.like("%Service%"), QueueStatistics.date.between(start_date, end_date)).first()
+            func.sum(AllQueueStatisticsData.offered).label("service_calls_offered"),
+            func.sum(AllQueueStatisticsData.accepted).label("service_calls_handled"),
+            func.avg(AllQueueStatisticsData.accepted / func.nullif(AllQueueStatisticsData.offered, 0) * 100).label("service_ACC"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("service_SL"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("service_AHT_sec"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("service_longest_waiting_time_sec"),
+            func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
+        ).filter(AllQueueStatisticsData.customer.like("%Service%"), AllQueueStatisticsData.date.between(start_date, end_date)).first()
     
     return {
         "sales_metrics": {
@@ -887,7 +923,7 @@ async def get_sales_and_service(
             "ACC": round(service_metrics.service_ACC or 0, 2),
             "SL": round(service_metrics.service_SL or 0, 2),
             "AHT_sec": round((service_metrics.service_AHT_sec/60 if service_metrics.service_AHT_sec else 0) or 0, 2),
-            "longest_waiting_time_sec": (service_metrics.service_longest_waiting_time_sec/60 if service_metrics.service_longest_waiting_time_sec else 0) or 0 or 0,
+            "longest_waiting_time_sec": round(service_metrics.service_longest_waiting_time_sec/60 if service_metrics.service_longest_waiting_time_sec else 0, 2) or 0 or 0,
             # "total_talk_time_sec": round((service_metrics.service_total_talk_time_sec/60 if service_metrics.service_total_talk_time_sec else 0) or 0, 2)
         },
         "average handling time": round(avg_handling_time/60 if avg_handling_time else 0,2),
@@ -1553,4 +1589,134 @@ async def get_conversion_data(
             "Sales Conversion": 100 if sales_conversion > 100 else sales_conversion
             }
         }  
+    }
+
+@router.get("/track_op_bookings")
+async def track_op_bookings(
+    start_date: Optional[date] = Query(None, description="Start date for tracking OP bookings."),
+    end_date: Optional[date] = Query(None, description="End date for tracking OP bookings."),
+    current_status: Optional[str] = Query(None, description="Current status for tracking OP bookings."),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(oauth2.get_current_user)
+):
+    """
+    Tracks OP bookings that have been updated to OK, RF, or XX and logs changes.
+    Returns booking number, new status, and change date.
+    """
+    current_user = db.query(User).filter(User.email == current_user.get("email")).first()
+    if not current_user or current_user.role.lower() != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can access this resource.")
+
+    op_bookings = db.query(SoftBookingKF.booking_number, SoftBookingKF.status) \
+        .filter(SoftBookingKF.status == "OP").all()
+
+    op_bookings_data = db.query(BookingData.crs_original_booking_number, BookingData.crs_status) \
+        .filter(BookingData.crs_status == "OP").all()
+
+    all_op_bookings = {b[0]: b[1] for b in op_bookings + op_bookings_data}  
+
+    # Step 2: Check for Updates
+    updated_bookings = []
+    for booking_number, old_status in all_op_bookings.items():
+        latest_status_entry = (
+            db.query(SoftBookingKF.status, SoftBookingKF.service_creation_time)
+            .filter(
+                and_(
+                    SoftBookingKF.booking_number == booking_number,
+                    SoftBookingKF.status.in_(["OK", "RF", "XX", "OP"])
+                )
+            )
+            .order_by(SoftBookingKF.service_creation_time.desc())  # Get the latest update
+            .first()
+        )
+
+        if not latest_status_entry:
+            latest_status_entry = (
+                db.query(BookingData.crs_status, BookingData.order_creation_time)
+                .filter(
+                    and_(
+                        BookingData.crs_original_booking_number == booking_number,
+                        BookingData.crs_status.in_(["OK", "RF", "XX"])
+                    )
+                )
+                .order_by(BookingData.order_creation_time.desc())
+                .first()
+            )
+
+        if latest_status_entry:
+            new_status, change_date = latest_status_entry 
+            # Check if this change is already recorded
+            existing_entry = db.query(BookingTracking).filter(
+                BookingTracking.booking_number == booking_number,
+                BookingTracking.current_status == new_status
+            ).first()
+
+            if not existing_entry:
+                # Step 3: Log the change in BookingTracking with the correct change date
+                tracking_entry = BookingTracking(
+                    booking_number=booking_number,
+                    previous_status="OP",
+                    current_status=new_status,
+                    change_date=change_date  
+                )
+                db.add(tracking_entry)
+                db.commit()
+                updated_bookings.append({
+                    "booking_number": booking_number,
+                    "current_status": new_status,
+                    "change_date": change_date 
+                }) 
+    status_order = {"OK": 1, "RF": 2, "XX": 3}
+    if start_date is None:
+        tracked_records = db.query(
+            BookingTracking.booking_number, 
+            BookingTracking.previous_status, 
+            BookingTracking.current_status, 
+            BookingTracking.change_date
+        ).order_by(case(
+            {status: order for status, order in status_order.items()},
+            value=BookingTracking.current_status
+        ).desc(), BookingTracking.change_date.desc()).all()
+    else:
+        start_date_booking = datetime.combine(start_date, datetime.min.time())
+        end_date_booking = datetime.combine(end_date, datetime.max.time())
+        if current_status is None:
+            tracked_records = db.query(
+                BookingTracking.booking_number, 
+                BookingTracking.previous_status, 
+                BookingTracking.current_status, 
+                BookingTracking.change_date
+            ).filter(
+                BookingTracking.change_date.between(start_date_booking, end_date_booking)
+                ).order_by(case(
+                {status: order for status, order in status_order.items()},
+                value=BookingTracking.current_status
+            ).desc(), BookingTracking.change_date.desc()).all()
+        else:
+            tracked_records = db.query(
+                BookingTracking.booking_number, 
+                BookingTracking.previous_status, 
+                BookingTracking.current_status, 
+                BookingTracking.change_date
+            ).filter(
+                BookingTracking.change_date.between(start_date_booking, end_date_booking),
+                BookingTracking.current_status.like(f"{current_status}")
+                ).order_by(case(
+                {status: order for status, order in status_order.items()},
+                value=BookingTracking.current_status
+            ).desc(), BookingTracking.change_date.desc()).all()
+            
+
+    response_data = [
+        {
+            "booking_number": record[0],
+            "previous_status": record[1],
+            "current_status": record[2],
+            "change_date": record[3]
+        }
+        for record in tracked_records
+    ]
+
+    return {
+        "tracked_op_bookings": response_data
     }

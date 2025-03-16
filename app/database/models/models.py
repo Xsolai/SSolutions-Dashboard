@@ -230,6 +230,14 @@ class SoftBookingKF(Base):
     service_creation_time = Column(DateTime, nullable=True)  # Leistung Anlagezeit
     service_original_amount = Column(Float, nullable=True)  # Leistung Originalbetrag
     
+class BookingTracking(Base):
+    __tablename__ = "booking_tracking"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_number = Column(String, nullable=False) 
+    previous_status = Column(String, nullable=False) 
+    current_status = Column(String, nullable=False) 
+    change_date = Column(DateTime, default=datetime.utcnow)  
     
 class FileProcessingHistory(Base):
     __tablename__ = "file_processing_history"
