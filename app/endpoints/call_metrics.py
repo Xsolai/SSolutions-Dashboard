@@ -373,7 +373,7 @@ async def get_calls(
             # print("Total calls: ", total_calls)
             answered_calls = int(row.answered_calls or 0)
             # print("Answered calls: ", answered_calls)
-            asr = (answered_calls / total_calls) * 100 if total_calls > 0 else 0
+            asr = (answered_calls / (total_calls if total_calls>0 else 1)) * 100 if total_calls > 0 else 0
             result.append({
                 "call metrics":{
                     "weekday": row.weekday,  # Convert weekday number to name
@@ -392,11 +392,6 @@ async def get_calls(
                     "sla_percent": round(row.sla or 0, 2),
                     "asr": round(asr, 2)},
             })
-            
-    if "guru" in accessible_companies:
-        total_call_reasons = total_call_reasons
-    else:
-        total_call_reasons = 0
     
     return {
         "total_calls": calls, 
