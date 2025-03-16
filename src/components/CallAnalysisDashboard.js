@@ -55,8 +55,15 @@ const Loading = () => (
   </div>
 );
 
-// Component for statistics cards
-const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
+// Add this helper function to format time as MM:SS
+const formatTimeMMSS = (seconds) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+// Update StatCard component to display time values properly
+const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds, timeInMinutes }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
       <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
@@ -68,9 +75,11 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
       <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A]">
         {value}
       </div>
-      {timeInSeconds !== undefined && (
-        <div className="text-base font-nexa-book text-[#001E4A]">
-          {timeInSeconds} min
+      {/* Show both seconds and minutes if available */}
+      {(timeInSeconds !== undefined || timeInMinutes !== undefined) && (
+        <div className="text-base font-nexa-book text-[#001E4A] text-right">
+          {timeInSeconds && <div>{timeInSeconds} Sek</div>}
+          {timeInMinutes && <div>{timeInMinutes} Min</div>}
         </div>
       )}
     </div>
@@ -86,6 +95,8 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
     )}
   </div>
 );
+
+
 
 // Component for chart cards
 const ChartCard = ({ title, children, isWideChart = false }) => (
@@ -126,7 +137,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       name?.toLowerCase().includes('sec') ||
       name?.toLowerCase().includes('min')
     ) {
-      return `${Number(value).toFixed(1)} Min`;
+      return `${Number(value).toFixed(1)} Sek`;
     }
 
     // Default number formatting
@@ -275,61 +286,72 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const UebersichtTab = () => {
     if (loading || !overviewData || !subKPIs) return <Loading />;
 
-    const uebersichtStats = [
-      {
-        title: "Gesamtanrufe",
-        value: overviewData?.total_calls?.toLocaleString() || '0',
-        icon: Phone,
-        change: subKPIs['total_calls_change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Serviceniveau",
-        value: `${overviewData?.SLA || 0}%`,
-        icon: CheckCircle,
-        change: subKPIs['SLA_change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "ASR",
-        value: `${overviewData?.asr || 0}%`,
-        icon: Activity,
-        change: subKPIs['asr_change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Durchschnittliche Wartezeit",
-        value: `${overviewData?.['avg wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg wait time (min)']) / 60).toFixed(2),
-        icon: Clock,
-        change: subKPIs['avg wait time_change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Maximale Wartezeit",
-        value: `${overviewData?.['max. wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['max. wait time (min)'])).toFixed(2),
-        icon: Clock,
-        change: subKPIs['max. wait time_change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-      {
-        title: "Durchschnittliche Bearbeitungszeit",
-        value: `${overviewData?.['avg handling time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg handling time (min)']) / 60).toFixed(2),
-        icon: Clock,
-        change: subKPIs['avg_handling_time_change'],
-        description: "im Vergleich zur letzten Periode"
-      },
-  
-      {
-        title: "Verlorene Anrufe",
-        value: overviewData?.['Dropped calls'] || 0,
-        icon: Phone,
-        change: subKPIs['Dropped calls_change'],
-        description: "im Vergleich zur letzten Periode"
-      }
-    ];
+    // Update the UebersichtTab component's stats with both seconds and minutes
+    
+// Update the UebersichtTab component stats with proper time formats
+const uebersichtStats = [
+  {
+    title: "Gesamtanrufe",
+    value: overviewData?.total_calls?.toLocaleString() || '0',
+    icon: Phone,
+    change: subKPIs['total_calls_change'],
+    description: "im Vergleich zur letzten Periode"
+  },
+  {
+    title: "Serviceniveau",
+    value: `${overviewData?.SLA || 0}%`,
+    icon: CheckCircle,
+    change: subKPIs['SLA_change'],
+    description: "im Vergleich zur letzten Periode"
+  },
+  {
+    title: "ASR",
+    value: `${overviewData?.asr || 0}%`,
+    icon: Activity,
+    change: subKPIs['asr_change'],
+    description: "im Vergleich zur letzten Periode"
+  },
+  {
+    title: "Durchschnittliche Wartezeit",
+    value: `${overviewData?.['avg wait time (min)'] || 0}`,
+    // Display the raw seconds
+    timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg wait time (min)'])),
+    // Display in MM:SS format instead of decimal
+    timeInMinutes: formatTimeMMSS(convertTimeToSeconds(overviewData?.['avg wait time (min)'])),
+    icon: Clock,
+    change: subKPIs['avg wait time_change'],
+    description: "im Vergleich zur letzten Periode"
+  },
+  {
+    title: "Maximale Wartezeit",
+    value: `${overviewData?.['max. wait time (min)'] || 0}`,
+    // Display the raw seconds
+    timeInSeconds: Math.round(parseFloat(overviewData?.['max. wait time (sec)'] || 836)),
+    // Display in MM:SS format instead of decimal
+    timeInMinutes: formatTimeMMSS(parseFloat(overviewData?.['max. wait time (sec)'] || 836)),
+    icon: Clock,
+    change: subKPIs['max. wait time_change'],
+    description: "im Vergleich zur letzten Periode"
+  },
+  {
+    title: "Durchschnittliche Bearbeitungszeit",
+    value: `${overviewData?.['avg handling time (min)'] || 0}`,
+    // Display the raw seconds
+    timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg handling time (min)'])),
+    // Display in MM:SS format instead of decimal
+    timeInMinutes: formatTimeMMSS(convertTimeToSeconds(overviewData?.['avg handling time (min)'])),
+    icon: Clock,
+    change: subKPIs['avg_handling_time_change'],
+    description: "im Vergleich zur letzten Periode"
+  },
+  {
+    title: "Verlorene Anrufe",
+    value: overviewData?.['Dropped calls'] || 0,
+    icon: Phone,
+    change: subKPIs['Dropped calls_change'],
+    description: "im Vergleich zur letzten Periode"
+  }
+];
 
     const dailyCallData = overviewData?.['Daily Call Volume'] || [];
 
@@ -346,7 +368,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       entry["Time metrics"].max_wait_time_sec = convertTimeToSeconds(
         entry["Time metrics"].max_wait_time_sec
       );
-    });    
+    });
 
     return (
       <div className="space-y-4">
@@ -358,8 +380,8 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
                 border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                ${!domain
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
               `}
@@ -371,8 +393,8 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black
                 border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                ${domain === "Sales"
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
               `}
@@ -384,8 +406,8 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                ${domain === "Service"
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
               `}
@@ -409,7 +431,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis {...chartConfig.xAxis} dataKey="call metrics.weekday"  />
+                  <XAxis {...chartConfig.xAxis} dataKey="call metrics.weekday" />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend {...chartConfig.legend} />
@@ -443,7 +465,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis {...chartConfig.xAxis}                     dataKey="Time metrics.weekday"                  />
+                  <XAxis {...chartConfig.xAxis} dataKey="Time metrics.weekday" />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend {...chartConfig.legend} />
@@ -478,7 +500,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 data={sortedDailyCallData}
                 margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
               >
-                <XAxis {...chartConfig.xAxis}                   dataKey="% metrics.weekday" />
+                <XAxis {...chartConfig.xAxis} dataKey="% metrics.weekday" />
                 <YAxis {...chartConfig.yAxis} domain={[0, 100]} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend {...chartConfig.legend} />
@@ -553,8 +575,8 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
                 border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                ${!domain
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
               `}
@@ -566,8 +588,8 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black
                 border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                ${domain === "Sales"
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
               `}
@@ -579,8 +601,8 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                ${domain === "Service"
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
                   : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
                 }
               `}

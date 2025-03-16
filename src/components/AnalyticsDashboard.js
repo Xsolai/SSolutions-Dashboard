@@ -219,9 +219,21 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
   }, [dateRange, selectedCompany]);
 
     
+// Modified SalesServiceTab to conditionally show toggle based on company
 const SalesServiceTab = () => {
   const [showSales, setShowSales] = useState(true);
   if (!data.salesServiceData) return <Loading />;
+
+  // List of clients that should only have Sales view (no Service toggle)
+  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
+  const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
+
+  // If client is in our restricted list, force sales view
+  useEffect(() => {
+    if (isSalesOnlyClient) {
+      setShowSales(true);
+    }
+  }, [selectedCompany, isSalesOnlyClient]);
 
   const defaultMetrics = {
     calls_offered: 0,
@@ -267,37 +279,39 @@ const SalesServiceTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Toggle Button */}
-      <div className="flex justify-end mb-6">
-        <div className="inline-flex rounded-lg shadow-sm" role="group">
-          <button
-            onClick={() => setShowSales(true)}
-            className={`
-              px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-              border transition-all duration-200
-              ${showSales 
-                ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-              }
-            `}
-          >
-            Vertrieb
-          </button>
-          <button
-            onClick={() => setShowSales(false)}
-            className={`
-              px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-              border-t border-b border-r transition-all duration-200
-              ${!showSales 
-                ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-              }
-            `}
-          >
-            Service
-          </button>
+      {/* Toggle Button - Only show if not a sales-only client */}
+      {!isSalesOnlyClient && (
+        <div className="flex justify-end mb-6">
+          <div className="inline-flex rounded-lg shadow-sm" role="group">
+            <button
+              onClick={() => setShowSales(true)}
+              className={`
+                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+                border transition-all duration-200
+                ${showSales 
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                }
+              `}
+            >
+              Vertrieb
+            </button>
+            <button
+              onClick={() => setShowSales(false)}
+              className={`
+                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+                border-t border-b border-r transition-all duration-200
+                ${!showSales 
+                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
+                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                }
+              `}
+            >
+              Service
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -337,8 +351,7 @@ const SalesServiceTab = () => {
                   tick={{ fill: '#001E4A' }}
                   fontFamily="Nexa-Book"
                 />
-                  <Tooltip content={<CustomTooltip />} />
-
+                <Tooltip content={<CustomTooltip />} />
                 <Legend 
                   wrapperStyle={{
                     fontFamily: 'Nexa-Book',
@@ -367,7 +380,6 @@ const SalesServiceTab = () => {
                   domain={[0, 100]}
                 />
                 <Tooltip content={<CustomTooltip />} />
-
                 <Legend 
                   wrapperStyle={{
                     fontFamily: 'Nexa-Book',
@@ -395,7 +407,6 @@ const SalesServiceTab = () => {
                   fontFamily="Nexa-Book"
                 />
                 <Tooltip content={<CustomTooltip />} />
-
                 <Legend 
                   wrapperStyle={{
                     fontFamily: 'Nexa-Book',
@@ -412,6 +423,7 @@ const SalesServiceTab = () => {
     </div>
   );
 };
+
 
 const BookingTab = () => {
   if (!data.bookingData || !data.bookingSubKPIs) return <Loading />;
@@ -563,6 +575,11 @@ const BookingTab = () => {
 
   
 const ConversionTab = () => {
+  const [bookingData, setBookingData] = useState([]);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [currentStatusFilter, setCurrentStatusFilter] = useState("OP");
+  const [lastFetchParams, setLastFetchParams] = useState(null);
+
   if (!data.conversionData) return <Loading />;
 
   const conversionData = data.conversionData || {};
@@ -570,13 +587,6 @@ const ConversionTab = () => {
   const salesData = conversionData?.['Conversion Performance']?.Sales || {};
   const cbMetrics = conversionData?.['sales_effective_calls'] || {};
   const salesMetrics = conversionData?.Sales || {};
-
-  const cbChartData = [{
-    bookings: cbData?.['Bookings CB'] || 0,
-    wrong: cbData?.['Wrong calls'] || 0,
-    handled: cbData?.['CB calls handled'] || 0,
-    conversion: cbMetrics || 0
-  }];
 
   const salesChartData = [{
     bookings: salesData?.['Bookings Sales'] || 0,
@@ -590,18 +600,152 @@ const ConversionTab = () => {
     tick: { 
       fill: '#001E4A', 
       fontFamily: 'Nexa-Book',
-      fontSize: '14px'  // Increased font size
+      fontSize: '14px'
     }
   };
 
+  // Optimized fetch function with debounce and caching
+  useEffect(() => {
+    // Skip initial render or when date range is not set
+    if (!dateRange.startDate || !dateRange.endDate) return;
+    
+    // Create a string representation of fetch parameters for comparison
+    const fetchParamsString = JSON.stringify({
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      currentStatusFilter,
+      selectedCompany
+    });
+    
+    // Skip if parameters haven't changed (prevents duplicate fetches)
+    if (fetchParamsString === lastFetchParams) return;
+    
+    // Create debounced fetch
+    const debouncedFetch = setTimeout(async () => {
+      setBookingLoading(true);
+      
+      const formatDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+
+      const queryString = new URLSearchParams({
+        start_date: formatDate(dateRange.startDate),
+        end_date: formatDate(dateRange.endDate),
+        current_status: currentStatusFilter,
+        ...(selectedCompany && { company: selectedCompany })
+      }).toString();
+
+      try {
+        // Using AbortController to cancel pending requests if component unmounts
+        const controller = new AbortController();
+        const signal = controller.signal;
+        
+        const response = await fetch(`https://solasolution.ecomtask.de/track_op_bookings?${queryString}`, {
+          ...config,
+          signal,
+          // Setting cache control headers
+          headers: {
+            ...config.headers,
+            'Cache-Control': 'max-age=300' // Cache for 5 minutes
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setBookingData(data.tracked_op_bookings || []);
+        
+        // Store params to prevent duplicate fetches
+        setLastFetchParams(fetchParamsString);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching booking data:', error);
+        }
+      } finally {
+        setBookingLoading(false);
+      }
+    }, 300); // 300ms debounce
+    
+    // Clean up the timeout on unmount or before next effect run
+    return () => clearTimeout(debouncedFetch);
+  }, [dateRange, currentStatusFilter, selectedCompany, lastFetchParams]);
+
+  // Status filter options
+  const statusOptions = [
+    { value: "OP", label: "Optional" },
+    { value: "OK", label: "Bestätigt" },
+    { value: "XX", label: "Storniert" },
+    { value: "RF", label: "Zurückerstattet" }
+  ];
+
+  // Format date for display
+  const formatDisplayDate = (dateString) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  // Progressive loading for table rows (improves rendering performance)
+  const renderTableRows = () => {
+    if (bookingData.length === 0) {
+      return (
+        <tr>
+          <td colSpan="4" className="p-8 text-center text-[15px] font-nexa-book text-[#001E4A]/70">
+            Keine Buchungsdaten für den ausgewählten Zeitraum und Status verfügbar.
+          </td>
+        </tr>
+      );
+    }
+    
+    return bookingData.map((booking, index) => (
+      <tr 
+        key={`${booking.booking_number}-${index}`}
+        className={`hover:bg-[#F0B72F]/10 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-[#E6E2DF]/10'}`}
+      >
+        <td className="p-3 text-[15px] font-nexa-book text-[#001E4A] border-b border-[#E6E2DF]">
+          {booking.booking_number}
+        </td>
+        <td className="p-3 text-[15px] font-nexa-book text-[#001E4A] border-b border-[#E6E2DF]">
+          <span className={`px-2 py-1 rounded-md text-xs font-nexa-black ${
+            booking.previous_status === 'OP' ? 'bg-[#F0B72F]/20 text-[#001E4A]' :
+            booking.previous_status === 'OK' ? 'bg-green-100 text-green-800' :
+            booking.previous_status === 'XX' ? 'bg-red-100 text-red-800' :
+            booking.previous_status === 'RF' ? 'bg-purple-100 text-purple-800' :
+            'bg-gray-100 text-gray-800'
+          }`}>
+            {booking.previous_status}
+          </span>
+        </td>
+        <td className="p-3 text-[15px] font-nexa-book text-[#001E4A] border-b border-[#E6E2DF]">
+          <span className={`px-2 py-1 rounded-md text-xs font-nexa-black ${
+            booking.current_status === 'OP' ? 'bg-[#F0B72F]/20 text-[#001E4A]' :
+            booking.current_status === 'OK' ? 'bg-green-100 text-green-800' :
+            booking.current_status === 'XX' ? 'bg-red-100 text-red-800' :
+            booking.current_status === 'RF' ? 'bg-purple-100 text-purple-800' :
+            'bg-gray-100 text-gray-800'
+          }`}>
+            {booking.current_status}
+          </span>
+        </td>
+        <td className="p-3 text-[15px] font-nexa-book text-[#001E4A] border-b border-[#E6E2DF]">
+          {formatDisplayDate(booking.change_date)}
+        </td>
+      </tr>
+    ));
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* <StatCard
-          title="Verkaufswirksame Anrufe"
-          value={`${cbMetrics?.['CB Conversion']?.toFixed(1) || '0'}%`}
-          icon={TrendingUp}
-        /> */}
         <StatCard
           title="Vertrieb Konversion"
           value={`${salesMetrics?.['Sales Conversion']?.toFixed(1) || '0'}%`}
@@ -614,52 +758,9 @@ const ConversionTab = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
-        {/* <ChartCard title="CB Leistung">
-          <div className="h-[300px]">
-            <ResponsiveContainer>
-              <ComposedChart data={cbChartData}>
-                <XAxis 
-                  dataKey="name" 
-                  {...axisStyle}
-                />
-                <YAxis 
-                  yAxisId="left" 
-                  {...axisStyle}
-                />
-                <YAxis 
-                  yAxisId="right" 
-                  orientation="right" 
-                  domain={[0, 100]}
-                  {...axisStyle}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  wrapperStyle={{
-                    fontFamily: 'Nexa-Book',
-                    fontSize: '14px',  // Increased legend font size
-                    paddingTop: '10px'  // Added padding for better spacing
-                  }}
-                />
-                <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="left" dataKey="wrong" name="Falsche Anrufe" fill={colors.danger} radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="left" dataKey="handled" name="Bearbeitete Anrufe" fill={colors.primary} radius={[4, 4, 0, 0]} />
-                <Line 
-                  yAxisId="right" 
-                  type="monotone" 
-                  dataKey="conversion" 
-                  name="Konversionsrate %" 
-                  stroke={colors.accent} 
-                  strokeWidth={2} 
-                  dot={{ fill: colors.accent, r: 5 }}  // Increased dot size
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard> */}
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title="Vertrieb Leistung">
-          <div className="h-[300px]"> {/* Increased height for better visibility */}
+          <div className="h-[400px]">
             <ResponsiveContainer>
               <ComposedChart data={salesChartData}>
                 <XAxis 
@@ -680,8 +781,8 @@ const ConversionTab = () => {
                 <Legend 
                   wrapperStyle={{
                     fontFamily: 'Nexa-Book',
-                    fontSize: '14px',  // Increased legend font size
-                    paddingTop: '10px'  // Added padding for better spacing
+                    fontSize: '14px',
+                    paddingTop: '10px'
                   }}
                 />
                 <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
@@ -695,11 +796,71 @@ const ConversionTab = () => {
                   name="Konversionsrate %" 
                   stroke={colors.accent} 
                   strokeWidth={2} 
-                  dot={{ fill: colors.accent, r: 5 }}  // Increased dot size
+                  dot={{ fill: colors.accent, r: 5 }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+        </ChartCard>
+        
+        {/* Optimized Tracked Bookings Section */}
+        <ChartCard title="Buchungsverfolgung">
+          <div className="mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h4 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">
+                Status Filter:
+              </h4>
+              <select
+                value={currentStatusFilter}
+                onChange={(e) => setCurrentStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-[#E6E2DF] rounded-md text-[15px] leading-[24px] font-nexa-book text-[#001E4A] focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
+              >
+                {statusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {bookingLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="p-4 rounded-full bg-[#F0B72F]/10">
+                <div className="w-8 h-8 border-4 border-[#F0B72F] border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-[330px] overflow-y-auto">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="bg-[#E6E2DF]/30">
+                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                      Buchungsnummer
+                    </th>
+                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                      Vorheriger Status
+                    </th>
+                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                      Aktueller Status
+                    </th>
+                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                      Änderungsdatum
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {renderTableRows()}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          {bookingData.length > 0 && (
+            <div className="mt-4 text-right text-[15px] font-nexa-book text-[#001E4A]/70">
+              {bookingData.length} Buchungen gefunden
+            </div>
+          )}
         </ChartCard>
       </div>
     </div>
@@ -707,8 +868,14 @@ const ConversionTab = () => {
 };
 
 
+const salesOnlyClients = ['Galeria', 'Adac', 'Urlaub'];
+const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
+
   const tabs = [
-    { id: "sales", name: "Vertrieb & Service" },
+    { 
+      id: "sales", 
+      name: isSalesOnlyClient ? "Vertrieb" : "Vertrieb & Service" 
+    },  
     { id: "booking", name: "Softbuchungen" },
     { id: "conversion", name: "Konversion" },
   ];
