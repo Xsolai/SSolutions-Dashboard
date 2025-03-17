@@ -711,9 +711,9 @@ const ConversionTab = ({ dateRange, selectedCompany }) => {
   // Status filter options
   const statusOptions = [
     { value: "OP", label: "Optional" },
-    { value: "OK", label: "Bestätigt" },
+    { value: "OK", label: "Bestätigt (OK)" },
     { value: "XX", label: "Storniert" },
-    { value: "RF", label: "Zurückerstattet" }
+    { value: "RF", label: "Bestätigt (RF)" }  // Updated label
   ];
 
   // Format date for display
