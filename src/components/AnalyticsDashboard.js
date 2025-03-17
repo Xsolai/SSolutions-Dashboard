@@ -903,7 +903,7 @@ const ConversionTab = ({ dateRange, selectedCompany }) => {
   );
 };
 
-const salesOnlyClients = ['Galeria', 'Adac', 'Urlaub'];
+const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
 const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
 
   const tabs = [
