@@ -574,11 +574,45 @@ const BookingTab = () => {
 };
 
   
-const ConversionTab = () => {
+const ConversionTab = ({ dateRange, selectedCompany }) => {
   const [bookingData, setBookingData] = useState([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [currentStatusFilter, setCurrentStatusFilter] = useState("OP");
   const [lastFetchParams, setLastFetchParams] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const access_token = localStorage.getItem('access_token');
+  const config = {
+    headers: {
+      'Authorization': `Bearer ${access_token}`
+    }
+  };
+
+  // Check if user is admin via API
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const response = await fetch("https://solasolution.ecomtask.de/profile", {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setIsAdmin(userData.role && userData.role.toLowerCase() === 'admin');
+        } else {
+          console.error("Failed to fetch user profile");
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error("Error checking user role:", error);
+        setIsAdmin(false);
+      }
+    };
+    
+    checkUserRole();
+  }, [access_token]);
 
   if (!data.conversionData) return <Loading />;
 
@@ -604,10 +638,10 @@ const ConversionTab = () => {
     }
   };
 
-  // Optimized fetch function with debounce and caching
+  // Optimized fetch function with debounce and caching - only for admins
   useEffect(() => {
-    // Skip initial render or when date range is not set
-    if (!dateRange.startDate || !dateRange.endDate) return;
+    // Skip if not admin or date range not set
+    if (!isAdmin || !dateRange || !dateRange.startDate || !dateRange.endDate) return;
     
     // Create a string representation of fetch parameters for comparison
     const fetchParamsString = JSON.stringify({
@@ -672,7 +706,7 @@ const ConversionTab = () => {
     
     // Clean up the timeout on unmount or before next effect run
     return () => clearTimeout(debouncedFetch);
-  }, [dateRange, currentStatusFilter, selectedCompany, lastFetchParams]);
+  }, [dateRange, currentStatusFilter, selectedCompany, lastFetchParams, isAdmin]);
 
   // Status filter options
   const statusOptions = [
@@ -758,8 +792,8 @@ const ConversionTab = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Vertrieb Leistung">
+      <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-4`}>
+      <ChartCard title="Vertrieb Leistung">
           <div className="h-[400px]">
             <ResponsiveContainer>
               <ComposedChart data={salesChartData}>
@@ -803,70 +837,71 @@ const ConversionTab = () => {
           </div>
         </ChartCard>
         
-        {/* Optimized Tracked Bookings Section */}
-        <ChartCard title="Buchungsverfolgung">
-          <div className="mb-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h4 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">
-                Status Filter:
-              </h4>
-              <select
-                value={currentStatusFilter}
-                onChange={(e) => setCurrentStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-[#E6E2DF] rounded-md text-[15px] leading-[24px] font-nexa-book text-[#001E4A] focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {bookingLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="p-4 rounded-full bg-[#F0B72F]/10">
-                <div className="w-8 h-8 border-4 border-[#F0B72F] border-t-transparent rounded-full animate-spin"></div>
+        {/* Optimized Tracked Bookings Section - Only shown for admins */}
+        {isAdmin && (
+          <ChartCard title="Buchungsverfolgung">
+            <div className="mb-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h4 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">
+                  Status Filter:
+                </h4>
+                <select
+                  value={currentStatusFilter}
+                  onChange={(e) => setCurrentStatusFilter(e.target.value)}
+                  className="px-4 py-2 border border-[#E6E2DF] rounded-md text-[15px] leading-[24px] font-nexa-book text-[#001E4A] focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          ) : (
-            <div className="h-[330px] overflow-y-auto">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 bg-white z-10">
-                  <tr className="bg-[#E6E2DF]/30">
-                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
-                      Buchungsnummer
-                    </th>
-                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
-                      Vorheriger Status
-                    </th>
-                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
-                      Aktueller Status
-                    </th>
-                    <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
-                      Änderungsdatum
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {renderTableRows()}
-                </tbody>
-              </table>
-            </div>
-          )}
-          
-          {bookingData.length > 0 && (
-            <div className="mt-4 text-right text-[15px] font-nexa-book text-[#001E4A]/70">
-              {bookingData.length} Buchungen gefunden
-            </div>
-          )}
-        </ChartCard>
+
+            {bookingLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="p-4 rounded-full bg-[#F0B72F]/10">
+                  <div className="w-8 h-8 border-4 border-[#F0B72F] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[330px] overflow-y-auto">
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 bg-white z-10">
+                    <tr className="bg-[#E6E2DF]/30">
+                      <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                        Buchungsnummer
+                      </th>
+                      <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                        Vorheriger Status
+                      </th>
+                      <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                        Aktueller Status
+                      </th>
+                      <th className="p-3 text-left text-[15px] font-nexa-black text-[#001E4A] border-b border-[#E6E2DF]">
+                        Änderungsdatum
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renderTableRows()}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            {bookingData.length > 0 && (
+              <div className="mt-4 text-right text-[15px] font-nexa-book text-[#001E4A]/70">
+                {bookingData.length} Buchungen gefunden
+              </div>
+            )}
+          </ChartCard>
+        )}
       </div>
     </div>
   );
 };
-
 
 const salesOnlyClients = ['Galeria', 'Adac', 'Urlaub'];
 const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);

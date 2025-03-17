@@ -55,14 +55,6 @@ const Loading = () => (
   </div>
 );
 
-// Add this helper function to format time as MM:SS
-const formatTimeMMSS = (seconds) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-
-// Update StatCard component to display time values properly
 const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds, timeInMinutes }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
@@ -78,8 +70,8 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
       {/* Show both seconds and minutes if available */}
       {(timeInSeconds !== undefined || timeInMinutes !== undefined) && (
         <div className="text-base font-nexa-book text-[#001E4A] text-right">
-          {timeInSeconds && <div>{timeInSeconds} Sek</div>}
-          {timeInMinutes && <div>{timeInMinutes} Min</div>}
+          {timeInSeconds && <div>{timeInSeconds} sek</div>}
+          {timeInMinutes && <div>{timeInMinutes} min</div>}
         </div>
       )}
     </div>
@@ -95,8 +87,6 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
     )}
   </div>
 );
-
-
 
 // Component for chart cards
 const ChartCard = ({ title, children, isWideChart = false }) => (
@@ -286,72 +276,66 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const UebersichtTab = () => {
     if (loading || !overviewData || !subKPIs) return <Loading />;
 
-    // Update the UebersichtTab component's stats with both seconds and minutes
-    
-// Update the UebersichtTab component stats with proper time formats
-const uebersichtStats = [
-  {
-    title: "Gesamtanrufe",
-    value: overviewData?.total_calls?.toLocaleString() || '0',
-    icon: Phone,
-    change: subKPIs['total_calls_change'],
-    description: "im Vergleich zur letzten Periode"
-  },
-  {
-    title: "Serviceniveau",
-    value: `${overviewData?.SLA || 0}%`,
-    icon: CheckCircle,
-    change: subKPIs['SLA_change'],
-    description: "im Vergleich zur letzten Periode"
-  },
-  {
-    title: "ASR",
-    value: `${overviewData?.asr || 0}%`,
-    icon: Activity,
-    change: subKPIs['asr_change'],
-    description: "im Vergleich zur letzten Periode"
-  },
-  {
-    title: "Durchschnittliche Wartezeit",
-    value: `${overviewData?.['avg wait time (min)'] || 0}`,
-    // Display the raw seconds
-    timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg wait time (min)'])),
-    // Display in MM:SS format instead of decimal
-    timeInMinutes: formatTimeMMSS(convertTimeToSeconds(overviewData?.['avg wait time (min)'])),
-    icon: Clock,
-    change: subKPIs['avg wait time_change'],
-    description: "im Vergleich zur letzten Periode"
-  },
-  {
-    title: "Maximale Wartezeit",
-    value: `${overviewData?.['max. wait time (min)'] || 0}`,
-    // Display the raw seconds
-    timeInSeconds: Math.round(parseFloat(overviewData?.['max. wait time (sec)'] || 836)),
-    // Display in MM:SS format instead of decimal
-    timeInMinutes: formatTimeMMSS(parseFloat(overviewData?.['max. wait time (sec)'] || 836)),
-    icon: Clock,
-    change: subKPIs['max. wait time_change'],
-    description: "im Vergleich zur letzten Periode"
-  },
-  {
-    title: "Durchschnittliche Bearbeitungszeit",
-    value: `${overviewData?.['avg handling time (min)'] || 0}`,
-    // Display the raw seconds
-    timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg handling time (min)'])),
-    // Display in MM:SS format instead of decimal
-    timeInMinutes: formatTimeMMSS(convertTimeToSeconds(overviewData?.['avg handling time (min)'])),
-    icon: Clock,
-    change: subKPIs['avg_handling_time_change'],
-    description: "im Vergleich zur letzten Periode"
-  },
-  {
-    title: "Verlorene Anrufe",
-    value: overviewData?.['Dropped calls'] || 0,
-    icon: Phone,
-    change: subKPIs['Dropped calls_change'],
-    description: "im Vergleich zur letzten Periode"
-  }
-];
+    const uebersichtStats = [
+      {
+        title: "Gesamtanrufe",
+        value: overviewData?.total_calls?.toLocaleString() || '0',
+        icon: Phone,
+        change: subKPIs['total_calls_change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Serviceniveau",
+        value: `${overviewData?.SLA || 0}%`,
+        icon: CheckCircle,
+        change: subKPIs['SLA_change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "ASR",
+        value: `${overviewData?.asr || 0}%`,
+        icon: Activity,
+        change: subKPIs['asr_change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Durchschnittliche Wartezeit",
+        value: `${overviewData?.['avg wait time (min)'] || 0}`,
+        // Calculate both seconds and minutes
+        timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg wait time (min)'])),
+        timeInMinutes: (convertTimeToSeconds(overviewData?.['avg wait time (min)']) / 60).toFixed(2),
+        icon: Clock,
+        change: subKPIs['avg wait time_change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Maximale Wartezeit",
+        value: `${overviewData?.['max. wait time (min)'] || 0}`,
+        // For max wait time, provide both formats
+        timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['max. wait time (dec)'])),
+        timeInMinutes: (convertTimeToSeconds(overviewData?.['max. wait time (dec)']) / 60).toFixed(2),
+        icon: Clock,
+        change: subKPIs['max. wait time_change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Durchschnittliche Bearbeitungszeit",
+        value: `${overviewData?.['avg handling time (min)'] || 0}`,
+        // Calculate both seconds and minutes
+        timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg handling time (min)'])),
+        timeInMinutes: (convertTimeToSeconds(overviewData?.['avg handling time (min)']) / 60).toFixed(2),
+        icon: Clock,
+        change: subKPIs['avg_handling_time_change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Verlorene Anrufe",
+        value: overviewData?.['Dropped calls'] || 0,
+        icon: Phone,
+        change: subKPIs['Dropped calls_change'],
+        description: "im Vergleich zur letzten Periode"
+      }
+    ];
 
     const dailyCallData = overviewData?.['Daily Call Volume'] || [];
 

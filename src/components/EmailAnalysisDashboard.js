@@ -237,7 +237,8 @@ const UebersichtTab = () => {
   const slGross = emailData['SL Gross'] || 0;
   const processingTime = emailData['Total Dwell Time (sec)'] || 0;
   const totalProcessingTime = emailData['Total Processing Time (sec)'] || 0;
-  const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
+  // updated below
+  const processedTimeData = overviewData['Processing Time Trend in seconds'] || [];
 
   const processedTimeDataConverted = processedTimeData.map((item) => ({
     ...item,
