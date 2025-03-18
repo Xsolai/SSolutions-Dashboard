@@ -209,6 +209,17 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     { id: "performance", name: "Leistungsmetriken" }
   ];
 
+  // List of clients that should only have Sales view (no Service toggle)
+  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
+  const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
+
+  // If client is in our restricted list, force sales view
+  useEffect(() => {
+    if (isSalesOnlyClient) {
+      setDomain("Sales");
+    }
+  }, [selectedCompany, isSalesOnlyClient]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -357,49 +368,52 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     return (
       <div className="space-y-4">
         {/* Toggle Button */}
-        <div className="flex justify-end mb-6">
-          <div className="inline-flex rounded-lg shadow-sm" role="group">
-            <button
-              onClick={() => setDomain(null)}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-                border transition-all duration-200
-                ${!domain
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Alle
-            </button>
-            <button
-              onClick={() => setDomain("Sales")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black
-                border transition-all duration-200
-                ${domain === "Sales"
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setDomain("Service")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-                border-t border-b border-r transition-all duration-200
-                ${domain === "Service"
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Service
-            </button>
+        {/* Toggle Button */}
+        {!isSalesOnlyClient && (
+          <div className="flex justify-end mb-6">
+            <div className="inline-flex rounded-lg shadow-sm" role="group">
+              <button
+                onClick={() => setDomain(null)}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+          border transition-all duration-200
+          ${!domain
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Alle
+              </button>
+              <button
+                onClick={() => setDomain("Sales")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black
+          border transition-all duration-200
+          ${domain === "Sales"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Vertrieb
+              </button>
+              <button
+                onClick={() => setDomain("Service")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+          border-t border-b border-r transition-all duration-200
+          ${domain === "Service"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Service
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {uebersichtStats.map((stat, index) => (
@@ -552,49 +566,52 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     return (
       <div className="space-y-6">
         {/* Toggle Button */}
-        <div className="flex justify-end mb-6">
-          <div className="inline-flex rounded-lg shadow-sm" role="group">
-            <button
-              onClick={() => setDomain(null)}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-                border transition-all duration-200
-                ${!domain
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Alle
-            </button>
-            <button
-              onClick={() => setDomain("Sales")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black
-                border transition-all duration-200
-                ${domain === "Sales"
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setDomain("Service")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-                border-t border-b border-r transition-all duration-200
-                ${domain === "Service"
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Service
-            </button>
+        {/* Toggle Button */}
+        {!isSalesOnlyClient && (
+          <div className="flex justify-end mb-6">
+            <div className="inline-flex rounded-lg shadow-sm" role="group">
+              <button
+                onClick={() => setDomain(null)}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+          border transition-all duration-200
+          ${!domain
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Alle
+              </button>
+              <button
+                onClick={() => setDomain("Sales")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black
+          border transition-all duration-200
+          ${domain === "Sales"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Vertrieb
+              </button>
+              <button
+                onClick={() => setDomain("Service")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+          border-t border-b border-r transition-all duration-200
+          ${domain === "Service"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Service
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <ChartCard title="Verteilung der Anrufgründe">
           <div className="h-[350px]">
