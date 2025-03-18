@@ -335,15 +335,28 @@ async def get_email_overview(
         # total_processing_time_hour += total_processing_time_min // 60
         # total_processing_time_min = total_processing_time_min % 60  # Keep remaining minutes
         total_seconds = (total_processing_time_hour * 3600) + (total_processing_time_min * 60) + total_processing_time_seconds
+        print(total_seconds)
+        # Determine divisor: if days_in_range > 1, use days_in_range, else use number of time entries
+        if days_in_range > 1:
+            print(days_in_range)
+            divisor = days_in_range
+        else:
+            print(max(len(processing_times)-2, 1))
+            divisor = max(len(processing_times)-2, 1)  # Prevent division by zero
 
-        # Divide the total seconds by days_in_range to get average seconds per day
-        avg_seconds_per_day = total_seconds / days_in_range
+        # Compute average processing time
+        avg_seconds_per_entry = total_seconds / divisor
 
-        # Now convert avg_seconds_per_day back to hours, minutes, seconds
-        avg_hours = int(avg_seconds_per_day // 3600)
-        avg_minutes = int((avg_seconds_per_day % 3600) // 60)
-        avg_seconds = int(avg_seconds_per_day % 60)
-        
+        # Convert average seconds into HH:MM:SS format
+        avg_hours, remainder = divmod(avg_seconds_per_entry, 3600)
+        avg_minutes, avg_seconds = divmod(remainder, 60)
+
+        # Ensure integer values for formatting
+        avg_hours = int(avg_hours)
+        avg_minutes = int(avg_minutes)
+        avg_seconds = round(avg_seconds)  # Properly round seconds
+
+        # Print or return the formatted result
         print(avg_hours, avg_minutes, avg_seconds)
         total_emails = query.with_entities(
             func.count(
@@ -387,7 +400,7 @@ async def get_email_overview(
     # "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
     # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
     "Total Processing Time (min)": time_formatter(avg_hours, avg_minutes, avg_seconds),
-    "Total Processing Time (dec)": round(avg_seconds_per_day / 60, 2),
+    "Total Processing Time (dec)": round((avg_hours*3600+avg_minutes*60+avg_seconds) / 60, 2),
     "total emails": total_emails,
     "total emails received": total_emails_recieved,
     "archived emails": archived,

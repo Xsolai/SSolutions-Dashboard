@@ -14,10 +14,13 @@ router = APIRouter(
     tags=["Call APIS"]
 )
 
-def get_sla_percentage(query, start_date, end_date,domain):
+def get_sla_percentage(query, start_date, end_date,domain, company):
     """Endpoint to retrieve sla% per queue."""
     if domain !="all":
-        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+        else:    
+            query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         sla_data = query.with_entities(
             func.avg(AllQueueStatisticsData.sla_20_20)
@@ -31,10 +34,13 @@ def get_sla_percentage(query, start_date, end_date,domain):
     return sla_data
 
 
-def get_average_wait_time(query, start_date, end_date, domain):
+def get_average_wait_time(query, start_date, end_date, domain, company):
     """Endpoint to retrieve average wait time for calls."""
     if domain !="all":
-        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+        else:    
+            query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         avg_wait_time = query.with_entities(func.avg(
         AllQueueStatisticsData.avg_wait_time)).scalar() or 0
@@ -46,10 +52,13 @@ def get_average_wait_time(query, start_date, end_date, domain):
         ).scalar() or 0
     return avg_wait_time
 
-def get_max_wait_time(query, start_date, end_date, domain):
+def get_max_wait_time(query, start_date, end_date, domain, company):
     """Endpoint to retrieve max wait time for calls."""
     if domain !="all":
-        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+        else:    
+            query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         max_wait_time = query.with_entities(func.max(AllQueueStatisticsData.max_wait_time)).scalar() or 0
     else:
@@ -59,10 +68,13 @@ def get_max_wait_time(query, start_date, end_date, domain):
     return max_wait_time
 
 
-def get_talk_time(query, start_date, end_date, domain):
+def get_talk_time(query, start_date, end_date, domain, company):
     """Endpoint to retrieve average wait time for calls."""
     if domain !="all":
-        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+        else:    
+            query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         avg_talk_time = query.with_entities(func.avg(
             AllQueueStatisticsData.total_outbound_talk_time_destination
@@ -75,10 +87,13 @@ def get_talk_time(query, start_date, end_date, domain):
         ).scalar() or 0
     return avg_talk_time
 
-def get_inbound_after_call(query, start_date, end_date, domain):
+def get_inbound_after_call(query, start_date, end_date, domain, company):
     """Endpoint to retrieve average wait time for calls."""
     if domain !="all":
-        query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
+        if company in ["ADAC", "Galeria", "Urlaub"]:
+            query = query
+        else:    
+            query = query.filter(AllQueueStatisticsData.customer.like(f"%{domain}%"))
     if start_date is None:
         after_call = query.with_entities(func.avg(
         AllQueueStatisticsData.avg_handling_time_inbound
@@ -397,14 +412,14 @@ async def get_calls(
         "total_calls": calls, 
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
-        "SLA":round(get_sla_percentage(summe_query, start_date=start_date, end_date=end_date, domain=domain), 2),
-        "avg wait time (min)": f"00:{str(int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)).zfill(2)}:{str(int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)).zfill(2)}",
-        "max. wait time (min)": f"00:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)).zfill(2)}:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)).zfill(2)}",
-        "After call work time (min)": f"00:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60)).zfill(2)}:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) % 60)).zfill(2)}",
+        "SLA":round(get_sla_percentage(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company), 2),
+        "avg wait time (min)": f"00:{str(int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60)).zfill(2)}:{str(int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) % 60)).zfill(2)}",
+        "max. wait time (min)": f"00:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60)).zfill(2)}:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) % 60)).zfill(2)}",
+        "After call work time (min)": f"00:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60)).zfill(2)}:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) % 60)).zfill(2)}",
         "avg handling time (min)": f"00:{str(int((avg_handling_time or 0) / 60)).zfill(2)}:{str(int((avg_handling_time or 0) % 60)).zfill(2)}",
-        "avg wait time (dec)": round((get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60),2),
-        "max. wait time (dec)": (get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain)),
-        "After call work time (dec)":round((get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain) / 60), 2),
+        "avg wait time (dec)": round((get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60),2),
+        "max. wait time (dec)": (get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company)),
+        "After call work time (dec)":round((get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60), 2),
         "avg handling time (dec)": round((avg_handling_time or 0) / 60, 2),
         "Dropped calls": int(dropped_calls or 0),
         # "Call availability": pass,
