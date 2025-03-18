@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, Pie , Line, XAxis, YAxis, Tooltip, Legend, ComposedChart, PieChart } from 'recharts';
 import { Mail, PhoneCall, Phone, TrendingUp, TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity, CreditCard } from 'lucide-react';
 
 // Brand Colors
@@ -129,19 +129,32 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
-  // At the top of the AnalyticsDashboard component, add isAdmin state:
+  // Add this right after your useState declarations in the AnalyticsDashboard component
   const [data, setData] = useState({
     salesServiceData: null,
     bookingData: null,
     bookingSubKPIs: null,
-    conversionData: null,
-    trackedBookings: [] // Add this line
+    conversionData: {
+      'organisch_conversion': '5.08%',
+      'cb_conversion': '0.0%',
+      'sucess_bookings': 3,
+      'Conversion Performance': {
+        'total_calls': 75,
+        'organisch_wrong_call': 16,
+        'organisch_true_sales_call': 59,
+        'organisch_bookings': 3,
+        'cb_wrong_call': 6,
+        'cb_true_sales_call': 69,
+        'cb_bookings': 0
+      }
+    },
+    trackedBookings: []
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sales');
-  const [isAdmin, setIsAdmin] = useState(false); // Add this line
-  const [currentStatusFilter, setCurrentStatusFilter] = useState("OP"); // Move this here
-  // Add this right after your useState declarations, before the useEffect:
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentStatusFilter, setCurrentStatusFilter] = useState("ALL"); // Default to "ALL"
+
   const access_token = localStorage.getItem('access_token');
   const config = {
     headers: {
@@ -175,7 +188,6 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
     checkUserRole();
   }, []); // Empty dependency array means this runs only once
 
-  // Then modify your fetchData function to include the tracking API:
   const fetchData = async (dateParams) => {
     setLoading(true);
     const { startDate, endDate, isAllTime } = dateParams;
@@ -200,10 +212,11 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
     }).toString();
 
     // Create a separate tracking query string with the status filter
+    // Only add current_status parameter if not "ALL"
     const trackingQueryString = new URLSearchParams({
       ...(startDate && { start_date: formatDate(startDate) }),
       ...(endDate && { end_date: formatDate(endDate) }),
-      current_status: currentStatusFilter,
+      ...(currentStatusFilter !== "ALL" && { current_status: currentStatusFilter }),
       ...(selectedCompany && { company: selectedCompany })
     }).toString();
 
@@ -259,6 +272,7 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       setLoading(false);
     }
   };
+
 
   // Update the useEffect to include currentStatusFilter in the dependency array
   useEffect(() => {
@@ -624,27 +638,56 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
 
 
   const ConversionTab = ({ dateRange, selectedCompany }) => {
+    // Completely override any existing data with the new data structure
+    // This ensures no original data is used
+    const conversionData = {
+      'organisch_conversion': '5.08%',
+      'cb_conversion': '0.0%',
+      'sucess_bookings': 3,
+      'Conversion Performance': {
+        'total_calls': 75,
+        'organisch_wrong_call': 16,
+        'organisch_true_sales_call': 59,
+        'organisch_bookings': 3,
+        'cb_wrong_call': 6,
+        'cb_true_sales_call': 69,
+        'cb_bookings': 0
+      }
+    };
 
-    if (!data.conversionData) return <Loading />;
+    // Only use the tracked bookings from the original data
+    const bookingData = data.trackedBookings || [];
+    const bookingLoading = loading;
 
-    const conversionData = data.conversionData || {};
-    const cbData = conversionData?.['Conversion Performance']?.CB || {};
-    const salesData = conversionData?.['Conversion Performance']?.Sales || {};
-    const cbMetrics = conversionData?.['sales_effective_calls'] || {};
-    const salesMetrics = conversionData?.Sales || {};
-    const bookingData = data.trackedBookings || []; // Use tracked bookings from parent
-    const bookingLoading = loading; // Use loading state from parent
+    // Create chart data directly from the new data
+    const combinedChartData = [
+      {
+        name: 'Organisch',
+        bookings: conversionData['Conversion Performance'].organisch_bookings,
+        wrong: conversionData['Conversion Performance'].organisch_wrong_call,
+        handled: conversionData['Conversion Performance'].organisch_true_sales_call,
+        conversion: parseFloat(conversionData.organisch_conversion),
+      },
+      {
+        name: 'CB',
+        bookings: conversionData['Conversion Performance'].cb_bookings,
+        wrong: conversionData['Conversion Performance'].cb_wrong_call,
+        handled: conversionData['Conversion Performance'].cb_true_sales_call,
+        conversion: parseFloat(conversionData.cb_conversion),
+      }
+    ];
 
-    // Inside ConversionTab, before the return statement:
-    const salesChartData = [{
-      bookings: salesData?.['Bookings Sales'] || 0,
-      wrong: salesData?.['Wrong calls'] || 0,
-      handled: salesData?.['Sales handles'] || 0,
-      conversion: salesMetrics?.['Sales Conversion'] || 0,
-      volume: salesData?.['Sales volume'] || 0
-    }];
+    const callOverviewData = [
+      {
+        name: "Gesamt",
+        total: conversionData['Conversion Performance'].total_calls,
+        organisch_true: conversionData['Conversion Performance'].organisch_true_sales_call,
+        organisch_wrong: conversionData['Conversion Performance'].organisch_wrong_call,
+        cb_true: conversionData['Conversion Performance'].cb_true_sales_call,
+        cb_wrong: conversionData['Conversion Performance'].cb_wrong_call
+      }
+    ];
 
-    // Add this inside the ConversionTab component:
     const axisStyle = {
       tick: {
         fill: '#001E4A',
@@ -653,12 +696,13 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       }
     };
 
-    // Status filter options
+    // Status options with "All" as the first option
     const statusOptions = [
+      { value: "ALL", label: "Alle Statusse" },
       { value: "OP", label: "Optional" },
       { value: "OK", label: "Bestätigt (OK)" },
       { value: "XX", label: "Storniert" },
-      { value: "RF", label: "Bestätigt (RF)" }  // Updated label
+      { value: "RF", label: "Bestätigt (RF)" }
     ];
 
     // Format date for display
@@ -673,13 +717,12 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       }).format(date);
     };
 
-    // Status filter onChange handler
+    // Handle status filter change
     const handleStatusChange = (e) => {
       setCurrentStatusFilter(e.target.value);
-      // fetchData will be triggered by the useEffect in the parent component
     };
 
-    // Progressive loading for table rows (improves rendering performance)
+    // Table rows rendering
     const renderTableRows = () => {
       if (bookingData.length === 0) {
         return (
@@ -701,20 +744,20 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
           </td>
           <td className="p-3 text-[15px] font-nexa-book text-[#001E4A] border-b border-[#E6E2DF]">
             <span className={`px-2 py-1 rounded-md text-xs font-nexa-black ${booking.previous_status === 'OP' ? 'bg-[#F0B72F]/20 text-[#001E4A]' :
-              booking.previous_status === 'OK' ? 'bg-green-100 text-green-800' :
-                booking.previous_status === 'XX' ? 'bg-red-100 text-red-800' :
-                  booking.previous_status === 'RF' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
+                booking.previous_status === 'OK' ? 'bg-green-100 text-green-800' :
+                  booking.previous_status === 'XX' ? 'bg-red-100 text-red-800' :
+                    booking.previous_status === 'RF' ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
               }`}>
               {booking.previous_status}
             </span>
           </td>
           <td className="p-3 text-[15px] font-nexa-book text-[#001E4A] border-b border-[#E6E2DF]">
             <span className={`px-2 py-1 rounded-md text-xs font-nexa-black ${booking.current_status === 'OP' ? 'bg-[#F0B72F]/20 text-[#001E4A]' :
-              booking.current_status === 'OK' ? 'bg-green-100 text-green-800' :
-                booking.current_status === 'XX' ? 'bg-red-100 text-red-800' :
-                  booking.current_status === 'RF' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
+                booking.current_status === 'OK' ? 'bg-green-100 text-green-800' :
+                  booking.current_status === 'XX' ? 'bg-red-100 text-red-800' :
+                    booking.current_status === 'RF' ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
               }`}>
               {booking.current_status}
             </span>
@@ -728,24 +771,29 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
 
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatCard
-            title="Vertrieb Konversion"
-            value={`${salesMetrics?.['Sales Conversion']?.toFixed(1) || '0'}%`}
+            title="Organisch Konversion"
+            value={conversionData.organisch_conversion}
             icon={TrendingUp}
           />
           <StatCard
-            title="Buchungen"
-            value={conversionData?.['success bookings'] || '0'}
+            title="CB Konversion"
+            value={conversionData.cb_conversion}
+            icon={Activity}
+          />
+          <StatCard
+            title="Erfolgreich Buchungen"
+            value={conversionData.sucess_bookings}
             icon={CreditCard}
           />
         </div>
 
-        <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-4`}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Vertrieb Leistung">
             <div className="h-[400px]">
               <ResponsiveContainer>
-                <ComposedChart data={salesChartData}>
+                <ComposedChart data={combinedChartData}>
                   <XAxis
                     dataKey="name"
                     {...axisStyle}
@@ -771,7 +819,6 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
                   <Bar yAxisId="left" dataKey="bookings" name="Buchungen" fill={colors.success} radius={[4, 4, 0, 0]} />
                   <Bar yAxisId="left" dataKey="wrong" name="Falsche Anrufe" fill={colors.danger} radius={[4, 4, 0, 0]} />
                   <Bar yAxisId="left" dataKey="handled" name="Bearbeitete Anrufe" fill={colors.primary} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="volume" name="Vertriebsvolumen" fill={colors.gray} radius={[4, 4, 0, 0]} />
                   <Line
                     yAxisId="right"
                     type="monotone"
@@ -786,8 +833,47 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
             </div>
           </ChartCard>
 
-          {/* Optimized Tracked Bookings Section - Only shown for admins */}
-          {isAdmin && (
+          <ChartCard title="Anruf Übersicht">
+            <div className="h-[400px]">
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Organisch korrekt", value: callOverviewData[0].organisch_true, fill: colors.success },
+                      { name: "Organisch falsch", value: callOverviewData[0].organisch_wrong, fill: "#ffd180" },
+                      { name: "CB korrekt", value: callOverviewData[0].cb_true, fill: colors.primary },
+                      { name: "CB falsch", value: callOverviewData[0].cb_wrong, fill: "#E6E2DF" }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    outerRadius={140}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {/* No need for Cell components as we're defining fill in the data */}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    wrapperStyle={{
+                      fontFamily: 'Nexa-Book',
+                      fontSize: '14px',
+                      paddingLeft: '10px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+        </div>
+
+        {/* Admin-only section for booking tracking */}
+        {isAdmin && (
+          <div className="grid grid-cols-1 gap-4">
             <ChartCard title="Buchungsverfolgung">
               <div className="mb-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -796,7 +882,7 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
                   </h4>
                   <select
                     value={currentStatusFilter}
-                    onChange={(e) => setCurrentStatusFilter(e.target.value)}
+                    onChange={handleStatusChange}
                     className="px-4 py-2 border border-[#E6E2DF] rounded-md text-[15px] leading-[24px] font-nexa-book text-[#001E4A] focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
                   >
                     {statusOptions.map((option) => (
@@ -846,8 +932,8 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
                 </div>
               )}
             </ChartCard>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };

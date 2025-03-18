@@ -256,12 +256,10 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     // For Bearbeitungszeit (processing time)
     // Try to get from emailData first, then fallback to overviewData
     const processingTimeFormatted =
-      emailData?.['Total Processing Time (sec)'] ||
       overviewData?.['Total Processing Time (min)'] ||
       "0:00:00";
 
     const processingTimeDecimal =
-      emailData?.['Total Processing Time (dec)'] ||
       overviewData?.['Total Processing Time (dec)'] ||
       0;
 
