@@ -246,16 +246,33 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const UebersichtTab = () => {
     if (!overviewData || !subKPIs) return <Loading />;
 
-    const slGross = emailData['SL Gross'] || 0;
-    const processingTime = emailData['Total Dwell Time (sec)'] || 0;
-    const totalProcessingTime = emailData['Total Processing Time (sec)'] || 0;
-    // updated below
-    const processedTimeData = overviewData['Processing Time Trend in seconds'] || [];
+    // Get values from both data sources, with fallbacks
+    const slGross = emailData?.['SL Gross'] || 0;
+
+    // For Verweilzeit (dwell time)
+    const dwellTimeFormatted = emailData?.['Total Dwell Time (sec)'] || "0:00:00";
+    const dwellTimeDecimal = emailData?.['Total Dwell Time (dec)'] || 0;
+
+    // For Bearbeitungszeit (processing time)
+    // Try to get from emailData first, then fallback to overviewData
+    const processingTimeFormatted =
+      emailData?.['Total Processing Time (sec)'] ||
+      overviewData?.['Total Processing Time (min)'] ||
+      "0:00:00";
+
+    const processingTimeDecimal =
+      emailData?.['Total Processing Time (dec)'] ||
+      overviewData?.['Total Processing Time (dec)'] ||
+      0;
+
+    // Process the chart data
+    const processedTimeData = emailData?.['Processing Time Trend in seconds'] || [];
 
     const processedTimeDataConverted = processedTimeData.map((item) => ({
       ...item,
-      total_processing_time_sec: convertToSeconds(item.total_processing_time_sec)
+      total_processing_time_sec: convertToSeconds(item.total_processing_time_sec || "0:00:00")
     }));
+  
 
     const uebersichtStats = [
       {
@@ -359,24 +376,24 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard
-            title="SL Brutto"
-            value={`${slGross.toFixed(1)}%`}
-            icon={TrendingUp}
-          />
-          <StatCard
-            title="Durchschnittliche Verweilzeit"
-            value={`${processingTime}`}
-            icon={Clock}
-            timeInSeconds={(convertToSeconds(processingTime) / 60).toFixed(2)}
-          />
-          <StatCard
-            title="Durchschnittliche Bearbeitungszeit"
-            value={`${totalProcessingTime}`}
-            icon={Clock}
-            timeInSeconds={(convertToSeconds2(totalProcessingTime) / 60).toFixed(2)}
-          />
-        </div>
+        <StatCard
+          title="SL Brutto"
+          value={`${slGross.toFixed(1)}%`}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Durchschnittliche Verweilzeit"
+          value={dwellTimeFormatted}
+          icon={Clock}
+          timeInSeconds={dwellTimeDecimal.toFixed(2)}
+        />
+        <StatCard
+          title="Durchschnittliche Bearbeitungszeit"
+          value={processingTimeFormatted}
+          icon={Clock}
+          timeInSeconds={processingTimeDecimal.toFixed(2)}
+        />
+      </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartCard title="E-Mail-Bearbeitungsübersicht">
             <div className="h-[300px]">
