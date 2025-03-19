@@ -307,6 +307,7 @@ async def get_anaytics_email_data(
 
         processing_times = email_query.with_entities(EmailData.processing_time).all()
         dwell_times = email_query.with_entities(EmailData.dwell_time_net).all()
+        days_in_range = 1
         
 
     else:
@@ -353,6 +354,7 @@ async def get_anaytics_email_data(
         dwell_times = email_query.with_entities(EmailData.dwell_time_net).filter(
             EmailData.date.between(start_date, end_date)
         ).all()
+        days_in_range = (end_date - start_date).days + 1
     # Clean the data to extract values from tuples
     # processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     
@@ -382,12 +384,30 @@ async def get_anaytics_email_data(
         total_dwell_hours += hours
 
     # Convert extra seconds into minutes
-    total_dwell_min += total_dwell_time_seconds // 60
-    total_dwell_time_seconds = total_dwell_time_seconds % 60
+    total_seconds_dwell = (total_dwell_hours * 3600) + (total_dwell_min * 60) + total_dwell_time_seconds
+    print(total_seconds_dwell)
+    # Determine divisor: if days_in_range > 1, use days_in_range, else use number of time entries
+    if days_in_range > 1:
+        print(days_in_range)
+        divisor_dwell = days_in_range
+    else:
+        print(max(len(dwell_times)-2, 1))
+        divisor_dwell = max(len(dwell_times)-2, 1)  # Prevent division by zero
 
-    # Convert extra minutes into hours
-    total_dwell_hours += total_dwell_min // 60
-    total_dwell_min = total_dwell_min % 60 
+    # Compute average processing time
+    avg_seconds_per_entry_dwell = total_seconds_dwell / divisor_dwell
+
+    # Convert average seconds into HH:MM:SS format
+    avg_hours_dwell, remainder_dwell = divmod(avg_seconds_per_entry_dwell, 3600)
+    avg_minutes_dwell, avg_seconds_dwell = divmod(remainder_dwell, 60)
+
+    # Ensure integer values for formatting
+    avg_hours_dwell = int(avg_hours_dwell)
+    avg_minutes_dwell = int(avg_minutes_dwell)
+    avg_seconds_dwell = round(avg_seconds_dwell)  # Properly round seconds
+
+    # Print or return the formatted result
+    print(avg_hours_dwell, avg_minutes_dwell, avg_seconds_dwell)
     
     for pt in processing_times:
         hours, minutes, seconds = time_format(pt)
@@ -416,7 +436,6 @@ async def get_anaytics_email_data(
     
     total_processing_time_min += total_processing_time_seconds // 60
     
-    days_in_range = (end_date - start_date).days + 1
     total_seconds = (total_processing_time_hour * 3600) + (total_processing_time_min * 60) + total_processing_time_seconds
 
     # Divide the total seconds by days_in_range to get average seconds per day
@@ -475,10 +494,9 @@ async def get_anaytics_email_data(
         # "New Sent": new_sent,
         # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
         # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
-        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)) ,
+        "Total Dwell Time (sec)": time_formatter(avg_hours_dwell, avg_minutes_dwell, avg_seconds_dwell),
         "Total Processing Time (sec)": time_formatter(avg_hours, avg_minutes, avg_seconds),
-        "Total Dwell Time (dec)": round((int(total_dwell_hours)*3600+int(total_dwell_min)*60+int(total_dwell_time_seconds))/60,2),
-        "Total Processing Time (dec)": round((int(total_processing_time_hour/3)*3600+int(total_processing_time_mins/3)*60+int(total_processing_time_sec/3))/60,2) if company == "all" else round((int(total_processing_time_hour)+int(total_processing_time_mins)+int(total_processing_time_sec))/60,2),
+        "Total Dwell Time (dec)": round((avg_hours_dwell*3600+avg_minutes_dwell*60+avg_seconds_dwell) / 60, 2),
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
     }
