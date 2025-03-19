@@ -284,6 +284,10 @@ async def get_anaytics_email_data(
         email_recieved = email_query.with_entities(
             func.sum(EmailData.received)
         ).scalar() or 0
+        
+        email_new_recieved = email_query.with_entities(
+            func.sum(EmailData.new_received)
+        ).scalar() or 0
 
         email_answered = email_query.with_entities(
             func.sum(EmailData.sent)
@@ -324,6 +328,12 @@ async def get_anaytics_email_data(
         # Filter data based on the interval (date) column
         email_recieved = email_query.with_entities(
             func.sum(EmailData.received)
+        ).filter(
+            EmailData.date.between(start_date, end_date)
+        ).scalar() or 0
+        
+        email_new_recieved = email_query.with_entities(
+            func.sum(EmailData.new_received)
         ).filter(
             EmailData.date.between(start_date, end_date)
         ).scalar() or 0
@@ -494,9 +504,12 @@ async def get_anaytics_email_data(
         }
         for interval, count in sorted(interval_count_data.items())
     ]
+    
+    print(email_recieved)
+    print(email_new_recieved)
 
     return {
-        "email recieved": email_recieved,
+        "email recieved": email_recieved + email_new_recieved,
         "email sent": email_answered,
         "email new cases": new_cases,
         "email archived": email_archieved,

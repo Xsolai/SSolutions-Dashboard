@@ -70,6 +70,7 @@ class WorkflowReportGuruKF(Base):
     interval = Column(String)  # Time period during which the data was recorded
     mailbox = Column(String(255))  # Specific mailbox or category of received emails
     received = Column(Integer)  # Number of emails received
+    new_received = Column(Integer)
     new_cases = Column(Integer)  # Number of new cases initiated
     sent = Column(Integer)  # Number of emails sent
     archived = Column(Integer)  # Number of cases archived
@@ -88,6 +89,7 @@ class EmailData(Base):
     interval = Column(String)  # Time period during which the data was recorded
     mailbox = Column(String(255))  # Specific mailbox or category of received emails
     received = Column(Integer)  # Number of emails received
+    new_received = Column(Integer)
     new_cases = Column(Integer)  # Number of new cases initiated
     sent = Column(Integer)  # Number of emails sent
     archived = Column(Integer)  # Number of cases archived
