@@ -237,7 +237,17 @@ async def get_email_overview(
     avg_minutes = 0
     avg_seconds = 0
     if start_date is None:
-        days_in_range = 1
+        min_date_result = email_query.with_entities(func.min(EmailData.date)).scalar() or 0
+
+        max_date_result = email_query.with_entities(func.max(EmailData.date)).scalar() or 0
+        print(min_date_result, max_date_result)
+        # Calculate days in range if we have both dates
+        if min_date_result and max_date_result:
+            days_in_range = (max_date_result - min_date_result).days + 1
+        else:
+            days_in_range = 1
+            
+        print("days: ",days_in_range)
         service_level_gross = email_query.with_entities(
             func.avg(
                 EmailData.service_level_gross
