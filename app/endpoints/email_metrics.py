@@ -247,7 +247,7 @@ async def get_email_overview(
         else:
             days_in_range = 1
             
-        print("days: ",days_in_range)
+        # print("days: ",days_in_range)
         service_level_gross = email_query.with_entities(
             func.avg(
                 EmailData.service_level_gross
@@ -271,12 +271,14 @@ async def get_email_overview(
         total_seconds = (total_processing_time_hour * 3600) + (total_processing_time_min * 60) + total_processing_time_seconds
         print(total_seconds)
         # Determine divisor: if days_in_range > 1, use days_in_range, else use number of time entries
-        if days_in_range >= 1:
+        if days_in_range > 1:
+            print("executing")
             print(days_in_range)
             divisor = days_in_range
-        # else:
-        #     print(max(len(processing_times)-2, 1))
-        #     divisor = max(len(processing_times)-2, 1)  # Prevent division by zero
+        else:
+            print("length: ",len(processing_times))
+            print(max(len(processing_times), 1))
+            divisor = max(len(processing_times), 1)  # Prevent division by zero
 
         # Compute average processing time
         avg_seconds_per_entry = total_seconds / divisor
@@ -371,8 +373,8 @@ async def get_email_overview(
             print(days_in_range)
             divisor = days_in_range
         else:
-            print(max(len(processing_times)-2, 1))
-            divisor = max(len(processing_times)-2, 1)  # Prevent division by zero
+            # print(max(len(processing_times), 1))
+            divisor = max(len(processing_times), 1)  # Prevent division by zero
 
         # Compute average processing time
         avg_seconds_per_entry = total_seconds / divisor
