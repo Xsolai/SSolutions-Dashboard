@@ -935,8 +935,18 @@ async def get_sales_and_service(
             func.max(AllQueueStatisticsData.max_wait_time).label("service_longest_waiting_time_sec"),
             func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
         ).filter(AllQueueStatisticsData.customer.like("%Service%"), AllQueueStatisticsData.date.between(start_date, end_date)).first()
-    
+        
+        
     return {
+        "all_metrics": {
+            "calls_offered": (sale_metrics.sale_calls_offered or 0) + (service_metrics.service_calls_offered or 0),
+            "calls_handled": (sale_metrics.sale_calls_handled or 0) + (service_metrics.service_calls_handled or 0),
+            "avg ACC": round(((sale_metrics.sale_ACC or 0)+(service_metrics.service_ACC or 0))/2, 2),
+            "avg SL": round(((sale_metrics.sale_SL or 0)+(service_metrics.service_SL or 0))/2, 2),
+            "avg AHT_sec": round(((sale_metrics.sale_AHT_sec/60 if sale_metrics.sale_AHT_sec else 0)+(service_metrics.service_AHT_sec/60 if service_metrics.service_AHT_sec else 0))/2 or 0, 2),
+            "longest_waiting_time_sec": round((sale_metrics.sale_longest_waiting_time_sec/60 if sale_metrics.sale_longest_waiting_time_sec>service_metrics.service_longest_waiting_time_sec else service_metrics.service_longest_waiting_time_sec/60) or 0, 1 ),
+            # "total_talk_time_sec": round((sale_metrics.sale_total_talk_time_sec/60 if sale_metrics.sale_total_talk_time_sec else 0) or 0, 2)
+        },
         "sales_metrics": {
             "calls_offered": sale_metrics.sale_calls_offered or 0,
             "calls_handled": sale_metrics.sale_calls_handled or 0,
