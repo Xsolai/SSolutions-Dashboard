@@ -220,59 +220,73 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     }
   }, [selectedCompany, isSalesOnlyClient]);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const access_token = localStorage.getItem('access_token');
+ // Add this state to track filter loading specifically
+const [isFilterLoading, setIsFilterLoading] = useState(false);
 
-      const formatDate = (date) => {
-        if (!date) return null;
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
+// Modify the fetchData function to use filter loading state
+const fetchData = async () => {
+  try {
+    // Show skeleton loading when filters change
+    setIsFilterLoading(true);
+    setLoading(true);
+    const access_token = localStorage.getItem('access_token');
 
-      const queryString = new URLSearchParams({
-        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-        include_all: dateRange.isAllTime || false,
-        ...(selectedCompany && { company: selectedCompany }),
-        ...(domain && { domain: domain })
-      }).toString();
+    const formatDate = (date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${access_token}`
-        }
-      };
+    const queryString = new URLSearchParams({
+      ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+      ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+      include_all: dateRange.isAllTime || false,
+      ...(selectedCompany && { company: selectedCompany }),
+      ...(domain && { domain: domain })
+    }).toString();
 
-      const responses = await Promise.all([
-        fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
-      ]);
+    const config = {
+      headers: {
+        'Authorization': `Bearer ${access_token}`
+      }
+    };
 
-      const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
-        responses.map(res => res.json())
-      );
+    const responses = await Promise.all([
+      fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
+      fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
+      fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
+    ]);
 
-      setOverviewData(overviewRes);
-      setSubKPIs(subKPIsRes);
-      setPerformanceData(performanceRes);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
+    const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
+      responses.map(res => res.json())
+    );
+
+    setOverviewData(overviewRes);
+    setSubKPIs(subKPIsRes);
+    setPerformanceData(performanceRes);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    // Use a small timeout to prevent flickering for very fast responses
+    setTimeout(() => {
+      setIsFilterLoading(false);
       setLoading(false);
-    }
-  };
+    }, 300);
+  }
+};
 
-  useEffect(() => {
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      fetchData();
-    }
-  }, [dateRange, selectedCompany, domain]);
+// Now, modify the useEffect to trigger the filter loading state
+useEffect(() => {
+  if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+    // Set filter loading state before initiating the fetch
+    setIsFilterLoading(true);
+    fetchData();
+  }
+}, [dateRange, selectedCompany, domain]); // These are your filter parameters
+
 
   // Updated brand-aligned colors
   const chartColors = {
@@ -613,43 +627,79 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
           </div>
         )}
 
-        <ChartCard title="Verteilung der Anrufgründe">
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={Object.entries(anrufGruende).map(([key, value]) => ({
-                    name: key.replace(/_/g, ' ').toUpperCase(),
-                    value: value || 0
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={120}
-                  label
-                >
-                  {Object.entries(anrufGruende).map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={pieColors[index % pieColors.length]}
+<ChartCard title="Verteilung der Anrufgründe">
+  <div className="h-[350px]">
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart margin={{ top: 20, right: 10, bottom: 10, left: 10 }}>
+        <Pie
+          data={Object.entries(anrufGruende).map(([key, value]) => ({
+            name: key.replace(/_/g, ' ').toUpperCase(),
+            value: value || 0
+          }))}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="45%"
+          outerRadius={({ width }) => Math.min(width * 0.3, 120)}
+          labelLine={false}
+          label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+        >
+          {Object.entries(anrufGruende).map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={pieColors[index % pieColors.length]}
+            />
+          ))}
+        </Pie>
+        <Tooltip 
+          content={({ active, payload, label }) => {
+            if (!active || !payload || !payload.length) return null;
+            
+            const formatValue = (value, name) => {
+              if (typeof value !== 'number') return value;
+            
+              // For pie chart data, format as count/percentage
+              return value.toLocaleString();
+            };
+            
+            return (
+              <div className="bg-white border border-[#E6E2DF] rounded-lg shadow-sm p-3 font-nexa-book">
+                {payload.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2 py-1">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: item.fill || item.color || item.stroke }}
                     />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{
-                    fontFamily: 'Nexa-Book',
-                    fontSize: '14px',
-                    bottom: 35,
-                    color: chartColors.secondary  // Added text color
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
+                    <span className="text-[#001E4A]/70 font-nexa-book text-sm">
+                      {item.name}:
+                    </span>
+                    <span className="text-[#001E4A] font-nexa-black text-sm">
+                      {formatValue(item.value, item.name)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          }}
+        />
+        <Legend
+          layout="horizontal"
+          verticalAlign="bottom"
+          align="center"
+          iconType="circle"
+          iconSize={10}
+          wrapperStyle={{
+            fontFamily: 'Nexa-Book',
+            fontSize: '12px',
+            bottom: 0,
+            paddingBottom: '50px',
+            color: '#001E4A'
+          }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+</ChartCard>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           <ChartCard isWideChart={true} title="Anrufe nach Warteschlange">
             <div className="h-[350px]">
@@ -743,7 +793,6 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     );
   };
 
-
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
@@ -759,7 +808,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               ))}
             </select>
           </div>
-
+  
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -779,10 +828,15 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             ))}
           </div>
         </div>
-
+  
         <div className="py-4">
-          {activeTab === "uebersicht" && <UebersichtTab />}
-          {activeTab === "performance" && <PerformanceTab />}
+          {/* Use the isFilterLoading state to conditionally show skeleton loaders */}
+          {activeTab === "uebersicht" && (
+            isFilterLoading ? <Loading /> : <UebersichtTab />
+          )}
+          {activeTab === "performance" && (
+            isFilterLoading ? <Loading /> : <PerformanceTab />
+          )}
         </div>
       </div>
     </div>

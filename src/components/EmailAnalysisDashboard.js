@@ -179,69 +179,82 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   ];
 
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const access_token = localStorage.getItem('access_token');
+// Add this state to track filter loading specifically
+const [isFilterLoading, setIsFilterLoading] = useState(false);
 
-        // Modified date formatting to preserve exact date
-        const formatDate = (date) => {
-          if (!date) return null;
+// Modify the useEffect to handle filter loading
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      // Show filter loading animation when filters change
+      setIsFilterLoading(true);
+      setLoading(true);
+      
+      const access_token = localStorage.getItem('access_token');
 
-          const d = new Date(date);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
+      // Modified date formatting to preserve exact date
+      const formatDate = (date) => {
+        if (!date) return null;
 
-          return `${year}-${month}-${day}`;
-        };
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
 
+        return `${year}-${month}-${day}`;
+      };
 
-        // Build query parameters including company filter
-        const queryString = new URLSearchParams({
-          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany }),
-          ...(domain && { domain: domain })
-        }).toString();
+      // Build query parameters including company filter
+      const queryString = new URLSearchParams({
+        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+        include_all: dateRange.isAllTime || false,
+        ...(selectedCompany && { company: selectedCompany }),
+        ...(domain && { domain: domain })
+      }).toString();
 
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        };
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${access_token}`
+        }
+      };
 
-        const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
-            .then(res => res.json()),
-          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
-            .then(res => res.json())
-        ]);
+      const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+        fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+          .then(res => res.json()),
+        fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
+          .then(res => res.json())
+      ]);
 
-        setEmailData(emailRes);
-        setEmailSubKPIs(emailSubKPIsRes);
-        setOverviewData(overviewRes);
-        setSubKPIs(subKPIsRes);
-        setPerformanceData(performanceRes);
-      } catch (error) {
-        console.error('Fehler beim Datenabruf:', error);
-      } finally {
+      setEmailData(emailRes);
+      setEmailSubKPIs(emailSubKPIsRes);
+      setOverviewData(overviewRes);
+      setSubKPIs(subKPIsRes);
+      setPerformanceData(performanceRes);
+    } catch (error) {
+      console.error('Fehler beim Datenabruf:', error);
+    } finally {
+      // Small timeout to prevent flickering for very fast responses
+      setTimeout(() => {
+        setIsFilterLoading(false);
         setLoading(false);
-      }
-    };
-
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      fetchData();
+      }, 300);
     }
-  }, [dateRange, selectedCompany, domain]);
+  };
+
+  if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+    // Set filter loading state before initiating the fetch
+    setIsFilterLoading(true);
+    fetchData();
+  }
+}, [dateRange, selectedCompany, domain]);
+
 
   const UebersichtTab = () => {
     if (!overviewData || !subKPIs) return <Loading />;
@@ -654,7 +667,7 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               ))}
             </select>
           </div>
-
+  
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -674,10 +687,15 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             ))}
           </div>
         </div>
-
+  
         <div className="py-4">
-          {activeTab === "uebersicht" && <UebersichtTab />}
-          {activeTab === "leistung" && <LeistungTab />}
+          {/* Use the isFilterLoading state to conditionally show skeleton loaders */}
+          {activeTab === "uebersicht" && (
+            isFilterLoading ? <Loading /> : <UebersichtTab />
+          )}
+          {activeTab === "leistung" && (
+            isFilterLoading ? <Loading /> : <LeistungTab />
+          )}
         </div>
       </div>
     </div>
