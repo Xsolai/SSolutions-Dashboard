@@ -284,6 +284,10 @@ async def get_anaytics_email_data(
         email_recieved = email_query.with_entities(
             func.sum(EmailData.received)
         ).scalar() or 0
+        
+        email_new_recieved = email_query.with_entities(
+            func.sum(EmailData.new_received)
+        ).scalar() or 0
 
         email_answered = email_query.with_entities(
             func.sum(EmailData.sent)
@@ -324,6 +328,12 @@ async def get_anaytics_email_data(
         # Filter data based on the interval (date) column
         email_recieved = email_query.with_entities(
             func.sum(EmailData.received)
+        ).filter(
+            EmailData.date.between(start_date, end_date)
+        ).scalar() or 0
+        
+        email_new_recieved = email_query.with_entities(
+            func.sum(EmailData.new_received)
         ).filter(
             EmailData.date.between(start_date, end_date)
         ).scalar() or 0
@@ -401,8 +411,8 @@ async def get_anaytics_email_data(
         print(days_in_range)
         divisor_dwell = days_in_range
     else:
-        print(max(len(dwell_times)-2, 1))
-        divisor_dwell = max(len(dwell_times)-2, 1)  # Prevent division by zero
+        print(max(len(dwell_times), 1))
+        divisor_dwell = max(len(dwell_times), 1)  # Prevent division by zero
 
     # Compute average processing time
     avg_seconds_per_entry_dwell = total_seconds_dwell / divisor_dwell
@@ -494,9 +504,12 @@ async def get_anaytics_email_data(
         }
         for interval, count in sorted(interval_count_data.items())
     ]
+    
+    print(email_recieved)
+    print(email_new_recieved)
 
     return {
-        "email recieved": email_recieved,
+        "email recieved": email_recieved + email_new_recieved,
         "email sent": email_answered,
         "email new cases": new_cases,
         "email archived": email_archieved,
@@ -935,8 +948,18 @@ async def get_sales_and_service(
             func.max(AllQueueStatisticsData.max_wait_time).label("service_longest_waiting_time_sec"),
             func.sum(AllQueueStatisticsData.total_outbound_talk_time_destination).label("service_total_talk_time_sec")
         ).filter(AllQueueStatisticsData.customer.like("%Service%"), AllQueueStatisticsData.date.between(start_date, end_date)).first()
-    
+        
+        
     return {
+        "all_metrics": {
+            "calls_offered": (sale_metrics.sale_calls_offered or 0) + (service_metrics.service_calls_offered or 0),
+            "calls_handled": (sale_metrics.sale_calls_handled or 0) + (service_metrics.service_calls_handled or 0),
+            "avg ACC": round(((sale_metrics.sale_ACC or 0)+(service_metrics.service_ACC or 0))/2, 2),
+            "avg SL": round(((sale_metrics.sale_SL or 0)+(service_metrics.service_SL or 0))/2, 2),
+            "avg AHT_sec": round(((sale_metrics.sale_AHT_sec/60 if sale_metrics.sale_AHT_sec else 0)+(service_metrics.service_AHT_sec/60 if service_metrics.service_AHT_sec else 0))/2 or 0, 2),
+            "longest_waiting_time_sec": round((sale_metrics.sale_longest_waiting_time_sec/60 if sale_metrics.sale_longest_waiting_time_sec>service_metrics.service_longest_waiting_time_sec else service_metrics.service_longest_waiting_time_sec/60) or 0, 1 ),
+            # "total_talk_time_sec": round((sale_metrics.sale_total_talk_time_sec/60 if sale_metrics.sale_total_talk_time_sec else 0) or 0, 2)
+        },
         "sales_metrics": {
             "calls_offered": sale_metrics.sale_calls_offered or 0,
             "calls_handled": sale_metrics.sale_calls_handled or 0,

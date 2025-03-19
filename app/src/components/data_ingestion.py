@@ -49,6 +49,7 @@ def populate_workflow_report(data, db: Session, date):
                 interval=row.get('Intervall', ""),
                 mailbox=row.get('Mailbox', ""),
                 received=row.get('Empfangen [#]', 0),
+                new_received = row.get('Empfangen (Regel) [#]', 0),
                 new_cases=row.get('Neue Vorgänge [#]', 0),
                 sent=row.get('Gesendet [#]', 0),
                 archived=row.get('Archiviert [#]', 0),
@@ -75,6 +76,7 @@ def populate_email_data(data, db: Session, date):
             # if any("Summe" in str(value) for value in row):
             #     continue
             if row.get("Mandant"):
+                # print(row)
                 if row.get("Mailbox")=="Summe" and row.get("Mandant")=="Summe":
                     # print("Summe found")
                     db_record = EmailData(
@@ -83,6 +85,7 @@ def populate_email_data(data, db: Session, date):
                         interval=row.get('Intervall', ""),
                         mailbox=row.get('Mailbox', ""),
                         received=row.get('Empfangen [#]', 0),
+                        new_received=row.get('Empfangen (Regel) [#]', 0),
                         new_cases=row.get('Neue Vorgänge [#]', 0),
                         sent=row.get('Gesendet [#]', 0),
                         archived=row.get('Archiviert [#]', 0),
@@ -95,12 +98,14 @@ def populate_email_data(data, db: Session, date):
                     db.add(db_record)
             elif row.get("Mailbox")=="Summe":
                     # print("Summe found")
+                    # print("row: ", row)
                     db_record = EmailData(
                         date=date,
                         customer=row.get('file_name', ""),
                         interval=row.get('Intervall', ""),
                         mailbox=row.get('Mailbox', ""),
                         received=row.get('Empfangen [#]', 0),
+                        new_received=row.get('Empfangen (Regel) [#]', 0),
                         new_cases=row.get('Neue Vorgänge [#]', 0),
                         sent=row.get('Gesendet [#]', 0),
                         archived=row.get('Archiviert [#]', 0),
