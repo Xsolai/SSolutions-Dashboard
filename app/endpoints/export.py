@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.database.models.models import (
     WorkflowReportGuruKF, User, EmailData, QueueStatistics, 
-    AllQueueStatisticsData, SoftBookingKF
+    AllQueueStatisticsData, SoftBookingKF, GuruCallReason, BookingData
 )
 from app.database.db.db_connection import get_db
 from datetime import datetime, timedelta, date
@@ -22,16 +22,159 @@ import openpyxl, io
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side, Color
 from openpyxl.utils import get_column_letter
 from pydantic import BaseModel
+from app.database.db.db_connection import  get_db, SessionLocal
 
 router = APIRouter(tags=["Export API"])
 
 
 def get_export_data(call_query, all_call_query, email_query, all_email_query, booking_query, 
                     start_date, end_date, start_date_booking, end_date_booking, domain, company):
+    if "guru" in company:
+        db = SessionLocal()
+        all_calls_data = db.query(
+            GuruCallReason.date.label("date"),
+            func.sum(GuruCallReason.total_calls).label("all_calls")).filter(
+            GuruCallReason.date.between(start_date, end_date)).group_by(GuruCallReason.date).all()
+        all_calls = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.all_calls
+            for row in all_calls_data
+        }
+        # organisch conversion
+        # guru_sales = db.query(func.sum(GuruCallReason.guru_sales)).filter(
+        #     GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        guru_sales_data = db.query(
+            GuruCallReason.date.label("date"),
+            func.sum(GuruCallReason.guru_sales).label("guru_sales")).filter(
+            GuruCallReason.date.between(start_date, end_date)).group_by(GuruCallReason.date).all()
+        guru_sales = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.guru_sales
+            for row in guru_sales_data
+        }
+        # guru_wrong = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
+        #     GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        guru_wrong_data = db.query(
+            GuruCallReason.date.label("date"),
+            func.sum(GuruCallReason.guru_wrong).label("guru_wrong")).filter(
+            GuruCallReason.date.between(start_date, end_date)).group_by(GuruCallReason.date).all()
+        guru_wrong = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.guru_wrong
+            for row in guru_wrong_data
+        }
+        # reason_booking = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
+        #     GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        reason_booking_data = db.query(
+            GuruCallReason.date.label("date"),
+            func.sum(GuruCallReason.guru_cb_booking).label("reason_booking")).filter(
+            GuruCallReason.date.between(start_date, end_date)).group_by(GuruCallReason.date).all()
+        reason_booking = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.reason_booking
+            for row in reason_booking_data
+        }
+        # guru_bookings = db.query(func.count(BookingData.crs_original_booking_number)).filter(
+        #     BookingData.date.between(start_date, end_date),
+        #     BookingData.order_agent.notlike("%CB%"),
+        #     BookingData.order_agent.like(f"%002%"),
+        #     BookingData.crs_status.in_(["OK", "RF"])
+        #     ).scalar() or 0
+        guru_bookings_data = db.query(
+            BookingData.date.label("date"),
+            func.count(BookingData.crs_original_booking_number).label("guru_bookings")).filter(
+            BookingData.date.between(start_date, end_date),
+            BookingData.order_agent.notlike("%CB%"),
+            BookingData.order_agent.like(f"%002%"),
+            BookingData.crs_status.in_(["OK", "RF"])).group_by(BookingData.date).all()
+        guru_bookings = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.guru_bookings
+            for row in guru_bookings_data
+        }
+        
+        # cb conversion
+        # cb_sales = db.query(func.sum(GuruCallReason.cb_sales)).filter(
+        #     GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        cb_sales_data = db.query(
+            GuruCallReason.date.label("date"),
+            func.sum(GuruCallReason.cb_sales).label("cb_sales")).filter(
+            GuruCallReason.date.between(start_date, end_date)).group_by(GuruCallReason.date).all()
+        cb_sales = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.cb_sales
+            for row in cb_sales_data
+        }
+        # cb_wrong = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
+        #     GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        cb_wrong_data = db.query(
+            GuruCallReason.date.label("date"),
+            func.sum(GuruCallReason.cb_wrong_call).label("cb_wrong")).filter(
+            GuruCallReason.date.between(start_date, end_date)).group_by(GuruCallReason.date).all()
+        cb_wrong = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.cb_wrong
+            for row in cb_wrong_data
+        }
+        # cb_bookings = db.query(func.count(BookingData.crs_original_booking_number)).filter(
+        #     BookingData.date.between(start_date, end_date),
+        #     BookingData.order_agent.like("%CB%"),
+        #     BookingData.order_agent.like(f"%002%"),
+        #     BookingData.crs_status.in_(["OK", "RF"])
+        #     ).scalar() or 0
+        cb_bookings_data = db.query(
+            BookingData.date.label("date"),
+            func.count(BookingData.crs_original_booking_number).label("cb_bookings")).filter(
+            BookingData.date.between(start_date, end_date),
+            BookingData.order_agent.like("%CB%"),
+            BookingData.order_agent.like(f"%002%"),
+            BookingData.crs_status.in_(["OK", "RF"])).group_by(BookingData.date).all()
+        cb_bookings = {
+            row.date.strftime("%Y-%m-%d") if row.date else None: row.cb_bookings
+            for row in cb_bookings_data
+        }
+        # print("all_calls:", all_calls)
+        # print("guru_sales:", guru_sales)
+        # print("guru_wrong:", guru_wrong)
+        # print("reason_booking:", reason_booking)
+        # print("guru_bookings:", guru_bookings)
+        # print("cb_sales:", cb_sales)
+        # print("cb_wrong:", cb_wrong)
+        # print("cb_bookings:", cb_bookings)
+        # Calculate sales conversion rate by date
+        organisch_conversion = {}
+        cb_conversion = {}
+        guru_wrong_call = {}
+        cb_wrong_call = {}
+        true_guru_calls = {}
+        true_cb_calls = {}
+        for date in set(all_calls.keys()) | set(guru_sales.keys()) | set(guru_wrong.keys()) | set(reason_booking.keys()) | set(guru_bookings.keys()) | set(cb_sales.keys()) | set(cb_wrong.keys()) | set(cb_bookings.keys()):
+            calls = all_calls.get(date, 0)
+            guru_sales_val = guru_sales.get(date, 0)
+            guru_wrong_val = guru_wrong.get(date, 0)
+            reason_booking_val = reason_booking.get(date, 0)
+            guru_bookings_val = guru_bookings.get(date, 0)
+            cb_sales_val = cb_sales.get(date, 0)
+            cb_wrong_val = cb_wrong.get(date, 0)
+            cb_bookings_val = cb_bookings.get(date, 0)
+            # print(guru_sales, guru_wrong_val, reason_booking, guru_bookings_val)
+            guru_wrong_call[date] = guru_sales_val - guru_wrong_val - reason_booking_val
+            cb_wrong_call[date] = (cb_sales_val + reason_booking_val) - cb_wrong_val
+            
+            # Now use dictionary values for true_guru_calls and true_cb_calls
+            true_guru_calls[date] = calls - guru_wrong_call[date]
+            true_cb_calls[date] = calls - cb_wrong_call[date]
+            
+            # Use dictionary values for conversion calculations
+            organisch_conversion[date] = f"{round(guru_bookings_val/(true_guru_calls[date] if true_guru_calls[date]>0 else 1)*100,4)}%"
+            cb_conversion[date] = f"{round(cb_bookings_val/(true_cb_calls[date] if true_cb_calls[date]>0 else 1)*100,4)}%"
+            # sales_conversion[date] = f"{round(sales_effective_calls / bookings_success if bookings_success > 0 else 1, 2)}%"
+    else:
+        all_calls ={}
+        guru_wrong_call = {}
+        cb_wrong_call = {}
+        guru_bookings = {}
+        cb_bookings = {}
+        organisch_conversion = {}
+        cb_conversion = {}
+        true_guru_calls = {}
+        true_cb_calls = {}
+        
     
     yesterday_date = (datetime.now() - timedelta(days=1)).date()
-    yesterday_date_start = datetime.combine(yesterday_date, datetime.min.time())
-    yesterday_date_end = datetime.combine(yesterday_date, datetime.max.time())
     # print(yesterday_date, yesterday_date_start, yesterday_date_end)
     # Call metrics
     calls = all_call_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
@@ -257,7 +400,7 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     recieved_data = all_email_query.with_entities(
         EmailData.date.label("date"), 
         func.sum(EmailData.received).label("recieved")
-    ).filter(
+    ).filter( 
         EmailData.date.between(start_date, end_date)
     ).group_by(EmailData.date).all()
     recieved = {
@@ -347,7 +490,7 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
         row.date.strftime("%Y-%m-%d") if isinstance(row.date, datetime) else str(row.date): row.booked
         for row in booked_data
     }
-    print("Booked :", booked)
+    # print("Booked :", booked)
     # booked = booking_query.with_entities(func.count(SoftBookingKF.id)).filter(
     #     (SoftBookingKF.status == "OK") | (SoftBookingKF.status == "RF"), 
     #     SoftBookingKF.service_creation_time.between(yesterday_date_start, yesterday_date_end)
@@ -447,6 +590,15 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
             "AHT": aht,
             "Total_Call_Time": total_call_time,
             "Outbound_Calls": call_outbound,
+            "sales_total_calls": all_calls,
+            "guru_wrong_calls": guru_wrong_call,
+            "guru_bookings": guru_bookings,
+            "true_sales_calls_guru": true_guru_calls,
+            "organisch_conversion":organisch_conversion,
+            "cb_wrong_calls":cb_wrong_call,
+            "cb_bookings": cb_bookings,
+            "true_sales_calls_cb": true_cb_calls,
+            "cb_conversion": cb_conversion,
         },
         "email_metrics": {
             "all_emails": all_emails,
@@ -597,239 +749,6 @@ def create_section(workbook, start_row, section_name, dates, data, bold_font, se
 
     return next_row + 2 
 
-# def write_metrics(ws, start_row, result, bold_font):
-#     """
-#     Writes Call and Email Metrics in the worksheet.
-#     """
-#     row = start_row
-#     ws.cell(row=row, column=1, value="Call Metrics").font = bold_font
-#     row += 1
-#     call_metrics = [
-#         ('Calls offered', 'calls_offered'),
-#         ('Calls handled', 'calls_handled'),
-#         ('ASR', 'ASR'),
-#         ('SLA', 'SLA'),
-#         ('längste Wartezeit', 'Max_Waiting_Time'),
-#         ('AHT', 'AHT'),
-#         ('Gesprächszeit gesamt', 'Total_Call_Time'),
-#         ('Call Outbound', 'Outbound_Calls')
-#     ]
-#     for label, field in call_metrics:
-#         ws.cell(row=row, column=1, value=label)
-#         ws.cell(row=row, column=2, value=result['call_metrics'].get(field, 0))
-#         row += 1
-
-#     row += 1
-#     ws.cell(row=row, column=1, value="Email Metrics").font = bold_font
-#     row += 1
-#     email_metrics = [
-#         ('Mails', 'total_emails'),
-#         ('empfangen', 'received'),
-#         ('gesendet', 'sent'),
-#         ('archiviert', 'archived'),
-#         ('Bearbeitungszeit gesamt', 'Total_Processing_Time')
-#     ]
-#     for label, field in email_metrics:
-#         ws.cell(row=row, column=1, value=label)
-#         ws.cell(row=row, column=2, value=result['email_metrics'].get(field, 0))
-#         row += 1
-
-#     return row 
-
-# def write_booking_metrics(ws, start_row, result, bold_font):
-#     """ 
-#     Writes Call and Email Metrics in the worksheet.
-#     """
-#     row = start_row
-#     # ws.cell(row=row, column=1, value="Buchugen Metrics").font = bold_font
-#     row += 1
-#     booking_metrics = [
-#         ('gebucht', 'booked'),
-#         ('not gebucht', 'not_booked'),
-#         ('pending', 'bookings_pending'),
-#         ('OP/RQ', 'bookings_op_rq'),
-#         ('SB', 'bookings_sb'),
-#         ('SB Buchungsquote', 'booking_rate'),
-#         ('Buchugen ges', 'bookings'),
-#     ]
-#     for label, field in booking_metrics:
-#         ws.cell(row=row, column=1, value=label)
-#         ws.cell(row=row, column=2, value=result['booking_metrics'].get(field, 0))
-#         row += 1
-#     return row
-
-
-# def write_sheet_data(ws, result, sheet_prefix, split_domains=False, result_service=None):
-#     """
-#     Writes structured data in the worksheet in this format:
-    
-#     - Sales Table (if split)
-#     - Sales Metrics (if split)
-#     - Service Table (if split)
-#     - Service Metrics (if split)
-#     - Single Table (if no split)
-#     """
-#     bold_font = Font(bold=True)
-#     ws['A1'] = f"{sheet_prefix} {datetime.now().date()}"
-#     ws['A2'] = str(datetime.now().year)
-#     ws['A2'].font = bold_font
-
-#     # Write the main metrics header
-#     headers = [
-#         ('B2', 'Buchungen'),
-#         ('C2', 'Kontakte'),
-#         ('D2', 'Call'),
-#         ('E2', 'Mail'),
-#         ('F2', 'Mail Sales'),
-#         ('G2', 'Mail Service'),
-#         ('H2', 'Call Sales'),
-#         ('I2', 'Call Service'),
-#         ('J2', 'SB')
-#     ]
-#     for cell, value in headers:
-#         ws[cell] = value
-#         ws[cell].font = bold_font
-
-#     # Populate the main metrics row
-#     if split_domains and result_service:
-#         ws['B3'] = result['total_bookings'] + result_service['total_bookings']
-#         ws['C3'] = (result['calls'] + result['total_emails']) + (result_service['calls'] + result_service['total_emails'])
-#         ws['D3'] = result['calls'] + result_service['calls']
-#         ws['E3'] = result['total_emails'] + result_service['total_emails']
-#         ws['F3'] = result['mails_sales']
-#         ws['G3'] = result_service['mails_service']
-#         ws['H3'] = result['calls_sales']
-#         ws['I3'] = result_service['calls_service']
-#         ws['J3'] = result['sb_bookings'] + result_service['sb_bookings']
-#     else:
-#         ws['B3'] = result['total_bookings']
-#         ws['C3'] = result['calls'] + result['total_emails']
-#         ws['D3'] = result['calls']
-#         ws['E3'] = result['total_emails']
-#         ws['F3'] = result['mails_sales']
-#         ws['G3'] = result['mails_service']
-#         ws['H3'] = result['calls_sales']
-#         ws['I3'] = result['calls_service']
-#         ws['J3'] = result['sb_bookings']
-
-#     # today = datetime.now().date()
-#     # first_day = today.replace(day=1)
-#     # dates = []
-#     # current_date = first_day
-#     # while current_date <= today:
-#     #     dates.append(current_date)
-#     #     current_date += timedelta(days=1)
-#     # Get today's date
-#     today = datetime.now().date()
-
-#     # Calculate first day of the previous month
-#     if today.month == 1:  # If current month is January
-#         first_day = today.replace(year=today.year-1, month=12, day=1)
-#     else:
-#         first_day = today.replace(month=today.month-1, day=1)
-
-#     # Calculate last day of the previous month
-#     if today.month == 1:  # If current month is January
-#         last_day = today.replace(year=today.year-1, month=12, day=31)
-#     else:
-#         # Use the fact that the day before the 1st of this month is the last day of the previous month
-#         last_day = today.replace(day=1) - timedelta(days=1)
-
-#     # Generate all dates in the previous month
-#     dates = []
-#     current_date = first_day
-#     while current_date <= last_day:
-#         dates.append(current_date)
-#         current_date += timedelta(days=1)
-
-#     next_row = 5  # Start after the main metrics row
-
-#     # ---- Sales Section ----
-#     if split_domains:
-#         ws.cell(row=next_row, column=1, value=f"{sheet_prefix} Sales").font = bold_font
-#         next_row += 1
-#         next_row = create_section(ws, next_row, f"{sheet_prefix} Sales", dates, result, bold_font)
-#         next_row += 2  # Space before metrics
-
-#         # Add Sales Metrics
-#         # ws.cell(row=next_row, column=1, value="Sales Metrics").font = bold_font
-#         # next_row += 1
-#         # next_row = write_metrics(ws, next_row, result, bold_font)
-
-#     # ---- Service Section ----
-#     if split_domains and result_service:
-#         next_row += 2  # Add some space
-#         ws.cell(row=next_row, column=1, value=f"{sheet_prefix} Service").font = bold_font
-#         next_row += 1
-#         next_row = create_section(ws, next_row, f"{sheet_prefix} Service", dates, result_service, bold_font)
-#         next_row += 2  # Space before metrics
-#         # ---- Booking Metrics ----
-#         ws.cell(row=next_row, column=1, value="Buchungen Metrics").font = bold_font
-#         next_row += 1
-#         booking_metrics = [
-#             ('Gebucht', 'booked'),
-#             ('Nicht gebucht', 'not_booked'),
-#             ('Pending', 'bookings_pending'),
-#             ('OP/RQ', 'bookings_op_rq'),
-#             ('SB', 'bookings_sb'),
-#             ('SB Buchungsquote', 'booking_rate'),
-#             ('Buchungen gesamt', 'bookings'),
-#         ]
-        
-#         for label, field in booking_metrics:
-#             ws.cell(row=next_row, column=1, value=label)
-#             for idx, date in enumerate(dates):
-#                 col = idx + 2 + 1
-#                 date_str = date.strftime('%Y-%m-%d')
-#                 # print(data['booking_metrics'].get(field, {}).get(date_str, 0))
-#                 ws.cell(row=next_row, column=col, value=result['booking_metrics'].get(field, {}).get(date_str, 0))
-#             next_row += 1
-
-#         # Add Service Metrics
-#         # ws.cell(row=next_row, column=1, value="Service Metrics").font = bold_font
-#         # next_row += 1
-#         # next_row = write_metrics(ws, next_row, result_service, bold_font)
-    
-#     # If no splitting is needed, write everything as a single block.
-#     if not split_domains:
-#         ws.cell(row=next_row, column=1, value=f"{sheet_prefix} Overview").font = bold_font
-#         next_row += 1
-#         next_row = create_section(ws, next_row, f"{sheet_prefix}", dates, result, bold_font)
-#         next_row += 2  # Space before metrics
-#         # ---- Booking Metrics ----
-#         ws.cell(row=next_row, column=1, value="Buchungen Metrics").font = bold_font
-#         next_row += 1
-#         booking_metrics = [
-#             ('Gebucht', 'booked'),
-#             ('Nicht gebucht', 'not_booked'),
-#             ('Pending', 'bookings_pending'),
-#             ('OP/RQ', 'bookings_op_rq'),
-#             ('SB', 'bookings_sb'),
-#             ('SB Buchungsquote', 'booking_rate'),
-#             ('Buchungen gesamt', 'bookings'),
-#         ]
-        
-#         for label, field in booking_metrics:
-#             ws.cell(row=next_row, column=1, value=label)
-#             for idx, date in enumerate(dates):
-#                 col = idx + 2 + 1
-#                 date_str = date.strftime('%Y-%m-%d')
-#                 # print(data['booking_metrics'].get(field, {}).get(date_str, 0))
-#                 ws.cell(row=next_row, column=col, value=result['booking_metrics'].get(field, {}).get(date_str, 0))
-#             next_row += 1
-#         # Add Metrics
-#         # ws.cell(row=next_row, column=1, value="Metrics").font = bold_font
-#         # next_row += 1
-#         # next_row = write_metrics(ws, next_row, result, bold_font)
-
-#     next_row+=2
-#     # Add Service Metrics
-#     # ws.cell(row=next_row, column=1, value="Buchugen Metrics").font = bold_font
-#     # next_row += 1
-#     # next_row = write_booking_metrics(ws, next_row, result, bold_font)
-    
-#     return next_row + len(headers)  
-
 def write_sheet_data(ws, result, sheet_prefix, start_date, end_date, split_domains=False, result_service=None):
     """
     Writes structured data in the worksheet in this format:
@@ -911,6 +830,45 @@ def write_sheet_data(ws, result, sheet_prefix, start_date, end_date, split_domai
         next_row += 1
         next_row = create_section(ws, next_row, f"{sheet_prefix} Service", dates, result_service, bold_font)
         next_row += 2  # Space before metrics
+        
+        # ---- Conversion Metrics ----
+        ws.cell(row=next_row, column=1, value="Conversion Metrics").font = bold_font
+        next_row += 1
+        conversion_metrics = [
+            ('Gesamtanzahl der Anrufe', 'sales_total_calls'),
+            ('Guru Wrong Calls', 'guru_wrong_calls'),
+            ('echter Verkaufsgesprächsguru', 'true_sales_calls_guru'),
+            ('Guru-Buchungen', 'guru_bookings'),
+            ('Verkaufskonversion', 'organisch_conversion'),
+            ('cb falsche Anrufe', 'cb_wrong_calls'),
+            ('CB-Buchungen', 'cb_bookings'),
+            ('echte Verkaufsgespräche cb', 'true_sales_calls_cb'),
+            ('CB konversion', 'cb_conversion'),
+        ]
+        
+        # for label, field in conversion_metrics:
+        #     ws.cell(row=next_row, column=1, value=label)
+        #     for idx, date in enumerate(dates):
+        #         col = idx + 2 + 1
+        #         date_str = date.strftime('%Y-%m-%d')
+        #         # print(data['booking_metrics'].get(field, {}).get(date_str, 0))
+        #         ws.cell(row=next_row, column=col, value=result['call_metrics'].get(field, {}).get(date_str, 0))
+        #     next_row += 1
+        # For the conversion metrics section
+        for label, field in conversion_metrics:
+            ws.cell(row=next_row, column=1, value=label)
+            for idx, date in enumerate(dates):
+                col = idx + 2 + 1
+                date_str = date.strftime('%Y-%m-%d')
+                # Check if the field exists and is a dictionary before trying to access date_str
+                field_data = result['call_metrics'].get(field, {})
+                if isinstance(field_data, dict):
+                    value = field_data.get(date_str, 0)
+                else:
+                    value = field_data  # Use the value directly if it's not a dict
+                ws.cell(row=next_row, column=col, value=value)
+            next_row += 1
+        next_row += 2
         # ---- Booking Metrics ----
         ws.cell(row=next_row, column=1, value="Buchungen Metrics").font = bold_font
         next_row += 1
@@ -993,8 +951,7 @@ async def export_excel(
     start_date_booking = datetime.combine(start_date, datetime.min.time())
     end_date_booking = datetime.combine(end_date, datetime.max.time())
     
-    print("Final Date Range:", start_date, "to", end_date)
-    print("Booking Date Range:", start_date_booking, "to", end_date_booking)
+    # print("Final Date Range:", start_date, "to", end_date)
 
     is_admin_or_employee = user.role in ["admin", "employee"]
     if is_admin_or_employee:
@@ -1092,106 +1049,3 @@ async def export_excel(
         headers=headers
     )
 
-# @router.post("/export/excel")
-# async def export_excel(
-#     db: Session = Depends(get_db),
-#     current_user: schemas.User = Depends(oauth2.get_current_user)
-# ):
-#     user = db.query(User).filter(User.email == current_user.get("email")).first()
-#     start_date, end_date = validate_user_and_date_permissions_export(db=db, current_user=current_user)
-#     start_date_booking, end_date_booking = validate_user_and_date_permissions_booking_export(db=db, current_user=current_user)
-#     # print("Booking dates: ", start_date_booking, end_date_booking)
-#     is_admin_or_employee = user.role in ["admin", "employee"]
-#     if is_admin_or_employee:
-#         companies_to_export = ["5vorflug", "bild", "guru", "Galeria", "ADAC", "Urlaub"]
-#     else:
-#         accessible_companies, _, _ = domains_checker(db, user.id, filter_5vf="5vorFlug", filter_bild="BILD")
-#         companies_to_export = accessible_companies
-
-#     split_companies = ["5vorflug", "guru", "bild"]
-
-#     output = BytesIO()
-#     wb = openpyxl.Workbook()
-#     first_sheet = True
-
-#     for company in companies_to_export:
-#         acc_companies, call_filters, all_call_filters = domains_checker(
-#             db, user.id, filter_5vf="5vorFlug", filter_bild="BILD", target_company=company
-#         )
-#         acc_companies_email, email_filters, all_email_filters = domains_checker_email(
-#             db, user.id, filter_5vf="5vorFlug", filter_bild="Bild", target_company=company
-#         )
-#         acc_companies_booking, booking_filters, order_filters = domains_checker_booking(
-#             db, user.id, filter_5vf="5vF", filter_bild="BILD", target_company=company
-#         )
-
-#         if company.lower() not in [c.lower() for c in acc_companies]:
-#             continue
-
-#         call_query = db.query(QueueStatistics).filter(or_(*call_filters)) if call_filters else db.query(QueueStatistics)
-#         all_call_query = db.query(AllQueueStatisticsData).filter(or_(*all_call_filters)) if all_call_filters else db.query(AllQueueStatisticsData)
-#         email_query = db.query(WorkflowReportGuruKF).filter(or_(*email_filters)) if email_filters else db.query(WorkflowReportGuruKF)
-#         all_email_query = db.query(EmailData).filter(or_(*all_email_filters)) if all_email_filters else db.query(EmailData)
-#         booking_query = db.query(SoftBookingKF).filter(or_(*booking_filters)) if booking_filters else db.query(SoftBookingKF)
-
-#         if first_sheet:
-#             ws = wb.active
-#             ws.title = company
-#             first_sheet = False
-#         else:
-#             ws = wb.create_sheet(title=company)
-
-#         if company.lower() in split_companies:
-#             result_sales = get_export_data(
-#                 call_query=call_query,
-#                 all_call_query=all_call_query,
-#                 email_query=email_query,
-#                 all_email_query=all_email_query,
-#                 booking_query=booking_query,
-#                 start_date=start_date,
-#                 end_date=end_date,
-#                 start_date_booking=start_date_booking,
-#                 end_date_booking=end_date_booking,
-#                 domain="Sales",
-#                 company=company
-#             )
-#             result_service = get_export_data(
-#                 call_query=call_query,
-#                 all_call_query=all_call_query,
-#                 email_query=email_query,
-#                 all_email_query=all_email_query,
-#                 booking_query=booking_query,
-#                 start_date=start_date,
-#                 end_date=end_date,
-#                 start_date_booking=start_date_booking,
-#                 end_date_booking=end_date_booking,
-#                 domain="Service",
-#                 company=company
-#             )
-#             write_sheet_data(ws, result_sales, company, split_domains=True, result_service=result_service)
-#         else:
-#             result = get_export_data(
-#                 call_query=call_query,
-#                 all_call_query=all_call_query,
-#                 email_query=email_query,
-#                 all_email_query=all_email_query,
-#                 booking_query=booking_query,
-#                 start_date=start_date,
-#                 end_date=end_date,
-#                 start_date_booking=start_date_booking,
-#                 end_date_booking=end_date_booking,
-#                 domain="Sales",  # Domain not used here
-#                 company=company
-#             )
-#             write_sheet_data(ws, result, company, split_domains=False)
-
-#     wb.save(output)
-#     output.seek(0)
-#     headers = {
-#         'Content-Disposition': f'attachment; filename="FC_neu_{datetime.now().strftime("%d_%m_%Y")}.xlsx"'
-#     }
-#     return StreamingResponse(
-#         output,
-#         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-#         headers=headers
-#     )

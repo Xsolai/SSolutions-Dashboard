@@ -192,7 +192,7 @@ async def get_anaytics_email_data(
             email_query = db.query(EmailData)
     else:
         accessible_companies, filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
-        # # print("Filters: ", filters)
+        # # print("Filters: ", filters) 
         if filters:
             query = db.query(WorkflowReportGuruKF).filter(or_(*filters))
             email_query = db.query(EmailData).filter(or_(*email_filter))
@@ -368,6 +368,7 @@ async def get_anaytics_email_data(
 
     processing_times = [pt[0] if isinstance(pt, tuple) else pt for pt in processing_times]
     dwell_times = [pt[0] if isinstance(pt, tuple) else pt for pt in dwell_times]
+    print("Dwell times: ", dwell_times)
     # for pt in dwell_times:
     #     hours,minutes,seconds = time_format(pt)
     #     total_dwell_time_seconds += seconds
@@ -474,9 +475,9 @@ async def get_anaytics_email_data(
         # "New Sent": new_sent,
         # "Total Dwell Time (sec)": f"{int(total_dwell_hours)}h{int(total_dwell_min)}m{int(total_dwell_time_seconds)}s" 
         # if total_processing_time_min > 1 else f"0m{int(total_processing_time_seconds)}s",
-        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours/3), int(total_dwell_min/3), int(total_dwell_time_seconds/3)) if company == "all" else time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)),
+        "Total Dwell Time (sec)": time_formatter(int(total_dwell_hours), int(total_dwell_min), int(total_dwell_time_seconds)) ,
         "Total Processing Time (sec)": time_formatter(avg_hours, avg_minutes, avg_seconds),
-        "Total Dwell Time (dec)": round((int(total_dwell_hours/3)*3600+int(total_dwell_min/3)*60+int(total_dwell_time_seconds/3))/60,2) if company == "all" else round((int(total_dwell_hours)+int(total_dwell_min)+int(total_dwell_time_seconds))/60,2),
+        "Total Dwell Time (dec)": round((int(total_dwell_hours)*3600+int(total_dwell_min)*60+int(total_dwell_time_seconds))/60,2),
         "Total Processing Time (dec)": round((int(total_processing_time_hour/3)*3600+int(total_processing_time_mins/3)*60+int(total_processing_time_sec/3))/60,2) if company == "all" else round((int(total_processing_time_hour)+int(total_processing_time_mins)+int(total_processing_time_sec))/60,2),
         "Processing Time Trend in seconds": processing_time_trend,
         "Processing Count Trend": processing_count_trend
@@ -1338,20 +1339,6 @@ async def get_conversion_data(
         accessible_companies.append("Galeria")
     if "urlaub" in user_domains:
         accessible_companies.append("Urlaub")
-    
-    # print("accessible_companies: ", accessible_companies)
-    # if "5vorflug" in accessible_companies:
-    #     print("containss")
-    #     filters.append(SoftBookingKF.customer.like(f"%{filter_5vf}%"))
-    #     # total_call_reasons = 0
-    # if "bild" in accessible_companies:
-    #     print("containss bild")
-    #     filters.append(SoftBookingKF.customer.like(f"%{filter_bild}%"))
-    #     # total_call_reasons = 0
-    # if "guru" in accessible_companies:
-    #     print("contains guru")
-    #     filters.append(SoftBookingKF.customer.notlike(f"%{filter_5vf}%").notlike(f"%{filter_bild}%"))
-        # total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
     # Determine user access level
     email_filter = current_user.get("email")
     # email_contains_5vflug = "5vorflug" in email_filter
@@ -1411,31 +1398,6 @@ async def get_conversion_data(
             sale_query = db.query(AllQueueStatisticsData).filter(
                 AllQueueStatisticsData.customer.like("%Sales%"),
             )
-    # if "5vorflug" in accessible_companies:
-    #     print("containss")
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail={
-    #             "error": "Permission Denied",
-    #             "message": f"You don't have a permission.",
-    #         }
-    #     )
-    # if "bild" in accessible_companies:
-    #     print("containss bild")
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail={
-    #             "error": "Permission Denied",
-    #             "message": f"You don't have a permission.",
-    #         }
-    #     )
-
-    # if "urlaubsguru" in accessible_companies:
-    #     print("executing else containss")
-    #     query = db.query(SoftBookingKF).filter(
-    #         SoftBookingKF.customer.notlike("%5vF%"),
-    #         SoftBookingKF.customer.notlike("%BILD%")
-    #     )
 
     # List of companies to check for raising exceptions
     else:
@@ -1461,135 +1423,100 @@ async def get_conversion_data(
             #             }
             #         )
             return {
-                "success bookings": 0,
-                "CB":{
-                    "CB Conversion": 0
-                    },
-                "Sales":{
-                    "Sales Conversion": 0
-                    },
+                "organisch_conversion": 0,
+                "cb_conversion": 0,
                 "Conversion Performance":{
-                    "CB":{
-                    "CB calls handled": 0,
-                    "Wrong calls": 0,
-                    "Bookings CB": 0,
-                    # "Turnover": format_revenue(turnover_cb),
-                    # "turnover": turnover_cb,
-                    "CB Conversion": 0
-                    },
-                    "Sales":{
-                    "Sales handles": 0,
-                    "Wrong calls": 0,
-                    "Bookings Sales": 0,
-                    "Sales volume": 0,
-                    "Sales Conversion": 0
-                    }
-                }  
-            }
+                    "total_calls": 0,
+                    "organisch_wrong_call": 0,
+                    "organisch_true_sales_call": 0,
+                    "organisch_bookings": 0,
+                    "cb_wrong_call": 0,
+                    "cb_true_sales_call": 0,
+                    "cb_bookings": 0,
+                }}
 
-    db = SessionLocal()
     if start_date is None:
-        calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
-        calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
-        wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
-        sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
-        bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
-        # turnover_cb = round(query.with_entities(func.sum(BookingData.id)).scalar() or 0,2)
-        sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0 
+        all_calls = db.query(func.sum(GuruCallReason.total_calls)).scalar() or 0
+        # organisch conversion
+        guru_sales = db.query(func.sum(GuruCallReason.guru_sales)).scalar() or 0
+        guru_wrong = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
+        reason_booking = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
+        guru_bookings = db.query(func.count(BookingData.crs_original_booking_number)).filter(
+            BookingData.order_agent.notlike("%CB%"),
+            BookingData.order_agent.like(f"%002%"),
+            BookingData.crs_status.in_(["OK", "RF"])
+            ).scalar() or 0
         
-        total_calls = sale_query.with_entities(func.sum(QueueStatistics.calls)).scalar() or 0
-        accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).scalar() or 0
-        abondened_before_ans = sale_query.with_entities(func.sum(QueueStatistics.abandoned_before_answer)).scalar() or 0
-        cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
-        sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
-        BookingData.crs_status == "OK",
-        BookingData.crs_status == "RF"
-        ).scalar() or 0
-    
+        # cb conversion
+        cb_sales = db.query(func.sum(GuruCallReason.cb_sales)).scalar() or 0
+        cb_wrong = db.query(func.sum(GuruCallReason.cb_wrong_call)).scalar() or 0
+        cb_bookings = db.query(func.count(BookingData.crs_original_booking_number)).filter(
+            BookingData.order_agent.like("%CB%"),
+            BookingData.order_agent.like(f"%002%"),
+            BookingData.crs_status.in_(["OK", "RF"])
+            ).scalar() or 0
     else:
-        calls_cb_handled = db.query(func.sum(GuruCallReason.cb_sales)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0
-        calls_sales_handled = db.query(func.sum(GuruCallReason.guru_sales)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0
-        wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0
-        sales_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0
-        bookings_cb = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 1 
-        # turnover_cb = round(query.with_entities(func.sum(SoftBookingKF.service_element_price)).filter(
-        # SoftBookingKF.service_creation_time.between(start_date_booking, end_date_booking)
-        # ).scalar() or 0,2)
-        sales_volume = db.query(func.sum(GuruCallReason.guru_sales)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0
+        # guru_calls_queue = db.query(func.sum(QueueStatistics.accepted)).filter(
+        #     QueueStatistics.date.between(start_date, end_date),
+        #     QueueStatistics.queue_name.in_(["Holidayguru CH", "Urlaubsguru AT", "Urlaubsguru DE"])
+        #     ).scalar() or 0
+        # cb_calls_queue = db.query(func.sum(QueueStatistics.accepted)).filter(
+        #     QueueStatistics.date.between(start_date, end_date),
+        #     QueueStatistics.queue_name.in_(["Holidayguru CB CH", "Urlaubsguru_CB_AT", "Urlaubsguru_CB_DE"])
+        #     ).scalar() or 0
+        all_calls = db.query(func.sum(GuruCallReason.total_calls)).filter(
+            GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        # organisch conversion
+        guru_sales = db.query(func.sum(GuruCallReason.guru_sales)).filter(
+            GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        guru_wrong = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
+            GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        reason_booking = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(
+            GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        guru_bookings = db.query(func.count(BookingData.crs_original_booking_number)).filter(
+            BookingData.date.between(start_date, end_date),
+            BookingData.order_agent.notlike("%CB%"),
+            BookingData.order_agent.like(f"%002%"),
+            BookingData.crs_status.in_(["OK", "RF"])
+            ).scalar() or 0
         
-        # calculations for conversion and effective calls
-        total_calls = sale_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
-        ).scalar() or 0
-        accepted_calls = sale_query.with_entities(func.sum(AllQueueStatisticsData.accepted)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
-        ).scalar() or 0
-        abondened_before_ans = sale_query.with_entities(func.sum(AllQueueStatisticsData.abandoned_before_answer)).filter(
-        AllQueueStatisticsData.date.between(start_date, end_date)
-        ).scalar() or 0
-        cb_wrong_calls = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0 
-        guru_wrong_calls = db.query(func.sum(GuruCallReason.guru_wrong)).filter(
-        GuruCallReason.date.between(start_date, end_date)
-        ).scalar() or 0 
-        sucess_bookings = query.with_entities(func.count(BookingData.id)).filter(
-        BookingData.date.between(start_date, end_date), 
-        (BookingData.crs_status == "OK") | (BookingData.crs_status == "RF")
-        ).scalar() or 0
+        # cb conversion
+        cb_sales = db.query(func.sum(GuruCallReason.cb_sales)).filter(
+            GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        cb_wrong = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(
+            GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        cb_bookings = db.query(func.count(BookingData.crs_original_booking_number)).filter(
+            BookingData.date.between(start_date, end_date),
+            BookingData.order_agent.like("%CB%"),
+            BookingData.order_agent.like(f"%002%"),
+            BookingData.crs_status.in_(["OK", "RF"])
+            ).scalar() or 0
         
-        wrong_calls = cb_wrong_calls+guru_wrong_calls
-        
-        print("total_calls", total_calls)
-        print("accepted",accepted_calls)
-        print("missed",abondened_before_ans)
-        print("wrong",wrong_calls)
-        print(sucess_bookings)
-        
-        
-    cb_conversion = round(calls_cb_handled - wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
-    # sales_conversion = round(calls_sales_handled - sales_wrong_calls / bookings_cb if bookings_cb>0 else 1, 2)
-    sales_effective_calls = total_calls - abondened_before_ans - wrong_calls
-    sales_conversion = round((sales_effective_calls/sucess_bookings if sucess_bookings>0 else 1), 2) 
-    # Return metrics as a dictionary
+    guru_wrong_call = guru_sales-guru_wrong-reason_booking
+    cb_wrong_call = (cb_sales+reason_booking)-cb_wrong
+    
+    true_guru_calls = all_calls - guru_wrong_call
+    true_cb_calls = all_calls - cb_wrong_call
+    
+    print(all_calls, guru_sales, guru_wrong, reason_booking, guru_wrong_call, guru_bookings, true_guru_calls)
+    print(all_calls, cb_sales, cb_wrong, reason_booking, cb_wrong_call, cb_bookings, true_cb_calls)
+    
+    organisch_conversion = round(guru_bookings/(true_guru_calls if true_guru_calls>0 else 1),4)
+    cb_conversion = round(cb_bookings/(true_cb_calls if true_cb_calls>0 else 1),4)
     return {
-        "success bookings": sucess_bookings,
-        "CB":{
-            "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
-            },
-        "Sales":{
-            "Sales Conversion": 100 if sales_conversion > 100 else sales_conversion
-            },
+        "organisch_conversion": "100%" if organisch_conversion>100 else f"{round(organisch_conversion*100, 3)}%",
+        "cb_conversion": "100%" if cb_conversion>100 else f"{round(cb_conversion*100, 3)}%",
+        "sucess_bookings": guru_bookings+cb_bookings,
         "Conversion Performance":{
-            "CB":{
-            "CB calls handled": calls_cb_handled,
-            "Wrong calls": wrong_calls,
-            "Bookings CB": bookings_cb if bookings_cb>1 else 0,
-            # "Turnover": format_revenue(turnover_cb),
-            # "turnover": turnover_cb,
-            "CB Conversion": 100 if cb_conversion > 100 else cb_conversion
-            },
-            "Sales":{
-            "Sales handles": calls_sales_handled,
-            "Wrong calls": sales_wrong_calls,
-            "Bookings Sales": bookings_cb if bookings_cb>1 else 0,
-            "Sales volume": sales_volume,
-            "Sales Conversion": 100 if sales_conversion > 100 else sales_conversion
-            }
-        }  
-    }
+            "total_calls": all_calls,
+            "organisch_wrong_call": guru_wrong_call,
+            "organisch_true_sales_call": true_guru_calls,
+            "organisch_bookings": guru_bookings,
+            "cb_wrong_call": cb_wrong_call,
+            "cb_true_sales_call": true_cb_calls,
+            "cb_bookings": cb_bookings,
+        }}
+        
 
 @router.get("/track_op_bookings")
 async def track_op_bookings(
