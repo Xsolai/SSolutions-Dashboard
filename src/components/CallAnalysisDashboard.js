@@ -305,6 +305,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
         change: subKPIs['avg wait time_change'],
         description: "im Vergleich zur letzten Periode"
       },
+      
       {
         title: "Maximale Wartezeit",
         value: `${overviewData?.['max. wait time (min)'] || 0}`,
