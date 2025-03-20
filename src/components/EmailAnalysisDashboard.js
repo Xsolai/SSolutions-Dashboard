@@ -294,7 +294,7 @@ useEffect(() => {
         description: "im Vergleich zur letzten Periode"
       },
       {
-        title: "Gesamte E-Mails",
+        title: "Empfangene E-Mails",
         value: (emailData['email recieved'] || 0).toLocaleString(),
         icon: Inbox,
         change: subKPIs['total emails recieved change'],
