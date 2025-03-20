@@ -853,7 +853,6 @@ async def get_sales_and_service(
                     "average handling time": 0,
                     "Total outbound calls": 0,
                 }
-
     if domain != "all":
         if company in ["ADAC", "Galeria", "Urlaub"]:
             query = query
@@ -957,7 +956,14 @@ async def get_sales_and_service(
             "avg ACC": round(((sale_metrics.sale_ACC or 0)+(service_metrics.service_ACC or 0))/2, 2),
             "avg SL": round(((sale_metrics.sale_SL or 0)+(service_metrics.service_SL or 0))/2, 2),
             "avg AHT_sec": round(((sale_metrics.sale_AHT_sec/60 if sale_metrics.sale_AHT_sec else 0)+(service_metrics.service_AHT_sec/60 if service_metrics.service_AHT_sec else 0))/2 or 0, 2),
-            "longest_waiting_time_sec": round((sale_metrics.sale_longest_waiting_time_sec/60 if sale_metrics.sale_longest_waiting_time_sec>service_metrics.service_longest_waiting_time_sec else service_metrics.service_longest_waiting_time_sec/60) or 0, 1 ),
+            "longest_waiting_time_sec": round(
+                (
+                    (sale_metrics.sale_longest_waiting_time_sec or 0) / 60 
+                    if (sale_metrics.sale_longest_waiting_time_sec or 0) > (service_metrics.service_longest_waiting_time_sec or 0) 
+                    else (service_metrics.service_longest_waiting_time_sec or 0) / 60
+                ) or 0, 
+    1
+)
             # "total_talk_time_sec": round((sale_metrics.sale_total_talk_time_sec/60 if sale_metrics.sale_total_talk_time_sec else 0) or 0, 2)
         },
         "sales_metrics": {
