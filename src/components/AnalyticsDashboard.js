@@ -291,7 +291,6 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
 
 
   const SalesServiceTab = () => {
-    const [showSales, setShowSales] = useState(true);
     const [domain, setDomain] = useState(null);
 
     if (!data.salesServiceData) return <Loading />;
@@ -327,6 +326,17 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       ...(data.salesServiceData?.service_metrics || {})
     };
 
+    const allMetrics = {
+      ...defaultMetrics,
+      ...(data.salesServiceData?.all_metrics || {}),
+      // Rename fields to match expected structure
+      ACC: data.salesServiceData?.all_metrics?.["avg ACC"] || 0,
+      SL: data.salesServiceData?.all_metrics?.["avg SL"] || 0,
+      AHT_sec: data.salesServiceData?.all_metrics?.["avg AHT_sec"] || 0,
+      // Add missing field (set to sum of sales and service if available)
+      total_talk_time_sec: (salesMetrics.total_talk_time_sec || 0) + (serviceMetrics.total_talk_time_sec || 0)
+    };
+
     // Calculate metrics based on the domain selection
     let activeMetrics;
     let serviceType;
@@ -338,16 +348,8 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       activeMetrics = serviceMetrics;
       serviceType = "Service";
     } else {
-      // Combined metrics for "All"
-      activeMetrics = {
-        calls_offered: (salesMetrics.calls_offered || 0) + (serviceMetrics.calls_offered || 0),
-        calls_handled: (salesMetrics.calls_handled || 0) + (serviceMetrics.calls_handled || 0),
-        ACC: ((salesMetrics.ACC || 0) + (serviceMetrics.ACC || 0)) / 2, // Average
-        SL: ((salesMetrics.SL || 0) + (serviceMetrics.SL || 0)) / 2, // Average
-        AHT_sec: ((salesMetrics.AHT_sec || 0) + (serviceMetrics.AHT_sec || 0)) / 2, // Average
-        longest_waiting_time_sec: Math.max(salesMetrics.longest_waiting_time_sec || 0, serviceMetrics.longest_waiting_time_sec || 0),
-        total_talk_time_sec: (salesMetrics.total_talk_time_sec || 0) + (serviceMetrics.total_talk_time_sec || 0)
-      };
+      // Use the pre-calculated all_metrics instead of calculating on the fly
+      activeMetrics = allMetrics;
       serviceType = "Alle";
     }
 
@@ -529,7 +531,6 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       </div>
     );
   };
-
 
 
   const BookingTab = () => {
