@@ -412,7 +412,8 @@ async def get_anaytics_email_data(
         divisor_dwell = days_in_range
     else:
         print(max(len(dwell_times), 1))
-        divisor_dwell = max(len(dwell_times), 1)  # Prevent division by zero
+        # divisor_dwell = max(len(dwell_times), 1)  # Prevent division by zero
+        divisor_dwell = 1
 
     # Compute average processing time
     avg_seconds_per_entry_dwell = total_seconds_dwell / divisor_dwell
