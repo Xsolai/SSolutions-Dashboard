@@ -191,6 +191,7 @@ async def get_anaytics_email_data(
             query = db.query(WorkflowReportGuruKF)
             email_query = db.query(EmailData)
     else:
+        print("executing for client")
         accessible_companies, filters, email_filter = domains_checker_email(db, user.id, filter_5vf="5vorFlug", filter_bild="Bild")
         # # print("Filters: ", filters) 
         if filters:
@@ -506,8 +507,6 @@ async def get_anaytics_email_data(
         for interval, count in sorted(interval_count_data.items())
     ]
     
-    print(email_recieved)
-    print(email_new_recieved)
 
     return {
         "email recieved": email_recieved + email_new_recieved,
