@@ -906,7 +906,7 @@ async def get_mailbox_SL(
         replies_data = email_query.with_entities(
             EmailData.customer.label("customer"),
             func.sum(EmailData.sent).label("sent"),
-            func.sum(EmailData.received).label("recieved")
+            func.sum(func.coalesce(EmailData.received, 0) + func.coalesce(EmailData.new_received, 0)).label("recieved")
         ).group_by(EmailData.customer).order_by(EmailData.sent.desc()).all()
 
         replies = [
@@ -985,7 +985,7 @@ async def get_mailbox_SL(
         replies_data = email_query.with_entities(
             EmailData.customer.label("customer"),
             func.sum(EmailData.sent).label("sent"),
-            func.sum(EmailData.received).label("recieved")
+            func.sum(func.coalesce(EmailData.received, 0) + func.coalesce(EmailData.new_received, 0)).label("recieved")
         ).filter(
             EmailData.date.between(start_date, end_date)
         ).group_by(EmailData.customer).order_by(EmailData.sent.desc()).all()

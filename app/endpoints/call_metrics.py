@@ -799,7 +799,7 @@ async def get_call_performance(
         )
         elif "Urlaub" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%Urlaub%")  
+            QueueStatistics.queue_name.like(f"%Urlaub_de%")  
         )
         else:
             query = db.query(QueueStatistics)
