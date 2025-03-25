@@ -190,7 +190,7 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     ).scalar() or 0
 
     # Email metrics
-    total_emails = all_email_query.with_entities(func.sum(EmailData.received)).filter(
+    total_emails = all_email_query.with_entities(func.sum(func.coalesce(EmailData.received, 0) + func.coalesce(EmailData.new_received, 0))).filter(
         EmailData.date.between(start_date, end_date)
     ).scalar() or 0
 
@@ -245,7 +245,7 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
     # Daily emails trend
     emails_data = all_email_query.with_entities(
         EmailData.date.label("date"), 
-        func.sum(EmailData.received).label("total_emails")
+        func.sum(func.coalesce(EmailData.received, 0) + func.coalesce(EmailData.new_received, 0)).label("total_emails")
     ).filter(
         EmailData.date.between(start_date, end_date)
     ).group_by(EmailData.date).all()
@@ -399,7 +399,7 @@ def get_export_data(call_query, all_call_query, email_query, all_email_query, bo
 
     recieved_data = all_email_query.with_entities(
         EmailData.date.label("date"), 
-        func.sum(EmailData.received).label("recieved")
+        func.sum(func.coalesce(EmailData.received, 0) + func.coalesce(EmailData.new_received, 0)).label("recieved")
     ).filter( 
         EmailData.date.between(start_date, end_date)
     ).group_by(EmailData.date).all()
