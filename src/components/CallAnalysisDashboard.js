@@ -55,8 +55,7 @@ const Loading = () => (
   </div>
 );
 
-// Component for statistics cards
-const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
+const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds, timeInMinutes }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
       <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
@@ -68,9 +67,11 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
       <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A]">
         {value}
       </div>
-      {timeInSeconds !== undefined && (
-        <div className="text-base font-nexa-book text-[#001E4A]">
-          {timeInSeconds} min
+      {/* Show both seconds and minutes if available */}
+      {(timeInSeconds !== undefined || timeInMinutes !== undefined) && (
+        <div className="text-base font-nexa-book text-[#001E4A] text-right">
+          {timeInSeconds && <div>{timeInSeconds} sek</div>}
+          {timeInMinutes && <div>{timeInMinutes} min</div>}
         </div>
       )}
     </div>
@@ -126,7 +127,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       name?.toLowerCase().includes('sec') ||
       name?.toLowerCase().includes('min')
     ) {
-      return `${Number(value).toFixed(1)} Min`;
+      return `${Number(value).toFixed(1)} Sek`;
     }
 
     // Default number formatting
@@ -208,59 +209,84 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     { id: "performance", name: "Leistungsmetriken" }
   ];
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const access_token = localStorage.getItem('access_token');
+  // List of clients that should only have Sales view (no Service toggle)
+  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
+  const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
 
-      const formatDate = (date) => {
-        if (!date) return null;
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
-      const queryString = new URLSearchParams({
-        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-        include_all: dateRange.isAllTime || false,
-        ...(selectedCompany && { company: selectedCompany }),
-        ...(domain && { domain: domain })
-      }).toString();
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${access_token}`
-        }
-      };
-
-      const responses = await Promise.all([
-        fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
-      ]);
-
-      const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
-        responses.map(res => res.json())
-      );
-
-      setOverviewData(overviewRes);
-      setSubKPIs(subKPIsRes);
-      setPerformanceData(performanceRes);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // If client is in our restricted list, force sales view
   useEffect(() => {
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      fetchData();
+    if (isSalesOnlyClient) {
+      setDomain("Sales");
     }
-  }, [dateRange, selectedCompany, domain]);
+  }, [selectedCompany, isSalesOnlyClient]);
+
+ // Add this state to track filter loading specifically
+const [isFilterLoading, setIsFilterLoading] = useState(false);
+
+// Modify the fetchData function to use filter loading state
+const fetchData = async () => {
+  try {
+    // Show skeleton loading when filters change
+    setIsFilterLoading(true);
+    setLoading(true);
+    const access_token = localStorage.getItem('access_token');
+
+    const formatDate = (date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const queryString = new URLSearchParams({
+      ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+      ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+      include_all: dateRange.isAllTime || false,
+      ...(selectedCompany && { company: selectedCompany }),
+      ...(domain && { domain: domain })
+    }).toString();
+
+    const config = {
+      headers: {
+        'Authorization': `Bearer ${access_token}`
+      }
+    };
+
+    const responses = await Promise.all([
+      fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
+      fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
+      fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
+    ]);
+
+    const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
+      responses.map(res => res.json())
+    );
+
+    setOverviewData(overviewRes);
+    setSubKPIs(subKPIsRes);
+    setPerformanceData(performanceRes);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    // Use a small timeout to prevent flickering for very fast responses
+    setTimeout(() => {
+      setIsFilterLoading(false);
+      setLoading(false);
+    }, 300);
+  }
+};
+
+// Now, modify the useEffect to trigger the filter loading state
+useEffect(() => {
+  if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+    // Set filter loading state before initiating the fetch
+    setIsFilterLoading(true);
+    fetchData();
+  }
+}, [dateRange, selectedCompany, domain]); // These are your filter parameters
+
 
   // Updated brand-aligned colors
   const chartColors = {
@@ -300,7 +326,9 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Durchschnittliche Wartezeit",
         value: `${overviewData?.['avg wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg wait time (min)']) / 60).toFixed(2),
+        // Calculate both seconds and minutes
+        timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg wait time (min)'])),
+        timeInMinutes: (convertTimeToSeconds(overviewData?.['avg wait time (min)']) / 60).toFixed(2),
         icon: Clock,
         change: subKPIs['avg wait time_change'],
         description: "im Vergleich zur letzten Periode"
@@ -309,7 +337,9 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Maximale Wartezeit",
         value: `${overviewData?.['max. wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['max. wait time (min)'])).toFixed(2),
+        // For max wait time, provide both formats
+        timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['max. wait time (dec)'])),
+        timeInMinutes: (convertTimeToSeconds(overviewData?.['max. wait time (dec)']) / 60).toFixed(2),
         icon: Clock,
         change: subKPIs['max. wait time_change'],
         description: "im Vergleich zur letzten Periode"
@@ -317,12 +347,13 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       {
         title: "Durchschnittliche Bearbeitungszeit",
         value: `${overviewData?.['avg handling time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg handling time (min)']) / 60).toFixed(2),
+        // Calculate both seconds and minutes
+        timeInSeconds: Math.round(convertTimeToSeconds(overviewData?.['avg handling time (min)'])),
+        timeInMinutes: (convertTimeToSeconds(overviewData?.['avg handling time (min)']) / 60).toFixed(2),
         icon: Clock,
         change: subKPIs['avg_handling_time_change'],
         description: "im Vergleich zur letzten Periode"
       },
-  
       {
         title: "Verlorene Anrufe",
         value: overviewData?.['Dropped calls'] || 0,
@@ -347,54 +378,57 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       entry["Time metrics"].max_wait_time_sec = convertTimeToSeconds(
         entry["Time metrics"].max_wait_time_sec
       );
-    });    
+    });
 
     return (
       <div className="space-y-4">
         {/* Toggle Button */}
-        <div className="flex justify-end mb-6">
-          <div className="inline-flex rounded-lg shadow-sm" role="group">
-            <button
-              onClick={() => setDomain(null)}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-                border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Alle
-            </button>
-            <button
-              onClick={() => setDomain("Sales")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black
-                border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setDomain("Service")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-                border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Service
-            </button>
+        {/* Toggle Button */}
+        {!isSalesOnlyClient && (
+          <div className="flex justify-end mb-6">
+            <div className="inline-flex rounded-lg shadow-sm" role="group">
+              <button
+                onClick={() => setDomain(null)}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+          border transition-all duration-200
+          ${!domain
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Alle
+              </button>
+              <button
+                onClick={() => setDomain("Sales")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black
+          border transition-all duration-200
+          ${domain === "Sales"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Vertrieb
+              </button>
+              <button
+                onClick={() => setDomain("Service")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+          border-t border-b border-r transition-all duration-200
+          ${domain === "Service"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Service
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {uebersichtStats.map((stat, index) => (
@@ -410,7 +444,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis {...chartConfig.xAxis} dataKey="call metrics.weekday"  />
+                  <XAxis {...chartConfig.xAxis} dataKey="call metrics.weekday" />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend {...chartConfig.legend} />
@@ -444,7 +478,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis {...chartConfig.xAxis}                     dataKey="Time metrics.weekday"                  />
+                  <XAxis {...chartConfig.xAxis} dataKey="Time metrics.weekday" />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend {...chartConfig.legend} />
@@ -479,7 +513,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 data={sortedDailyCallData}
                 margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
               >
-                <XAxis {...chartConfig.xAxis}                   dataKey="% metrics.weekday" />
+                <XAxis {...chartConfig.xAxis} dataKey="% metrics.weekday" />
                 <YAxis {...chartConfig.yAxis} domain={[0, 100]} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend {...chartConfig.legend} />
@@ -547,87 +581,126 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     return (
       <div className="space-y-6">
         {/* Toggle Button */}
-        <div className="flex justify-end mb-6">
-          <div className="inline-flex rounded-lg shadow-sm" role="group">
-            <button
-              onClick={() => setDomain(null)}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-                border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Alle
-            </button>
-            <button
-              onClick={() => setDomain("Sales")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black
-                border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setDomain("Service")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-                border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Service
-            </button>
+        {/* Toggle Button */}
+        {!isSalesOnlyClient && (
+          <div className="flex justify-end mb-6">
+            <div className="inline-flex rounded-lg shadow-sm" role="group">
+              <button
+                onClick={() => setDomain(null)}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+          border transition-all duration-200
+          ${!domain
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Alle
+              </button>
+              <button
+                onClick={() => setDomain("Sales")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black
+          border transition-all duration-200
+          ${domain === "Sales"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Vertrieb
+              </button>
+              <button
+                onClick={() => setDomain("Service")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+          border-t border-b border-r transition-all duration-200
+          ${domain === "Service"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Service
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        <ChartCard title="Verteilung der Anrufgründe">
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={Object.entries(anrufGruende).map(([key, value]) => ({
-                    name: key.replace(/_/g, ' ').toUpperCase(),
-                    value: value || 0
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={120}
-                  label
-                >
-                  {Object.entries(anrufGruende).map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={pieColors[index % pieColors.length]}
+<ChartCard title="Verteilung der Anrufgründe">
+  <div className="h-[350px]">
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart margin={{ top: 20, right: 10, bottom: 10, left: 10 }}>
+        <Pie
+          data={Object.entries(anrufGruende).map(([key, value]) => ({
+            name: key.replace(/_/g, ' ').toUpperCase(),
+            value: value || 0
+          }))}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="45%"
+          outerRadius={({ width }) => Math.min(width * 0.3, 120)}
+          labelLine={false}
+          label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+        >
+          {Object.entries(anrufGruende).map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={pieColors[index % pieColors.length]}
+            />
+          ))}
+        </Pie>
+        <Tooltip 
+          content={({ active, payload, label }) => {
+            if (!active || !payload || !payload.length) return null;
+            
+            const formatValue = (value, name) => {
+              if (typeof value !== 'number') return value;
+            
+              // For pie chart data, format as count/percentage
+              return value.toLocaleString();
+            };
+            
+            return (
+              <div className="bg-white border border-[#E6E2DF] rounded-lg shadow-sm p-3 font-nexa-book">
+                {payload.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2 py-1">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: item.fill || item.color || item.stroke }}
                     />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{
-                    fontFamily: 'Nexa-Book',
-                    fontSize: '14px',
-                    bottom: 35,
-                    color: chartColors.secondary  // Added text color
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
+                    <span className="text-[#001E4A]/70 font-nexa-book text-sm">
+                      {item.name}:
+                    </span>
+                    <span className="text-[#001E4A] font-nexa-black text-sm">
+                      {formatValue(item.value, item.name)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          }}
+        />
+        <Legend
+          layout="horizontal"
+          verticalAlign="bottom"
+          align="center"
+          iconType="circle"
+          iconSize={10}
+          wrapperStyle={{
+            fontFamily: 'Nexa-Book',
+            fontSize: '12px',
+            bottom: 0,
+            paddingBottom: '50px',
+            color: '#001E4A'
+          }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+</ChartCard>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           <ChartCard isWideChart={true} title="Anrufe nach Warteschlange">
             <div className="h-[350px]">
@@ -721,7 +794,6 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     );
   };
 
-
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
@@ -737,7 +809,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               ))}
             </select>
           </div>
-
+  
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -757,10 +829,15 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             ))}
           </div>
         </div>
-
+  
         <div className="py-4">
-          {activeTab === "uebersicht" && <UebersichtTab />}
-          {activeTab === "performance" && <PerformanceTab />}
+          {/* Use the isFilterLoading state to conditionally show skeleton loaders */}
+          {activeTab === "uebersicht" && (
+            isFilterLoading ? <Loading /> : <UebersichtTab />
+          )}
+          {activeTab === "performance" && (
+            isFilterLoading ? <Loading /> : <PerformanceTab />
+          )}
         </div>
       </div>
     </div>

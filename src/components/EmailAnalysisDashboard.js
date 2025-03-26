@@ -159,7 +159,18 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [domain, setDomain] = useState(null);
-  
+
+  // List of clients that should only have Sales view (no Service toggle)
+  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
+  const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
+
+  // If client is in our restricted list, force sales view
+  useEffect(() => {
+    if (isSalesOnlyClient) {
+      setDomain("Sales");
+    }
+  }, [selectedCompany, isSalesOnlyClient]);
+
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
@@ -167,444 +178,479 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const access_token = localStorage.getItem('access_token');
-        
-    // Modified date formatting to preserve exact date
-    const formatDate = (date) => {
-      if (!date) return null;
+
+// Add this state to track filter loading specifically
+const [isFilterLoading, setIsFilterLoading] = useState(false);
+
+// Modify the useEffect to handle filter loading
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      // Show filter loading animation when filters change
+      setIsFilterLoading(true);
+      setLoading(true);
       
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}`;
-    };
-    
+      const access_token = localStorage.getItem('access_token');
 
-        // Build query parameters including company filter
-        const queryString = new URLSearchParams({
-          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany }),
-          ...(domain && { domain: domain })
-                }).toString();
+      // Modified date formatting to preserve exact date
+      const formatDate = (date) => {
+        if (!date) return null;
 
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        };
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
 
-        const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
-            .then(res => res.json()),
-          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
-            .then(res => res.json())
-        ]);
+        return `${year}-${month}-${day}`;
+      };
 
-        setEmailData(emailRes);
-        setEmailSubKPIs(emailSubKPIsRes);
-        setOverviewData(overviewRes);
-        setSubKPIs(subKPIsRes);
-        setPerformanceData(performanceRes);
-      } catch (error) {
-        console.error('Fehler beim Datenabruf:', error);
-      } finally {
+      // Build query parameters including company filter
+      const queryString = new URLSearchParams({
+        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+        include_all: dateRange.isAllTime || false,
+        ...(selectedCompany && { company: selectedCompany }),
+        ...(domain && { domain: domain })
+      }).toString();
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${access_token}`
+        }
+      };
+
+      const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+        fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+          .then(res => res.json()),
+        fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
+          .then(res => res.json())
+      ]);
+
+      setEmailData(emailRes);
+      setEmailSubKPIs(emailSubKPIsRes);
+      setOverviewData(overviewRes);
+      setSubKPIs(subKPIsRes);
+      setPerformanceData(performanceRes);
+    } catch (error) {
+      console.error('Fehler beim Datenabruf:', error);
+    } finally {
+      // Small timeout to prevent flickering for very fast responses
+      setTimeout(() => {
+        setIsFilterLoading(false);
         setLoading(false);
-      }
-    };
-
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      fetchData();
+      }, 300);
     }
-  }, [dateRange, selectedCompany, domain]);
+  };
 
-const UebersichtTab = () => {
-  if (!overviewData || !subKPIs) return <Loading/>;
+  if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+    // Set filter loading state before initiating the fetch
+    setIsFilterLoading(true);
+    fetchData();
+  }
+}, [dateRange, selectedCompany, domain]);
 
-  const slGross = emailData['SL Gross'] || 0;
-  const processingTime = emailData['Total Dwell Time (sec)'] || 0;
-  const totalProcessingTime = emailData['Total Processing Time (sec)'] || 0;
-  const processedTimeData = emailData['Processing Time Trend in seconds'] || [];
 
-  const processedTimeDataConverted = processedTimeData.map((item) => ({
-    ...item,
-    total_processing_time_sec: convertToSeconds(item.total_processing_time_sec)
-  }));
-  
-  const uebersichtStats = [
-    { 
-      title: "Serviceniveau", 
-      value: `${overviewData.service_level_gross || 0}%`,
-      icon: CheckCircle,
-      change: subKPIs['service_level_gross change'],
-      description: "im Vergleich zur letzten Periode"
-    },
-    { 
-      title: "Gesamte E-Mails", 
-      value: (emailData['email recieved'] || 0).toLocaleString(), 
-      icon: Inbox,
-      change: subKPIs['total emails recieved change'],
-      description: "im Vergleich zur letzten Periode"
-    },
-    {
-      title: "Gesendete E-Mails",
-      value: emailData['email sent'] || 0,
-      icon: Mail,
-      change: emailSubKPIs['email sent change'],
-      description: "im Vergleich zur letzten Periode"
-    },
-    // { 
-    //   title: "Bearbeitungszeit", 
-    //   value: `${overviewData['Total Processing Time (sec)'] || 0}`, 
-    //   icon: Timer,
-    //   change: subKPIs['Total Processing Time (sec) change'],
-    //   description: "im Vergleich zur letzten Periode"
-    // },
-    { 
-      title: "Archivierte E-Mails", 
-      value: (overviewData['archived emails'] || 0).toLocaleString(), 
-      icon: Reply,
-      change: subKPIs['total new cases change'],
-      description: "im Vergleich zur letzten Periode"
-    }
-  ];
-  
-  const formattedData = (overviewData.daily_service_level_gross || [])
-    .map(item => ({
+  const UebersichtTab = () => {
+    if (!overviewData || !subKPIs) return <Loading />;
+
+    // Get values from both data sources, with fallbacks
+    const slGross = emailData?.['SL Gross'] || 0;
+
+    // For Verweilzeit (dwell time)
+    const dwellTimeFormatted = emailData?.['Total Dwell Time (sec)'] || "0:00:00";
+    const dwellTimeDecimal = emailData?.['Total Dwell Time (dec)'] || 0;
+
+    // For Bearbeitungszeit (processing time)
+    // Try to get from emailData first, then fallback to overviewData
+    const processingTimeFormatted =
+      overviewData?.['Total Processing Time (min)'] ||
+      "0:00:00";
+
+    const processingTimeDecimal =
+      overviewData?.['Total Processing Time (dec)'] ||
+      0;
+
+    // Process the chart data
+    const processedTimeData = emailData?.['Processing Time Trend in seconds'] || [];
+
+    const processedTimeDataConverted = processedTimeData.map((item) => ({
       ...item,
-      service_level_gross: parseFloat(item.service_level_gross.toFixed(1))
-    }))
-    .reverse();
+      total_processing_time_sec: convertToSeconds(item.total_processing_time_sec || "0:00:00")
+    }));
+  
 
-  return (
-    <div className="space-y-6">
-      {/* Toggle Button */}
-      <div className="flex justify-end mb-6">
-          <div className="inline-flex rounded-lg shadow-sm" role="group">
-            <button
-              onClick={() => setDomain(null)}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-                border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Alle
-            </button>
-            <button
-              onClick={() => setDomain("Sales")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black
-                border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setDomain("Service")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-                border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Service
-            </button>
+    const uebersichtStats = [
+      {
+        title: "Serviceniveau",
+        value: `${overviewData.service_level_gross || 0}%`,
+        icon: CheckCircle,
+        change: subKPIs['service_level_gross change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Empfangene E-Mails",
+        value: (emailData['email recieved'] || 0).toLocaleString(),
+        icon: Inbox,
+        change: subKPIs['total emails recieved change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
+        title: "Gesendete E-Mails",
+        value: emailData['email sent'] || 0,
+        icon: Mail,
+        change: emailSubKPIs['email sent change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      // { 
+      //   title: "Bearbeitungszeit", 
+      //   value: `${overviewData['Total Processing Time (sec)'] || 0}`, 
+      //   icon: Timer,
+      //   change: subKPIs['Total Processing Time (sec) change'],
+      //   description: "im Vergleich zur letzten Periode"
+      // },
+      {
+        title: "Archivierte E-Mails",
+        value: (overviewData['archived emails'] || 0).toLocaleString(),
+        icon: Reply,
+        change: subKPIs['total new cases change'],
+        description: "im Vergleich zur letzten Periode"
+      }
+    ];
+
+    const formattedData = (overviewData.daily_service_level_gross || [])
+      .map(item => ({
+        ...item,
+        service_level_gross: parseFloat(item.service_level_gross.toFixed(1))
+      }))
+      .reverse();
+
+    return (
+      <div className="space-y-6">
+        {/* Toggle Button */}
+        {/* Toggle Button */}
+        {!isSalesOnlyClient && (
+          <div className="flex justify-end mb-6">
+            <div className="inline-flex rounded-lg shadow-sm" role="group">
+              <button
+                onClick={() => setDomain(null)}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+          border transition-all duration-200
+          ${!domain
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Alle
+              </button>
+              <button
+                onClick={() => setDomain("Sales")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black
+          border transition-all duration-200
+          ${domain === "Sales"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Vertrieb
+              </button>
+              <button
+                onClick={() => setDomain("Service")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+          border-t border-b border-r transition-all duration-200
+          ${domain === "Service"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Service
+              </button>
+            </div>
           </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {uebersichtStats.map((stat, index) => (
+            <StatCard key={index} {...stat} />
+          ))}
         </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {uebersichtStats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="SL Brutto"
           value={`${slGross.toFixed(1)}%`}
           icon={TrendingUp}
-          />
+        />
         <StatCard
           title="Durchschnittliche Verweilzeit"
-          value={`${processingTime}`}
+          value={dwellTimeFormatted}
           icon={Clock}
-          timeInSeconds={(convertToSeconds(processingTime) / 60).toFixed(2)}
-          />
+          timeInSeconds={dwellTimeDecimal.toFixed(2)}
+        />
         <StatCard
           title="Durchschnittliche Bearbeitungszeit"
-          value={`${totalProcessingTime}`}
+          value={processingTimeFormatted}
           icon={Clock}
-          timeInSeconds={(convertToSeconds2(totalProcessingTime) / 60).toFixed(2)}
-          />
+          timeInSeconds={processingTimeDecimal.toFixed(2)}
+        />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="E-Mail-Bearbeitungsübersicht">
-          <div className="h-[300px]">
-            <ResponsiveContainer>
-              <BarChart data={[
-                { name: 'Empfangen', value: emailData['email recieved'] || 0 },
-                { name: 'Gesendet', value: emailData['email sent'] || 0 },
-                { name: 'Archiviert', value: emailData['email archived'] || 0 }
-              ]}>
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="E-Mail-Bearbeitungsübersicht">
+            <div className="h-[300px]">
+              <ResponsiveContainer>
+                <BarChart data={[
+                  { name: 'Empfangen', value: emailData['email recieved'] || 0 },
+                  { name: 'Gesendet', value: emailData['email sent'] || 0 },
+                  { name: 'Archiviert', value: emailData['email archived'] || 0 }
+                ]}>
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <YAxis
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+
+                  <Bar
+                    dataKey="value"
+                    fill="#F0B72F"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          <ChartCard title="Bearbeitungszeit-Trend">
+            <div className="h-[300px]">
+              <ResponsiveContainer>
+                <LineChart data={processedTimeDataConverted}>
+                  <XAxis
+                    dataKey="interval_start"
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <YAxis
+                    tick={{ fill: '#001E4A' }}
+                    fontFamily="Nexa-Book"
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="total_processing_time_sec"
+                    stroke="#F0B72F"
+                    strokeWidth={2}
+                    dot={{ fill: '#F0B72F' }}
+                    name="Bearbeitungszeit (Min)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+
+        <ChartCard title="Tägliche Serviceniveau-Leistung">
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={formattedData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+              >
+                <XAxis
+                  dataKey="date"
+                  height={50}
+                  angle={-45}
+                  textAnchor="end"
+                  {...chartConfig.xAxis}
+                  dx={-5}
+                  dy={20}
                 />
-                <YAxis 
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
+                <YAxis
+                  {...chartConfig.yAxis}
+                  domain={[0, 100]}
                 />
                 <Tooltip content={<CustomTooltip />} />
-
-                <Bar 
-                  dataKey="value" 
-                  fill="#F0B72F"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-  
-        <ChartCard title="Bearbeitungszeit-Trend">
-          <div className="h-[300px]">
-            <ResponsiveContainer>
-              <LineChart data={processedTimeDataConverted}>
-                <XAxis 
-                  dataKey="interval_start"
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
-                />
-                <YAxis 
-                  tick={{ fill: '#001E4A' }}
-                  fontFamily="Nexa-Book"
-                />
-              <Tooltip content={<CustomTooltip />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="total_processing_time_sec" 
-                  stroke="#F0B72F"
+                <Legend {...chartConfig.legend} />
+                <Line
+                  type="monotone"
+                  dataKey="service_level_gross"
+                  name="Serviceniveau"
+                  stroke={chartColors.primary}
                   strokeWidth={2}
-                  dot={{ fill: '#F0B72F' }}
-                  name="Bearbeitungszeit (Min)"
+                  dot={{ fill: chartColors.primary, r: 4 }}
+                  activeDot={{ r: 6, fill: chartColors.primary }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
       </div>
+    );
+  };
 
-      <ChartCard title="Tägliche Serviceniveau-Leistung">
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={formattedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
-            >
-              <XAxis 
-                dataKey="date"
-                height={50}
-                angle={-45}
-                textAnchor="end"
-                {...chartConfig.xAxis}
-                dx={-5}
-                dy={20}
-              />
-              <YAxis
-                {...chartConfig.yAxis}
-                domain={[0, 100]}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend {...chartConfig.legend} />
-              <Line
-                type="monotone"
-                dataKey="service_level_gross"
-                name="Serviceniveau"
-                stroke={chartColors.primary}
-                strokeWidth={2}
-                dot={{ fill: chartColors.primary, r: 4 }}
-                activeDot={{ r: 6, fill: chartColors.primary }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartCard>
-    </div>
-  );
-};
+  const LeistungTab = () => {
+    if (!performanceData) return <Loading />;
 
-const LeistungTab = () => {
-  if (!performanceData) return <Loading/>;
-
-  return (
-    <div className="space-y-6">
-      {/* Toggle Button */}
-      <div className="flex justify-end mb-6">
-          <div className="inline-flex rounded-lg shadow-sm" role="group">
-            <button
-              onClick={() => setDomain(null)}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
-                border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Alle
-            </button>
-            <button
-              onClick={() => setDomain("Sales")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black
-                border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Vertrieb
-            </button>
-            <button
-              onClick={() => setDomain("Service")}
-              className={`
-                px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
-                border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
-                }
-              `}
-            >
-              Service
-            </button>
+    return (
+      <div className="space-y-6">
+        {/* Toggle Button */}
+        {!isSalesOnlyClient && (
+          <div className="flex justify-end mb-6">
+            <div className="inline-flex rounded-lg shadow-sm" role="group">
+              <button
+                onClick={() => setDomain(null)}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
+          border transition-all duration-200
+          ${!domain
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Alle
+              </button>
+              <button
+                onClick={() => setDomain("Sales")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black
+          border transition-all duration-200
+          ${domain === "Sales"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Vertrieb
+              </button>
+              <button
+                onClick={() => setDomain("Service")}
+                className={`
+          px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
+          border-t border-b border-r transition-all duration-200
+          ${domain === "Service"
+                    ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]'
+                    : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                  }
+        `}
+              >
+                Service
+              </button>
+            </div>
           </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-6">
+          <ChartCard isWideChart={true} title="Bearbeitungszeit nach Postfach">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={performanceData.Processing_time_by_mailbox || []}
+                margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+              >
+                <XAxis
+                  dataKey="mailbox"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  {...chartConfig.xAxis}
+                />
+                <YAxis {...chartConfig.yAxis} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend {...chartConfig.legend} />
+                <Line
+                  type="monotone"
+                  dataKey="processing_time" // Use "processing_time" from the data
+                  name="Bearbeitungszeit (Minuten)"
+                  stroke={chartColors.primary}
+                  strokeWidth={2}
+                  dot={{ fill: chartColors.primary, r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard isWideChart={true} title="Serviceniveau nach Postfach">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={performanceData.service_level_by_mailbox || []}
+                margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+              >
+                <XAxis
+                  dataKey="mailbox"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  {...chartConfig.xAxis}
+                />
+                <YAxis
+                  {...chartConfig.yAxis}
+                  domain={[0, 100]}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend {...chartConfig.legend} />
+                <Line
+                  type="monotone"
+                  dataKey="service_level_gross"
+                  name="Serviceniveau"
+                  stroke={chartColors.primary}
+                  strokeWidth={2}
+                  dot={{ fill: chartColors.primary, r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard isWideChart={true} title="Antworten nach Kunden">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={performanceData.respone_by_customers || []}
+                margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
+              >
+                <XAxis
+                  dataKey="customer"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  {...chartConfig.xAxis}
+                />
+                <YAxis {...chartConfig.yAxis} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend {...chartConfig.legend} />
+                <Bar
+                  dataKey="sent"
+                  name="Gesendet"
+                  fill={chartColors.primary}
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="recieved"
+                  name="Vorgänge"
+                  fill={chartColors.secondary}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
         </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        <ChartCard isWideChart={true} title="Bearbeitungszeit nach Postfach">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={performanceData.Processing_time_by_mailbox || []}
-              margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
-            >
-              <XAxis
-                dataKey="mailbox"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                {...chartConfig.xAxis}
-              />
-              <YAxis {...chartConfig.yAxis} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend {...chartConfig.legend} />
-              <Line
-                type="monotone"
-                dataKey="processing_time" // Use "processing_time" from the data
-                name="Bearbeitungszeit (Minuten)"
-                stroke={chartColors.primary}
-                strokeWidth={2}
-                dot={{ fill: chartColors.primary, r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard isWideChart={true} title="Serviceniveau nach Postfach">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={performanceData.service_level_by_mailbox || []}
-              margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
-            >
-              <XAxis
-                dataKey="mailbox"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                {...chartConfig.xAxis}
-              />
-              <YAxis
-                {...chartConfig.yAxis}
-                domain={[0, 100]}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend {...chartConfig.legend} />
-              <Line
-                type="monotone"
-                dataKey="service_level_gross"
-                name="Serviceniveau"
-                stroke={chartColors.primary}
-                strokeWidth={2}
-                dot={{ fill: chartColors.primary, r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard isWideChart={true} title="Antworten nach Kunden">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={performanceData.respone_by_customers || []}
-              margin={{ top: 10, right: 30, left: 20, bottom: 70 }}
-            >
-              <XAxis
-                dataKey="customer"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                {...chartConfig.xAxis}
-              />
-              <YAxis {...chartConfig.yAxis} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend {...chartConfig.legend} />
-              <Bar
-                dataKey="sent"
-                name="Gesendet"
-                fill={chartColors.primary}
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="recieved"
-                name="Vorgänge"
-                fill={chartColors.secondary}
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
@@ -621,7 +667,7 @@ const LeistungTab = () => {
               ))}
             </select>
           </div>
-
+  
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -641,10 +687,15 @@ const LeistungTab = () => {
             ))}
           </div>
         </div>
-
+  
         <div className="py-4">
-          {activeTab === "uebersicht" && <UebersichtTab />}
-          {activeTab === "leistung" && <LeistungTab />}
+          {/* Use the isFilterLoading state to conditionally show skeleton loaders */}
+          {activeTab === "uebersicht" && (
+            isFilterLoading ? <Loading /> : <UebersichtTab />
+          )}
+          {activeTab === "leistung" && (
+            isFilterLoading ? <Loading /> : <LeistungTab />
+          )}
         </div>
       </div>
     </div>

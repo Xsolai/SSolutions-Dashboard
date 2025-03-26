@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell , CartesianGrid} from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 import { Users, Inbox, CircleCheck, TriangleAlert, Circle } from 'lucide-react';
 
 // Brand Colors
@@ -21,16 +21,16 @@ const CustomTooltip = ({ active, payload, label }) => {
     if (typeof value !== 'number') return value;
 
     // Handle percentages
-    if (name?.toLowerCase().includes('%') || 
-        name?.toLowerCase().includes('rate') || 
-        name?.toLowerCase().includes('niveau')) {
+    if (name?.toLowerCase().includes('%') ||
+      name?.toLowerCase().includes('rate') ||
+      name?.toLowerCase().includes('niveau')) {
       return `${Number(value).toFixed(2)}%`;
     }
 
     // Handle time values
-    if (name?.toLowerCase().includes('zeit') || 
-        name?.toLowerCase().includes('time') || 
-        name?.toLowerCase().includes('duration')) {
+    if (name?.toLowerCase().includes('zeit') ||
+      name?.toLowerCase().includes('time') ||
+      name?.toLowerCase().includes('duration')) {
       if (value > 60) {
         return `${(value / 60).toFixed(2)} Min`;
       }
@@ -57,8 +57,8 @@ const CustomTooltip = ({ active, payload, label }) => {
       <div className="space-y-2">
         {payload.map((item, index) => (
           <div key={index} className="flex items-center gap-3">
-            <span 
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+            <span
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: item.fill || item.color || item.stroke }}
             />
             <span className="text-[#001E4A]/70 font-nexa-book text-sm min-w-[120px]">
@@ -112,16 +112,16 @@ const Loading = () => (
 // Chart Configuration
 const chartConfig = {
   xAxis: {
-    tick: { 
-      fill: '#001E4A', 
+    tick: {
+      fill: '#001E4A',
       fontSize: '12px',
       fontFamily: 'Nexa-Book'
     },
     axisLine: { stroke: '#E6E2DF' }
   },
   yAxis: {
-    tick: { 
-      fill: '#001E4A', 
+    tick: {
+      fill: '#001E4A',
       fontSize: '12px',
       fontFamily: 'Nexa-Book'
     },
@@ -172,24 +172,31 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     { id: "overview", name: "Übersicht" },
     { id: "performance", name: "Leistungsmetriken" }
   ];
-  
+
+  // Add this state to track filter loading specifically
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+
+  // Modify the useEffect for data fetching to handle filter loading state
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Set filter loading state to show skeleton UI during data fetching
+        setIsFilterLoading(true);
         setLoading(true);
+
         const access_token = localStorage.getItem('access_token');
 
-    // Modified date formatting to preserve exact date
-    const formatDate = (date) => {
-      if (!date) return null;
-      
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}`;
-    };
+        // Modified date formatting to preserve exact date
+        const formatDate = (date) => {
+          if (!date) return null;
+
+          const d = new Date(date);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+
+          return `${year}-${month}-${day}`;
+        };
 
         // Build query parameters including company filter
         const queryString = new URLSearchParams({
@@ -222,18 +229,24 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
-        setLoading(false);
+        // Small timeout to prevent flickering for very fast responses
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 300);
       }
     };
 
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      // Set filter loading state before initiating the fetch
+      setIsFilterLoading(true);
       fetchData();
     }
-  }, [dateRange, selectedCompany]); // Add selectedCompany to dependencies
-  
+  }, [dateRange, selectedCompany]); // These are your filter parameters
+
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;
-  
+
     const tasksByWeekday = data.overview['Tasks created by weekday'] || [];
     const tasksByMonth = data.overview['Tasks created by date'] || [];
 
@@ -260,7 +273,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
         description: "im Vergleich zur letzten Periode"
       }
     ];
-  
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
@@ -291,9 +304,9 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                     label={false}
                   >
                     {(data.overview['Tasks by categories'] || []).map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={Object.values(chartColors)[index % Object.values(chartColors).length]} 
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={Object.values(chartColors)[index % Object.values(chartColors).length]}
                       />
                     ))}
                   </Pie>
@@ -301,7 +314,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-  
+
             <div className="md:w-52 overflow-y-auto modern-scrollbar p-2">
               {(data.overview['Tasks by categories'] || []).map((entry, index) => (
                 <div key={index} className="flex items-center justify-between mb-2 hover:bg-[#E6E2DF]/10 p-2 rounded">
@@ -322,7 +335,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             </div>
           </div>
         </ChartCard>
-  
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartCard title="Aufgaben nach Wochentag">
             <div className="h-[400px]">
@@ -331,7 +344,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   <XAxis {...chartConfig.xAxis} dataKey="weekday" angle={-45} height={60} dy={15} />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend {...chartConfig.legend} wrapperStyle={{bottom: 12}}  />
+                  <Legend {...chartConfig.legend} wrapperStyle={{ bottom: 12 }} />
                   <Bar
                     dataKey="count"
                     name="Aufgaben"
@@ -342,7 +355,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               </ResponsiveContainer>
             </div>
           </ChartCard>
-  
+
           <ChartCard title="Aufgaben nach Monat">
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -350,7 +363,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   <XAxis {...chartConfig.xAxis} dataKey="month" angle={-45} height={60} dy={15} />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend {...chartConfig.legend} wrapperStyle={{bottom: 12}}  />
+                  <Legend {...chartConfig.legend} wrapperStyle={{ bottom: 12 }} />
                   <Line
                     type="monotone"
                     dataKey="count"
@@ -368,122 +381,122 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       </div>
     );
   };
-  
-const PerformanceTab = () => {
-  if (!data.performance) return <Loading />;
 
-  // Chart styling configuration
-  const chartStyle = {
-    margin: { top: 20, right: 30, left: 20, bottom: 60 },
-    fontSize: '12px',
-    fontFamily: 'Nexa-Book',
-  };
+  const PerformanceTab = () => {
+    if (!data.performance) return <Loading />;
 
-  return (
-    <div className="space-y-6">
-      {/* Tasks by User */}
-      <ChartCard title="Aufgaben nach Benutzer">
-        <div className="overflow-x-auto overflow-y-hidden modern-scrollbar">
-          <div className="min-w-[1200px] lg:min-w-full">
-            <div className="h-[450px]">
+    // Chart styling configuration
+    const chartStyle = {
+      margin: { top: 20, right: 30, left: 20, bottom: 60 },
+      fontSize: '12px',
+      fontFamily: 'Nexa-Book',
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Tasks by User */}
+        <ChartCard title="Aufgaben nach Benutzer">
+          <div className="overflow-x-auto overflow-y-hidden modern-scrollbar">
+            <div className="min-w-[1200px] lg:min-w-full">
+              <div className="h-[450px]">
+                <ResponsiveContainer>
+                  <BarChart
+                    data={data.performance['Tasks assigned to users'] || []}
+                    margin={{ ...chartStyle.margin, bottom: 160 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E6E2DF" />
+                    <XAxis
+                      dataKey="assign_users_by_tasks"
+                      angle={-45}
+                      textAnchor="end"
+                      height={150}
+                      interval={0}
+                      tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }}
+                    />
+                    <YAxis tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ bottom: 35, fontFamily: 'Nexa-Book', fontSize: '14px' }} />
+                    <Bar
+                      dataKey="task_count"
+                      name="Aufgaben"
+                      fill="#F0B72F"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </ChartCard>
+
+
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Tasks by Due Date */}
+          <ChartCard title="Aufgaben nach Fälligkeitsdatum">
+            <div className="h-[350px]">
               <ResponsiveContainer>
                 <BarChart
-                  data={data.performance['Tasks assigned to users'] || []}
-                  margin={{ ...chartStyle.margin, bottom: 160 }}
+                  data={data.performance['Tasks assign to users by date'] || []}
+                  margin={chartStyle.margin}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#E6E2DF" />
                   <XAxis
-                    dataKey="assign_users_by_tasks"
+                    dataKey="month"
                     angle={-45}
-                    textAnchor="end"
-                    height={150}
-                    interval={0}
+                    height={60}
+                    dy={20}
                     tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }}
                   />
                   <YAxis tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{bottom: 35, fontFamily: 'Nexa-Book', fontSize: '14px' }} />
+                  <Legend wrapperStyle={{ bottom: 35, fontFamily: 'Nexa-Book', fontSize: '14px' }} />
                   <Bar
-                    dataKey="task_count"
-                    name="Aufgaben"
+                    dataKey="assign_tasks_by_date"
+                    name="Zugewiesene Aufgaben"
                     fill="#F0B72F"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
-      </ChartCard>
+          </ChartCard>
 
+          {/* Task Creation Trend */}
+          <ChartCard title="Aufgabenerstell-Trend">
+            <div className="h-[350px]">
+              <ResponsiveContainer>
+                <LineChart
+                  data={data.performance['Task creation trend'] || []}
+                  margin={chartStyle.margin}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E6E2DF" />
+                  <XAxis
+                    dataKey="date"
+                    angle={-45}
+                    height={60}
+                    dy={20}
 
+                    tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }}
+                  />
+                  <YAxis tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ bottom: 35, fontFamily: 'Nexa-Book', fontSize: '14px' }} />
+                  <Line
+                    type="monotone"
+                    dataKey="tasks_count"
+                    name="Aufgaben"
+                    stroke="#F0B72F"
+                    strokeWidth={2}
+                    dot={{ fill: '#F0B72F', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Tasks by Due Date */}
-      <ChartCard title="Aufgaben nach Fälligkeitsdatum">
-        <div className="h-[350px]">
-          <ResponsiveContainer>
-            <BarChart
-              data={data.performance['Tasks assign to users by date'] || []}
-              margin={chartStyle.margin}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E6E2DF" />
-              <XAxis 
-                dataKey="month" 
-                angle={-45} 
-                height={60}
-                dy={20}
-                tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }}
-              />
-              <YAxis tick={{  fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ bottom: 35, fontFamily: 'Nexa-Book', fontSize: '14px' }} />
-              <Bar
-                dataKey="assign_tasks_by_date"
-                name="Zugewiesene Aufgaben"
-                fill="#F0B72F"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartCard>
-      
-        {/* Task Creation Trend */}
-        <ChartCard title="Aufgabenerstell-Trend">
-          <div className="h-[350px]">
-            <ResponsiveContainer>
-              <LineChart
-                data={data.performance['Task creation trend'] || []}
-                margin={chartStyle.margin}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E6E2DF" />
-                <XAxis 
-                  dataKey="date" 
-                  angle={-45} 
-                  height={60}
-                  dy={20}
-
-                  tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }}
-                />
-                <YAxis tick={{ fill: '#001E4A', fontSize: '12px', fontFamily: 'Nexa-Book' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ bottom: 35, fontFamily: 'Nexa-Book', fontSize: '14px' }} />
-                <Line
-                  type="monotone"
-                  dataKey="tasks_count"
-                  name="Aufgaben"
-                  stroke="#F0B72F"
-                  strokeWidth={2}
-                  dot={{ fill: '#F0B72F', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Upcoming Tasks
+          {/* Upcoming Tasks
         <ChartCard title="Anstehende Aufgaben (Nächste 7 Tage)">
           <div className="h-[350px]">
             <ResponsiveContainer>
@@ -513,18 +526,18 @@ const PerformanceTab = () => {
             </ResponsiveContainer>
           </div>
         </ChartCard> */}
+        </div>
       </div>
+    );
+  };
+
+
+  const ChartCard = ({ title, children }) => (
+    <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
+      <h3 className="text-[20px] leading-[36px] font-nexa-black text-[#001E4A] mb-6">{title}</h3>
+      {children}
     </div>
   );
-};
-
-  
-const ChartCard = ({ title, children }) => (
-  <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
-    <h3 className="text-[20px] leading-[36px] font-nexa-black text-[#001E4A] mb-6">{title}</h3>
-    {children}
-  </div>
-);
 
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
@@ -563,8 +576,13 @@ const ChartCard = ({ title, children }) => (
         </div>
 
         <div className="py-4">
-          {activeTab === "overview" && <OverviewTab />}
-          {activeTab === "performance" && <PerformanceTab />}
+          {/* Use the isFilterLoading state to conditionally show skeleton loaders */}
+          {activeTab === "overview" && (
+            isFilterLoading ? <Loading /> : <OverviewTab />
+          )}
+          {activeTab === "performance" && (
+            isFilterLoading ? <Loading /> : <PerformanceTab />
+          )}
         </div>
       </div>
     </div>
