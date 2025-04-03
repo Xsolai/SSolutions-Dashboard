@@ -7,9 +7,14 @@ const CompanyDropdown = ({ onCompanyChange }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Reset all states when component mounts or when user changes
+    setCompanies([]);
+    setIsAdmin(false);
+    setSelectedCompany('');
+    setLoading(true);
+
     const checkAdminAndFetchCompanies = async () => {
       try {
-        setLoading(true);
         const access_token = localStorage.getItem('access_token');
         
         // First check if user is admin or customer using profile API
@@ -46,7 +51,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
           if (companiesData && Array.isArray(companiesData) && companiesData.length > 0) {
             setCompanies(companiesData);
             
-            // Select the first company by default
+            // Always select the first company by default for new sessions
             const firstCompany = companiesData[0].company;
             setSelectedCompany(firstCompany);
             
@@ -65,11 +70,11 @@ const CompanyDropdown = ({ onCompanyChange }) => {
     };
 
     checkAdminAndFetchCompanies();
-  }, []);  // Removed onCompanyChange from dependency array to prevent infinite loops
+  }, [onCompanyChange]);  // Added onCompanyChange back to dependencies
 
   const handleCompanyChange = (e) => {
     const company = e.target.value;
-    console.log("Company selected:", company); // Debugging log
+    console.log("Company selected:", company);
     setSelectedCompany(company);
     onCompanyChange(company);
   };
@@ -86,7 +91,6 @@ const CompanyDropdown = ({ onCompanyChange }) => {
     return null;
   }
 
-  // Make sure the select element has a value
   return (
     <select
       value={selectedCompany}

@@ -244,6 +244,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     }
   }, [dateRange, selectedCompany]); // These are your filter parameters
 
+
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;
 
@@ -252,19 +253,19 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
 
     const taskMetrics = [
       {
+        title: "Gesamtanzahl der Aufgaben",
+        value: data.kpis['Total orders'] || 0,
+        icon: Inbox,
+        change: data.kpis['email recieved change'],
+        description: "im Vergleich zur letzten Periode"
+      },
+      {
         title: "Aufgabentypen",
         value: data.kpis['Task types'] || 0,
         icon: Inbox,
         change: data.kpis['email recieved change'],
         description: "im Vergleich zur letzten Periode"
       },
-      // {
-      //   title: "Durchschnittliche Dauer",
-      //   value: data.kpis['avg_duration in minutes'] || 0,
-      //   icon: data.kpis['avg_duration in minutes'] > 30 ? TriangleAlert : CircleCheck,
-      //   change: data.kpis['email sent change'],
-      //   description: "im Vergleich zur letzten Periode"
-      // },
       {
         title: "Zugewiesene Benutzer",
         value: data.kpis['# of assigned users'] || 0,
@@ -276,7 +277,7 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
 
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {taskMetrics.map((metric, index) => (
             <StatCard
               key={index}
@@ -288,6 +289,8 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             />
           ))}
         </div>
+
+        {/* Rest of the component remains unchanged */}
         <ChartCard title="Aufgaben nach Kategorie">
           <div className="flex flex-col md:flex-row h-[400px] md:h-[450px] gap-4">
             <div className="flex-1 min-h-[300px]">

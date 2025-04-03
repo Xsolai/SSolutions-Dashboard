@@ -179,81 +179,81 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   ];
 
 
-// Add this state to track filter loading specifically
-const [isFilterLoading, setIsFilterLoading] = useState(false);
+  // Add this state to track filter loading specifically
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
 
-// Modify the useEffect to handle filter loading
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      // Show filter loading animation when filters change
+  // Modify the useEffect to handle filter loading
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Show filter loading animation when filters change
+        setIsFilterLoading(true);
+        setLoading(true);
+
+        const access_token = localStorage.getItem('access_token');
+
+        // Modified date formatting to preserve exact date
+        const formatDate = (date) => {
+          if (!date) return null;
+
+          const d = new Date(date);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+
+          return `${year}-${month}-${day}`;
+        };
+
+        // Build query parameters including company filter
+        const queryString = new URLSearchParams({
+          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+          include_all: dateRange.isAllTime || false,
+          ...(selectedCompany && { company: selectedCompany }),
+          ...(domain && { domain: domain })
+        }).toString();
+
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        };
+
+        const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+            .then(res => res.json()),
+          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+            .then(res => res.json()),
+          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
+            .then(res => res.json()),
+          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
+            .then(res => res.json()),
+          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
+            .then(res => res.json())
+        ]);
+
+        setEmailData(emailRes);
+        setEmailSubKPIs(emailSubKPIsRes);
+        setOverviewData(overviewRes);
+        setSubKPIs(subKPIsRes);
+        setPerformanceData(performanceRes);
+      } catch (error) {
+        console.error('Fehler beim Datenabruf:', error);
+      } finally {
+        // Small timeout to prevent flickering for very fast responses
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 300);
+      }
+    };
+
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      // Set filter loading state before initiating the fetch
       setIsFilterLoading(true);
-      setLoading(true);
-      
-      const access_token = localStorage.getItem('access_token');
-
-      // Modified date formatting to preserve exact date
-      const formatDate = (date) => {
-        if (!date) return null;
-
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-
-        return `${year}-${month}-${day}`;
-      };
-
-      // Build query parameters including company filter
-      const queryString = new URLSearchParams({
-        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-        include_all: dateRange.isAllTime || false,
-        ...(selectedCompany && { company: selectedCompany }),
-        ...(domain && { domain: domain })
-      }).toString();
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${access_token}`
-        }
-      };
-
-      const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-        fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
-          .then(res => res.json()),
-        fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
-          .then(res => res.json()),
-        fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
-          .then(res => res.json()),
-        fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
-          .then(res => res.json()),
-        fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
-          .then(res => res.json())
-      ]);
-
-      setEmailData(emailRes);
-      setEmailSubKPIs(emailSubKPIsRes);
-      setOverviewData(overviewRes);
-      setSubKPIs(subKPIsRes);
-      setPerformanceData(performanceRes);
-    } catch (error) {
-      console.error('Fehler beim Datenabruf:', error);
-    } finally {
-      // Small timeout to prevent flickering for very fast responses
-      setTimeout(() => {
-        setIsFilterLoading(false);
-        setLoading(false);
-      }, 300);
+      fetchData();
     }
-  };
-
-  if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-    // Set filter loading state before initiating the fetch
-    setIsFilterLoading(true);
-    fetchData();
-  }
-}, [dateRange, selectedCompany, domain]);
+  }, [dateRange, selectedCompany, domain]);
 
 
   const UebersichtTab = () => {
@@ -283,7 +283,7 @@ useEffect(() => {
       ...item,
       total_processing_time_sec: convertToSeconds(item.total_processing_time_sec || "0:00:00")
     }));
-  
+
 
     const uebersichtStats = [
       {
@@ -387,24 +387,24 @@ useEffect(() => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          title="SL Brutto"
-          value={`${slGross.toFixed(1)}%`}
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Durchschnittliche Verweilzeit"
-          value={dwellTimeFormatted}
-          icon={Clock}
-          timeInSeconds={dwellTimeDecimal.toFixed(2)}
-        />
-        <StatCard
-          title="Durchschnittliche Bearbeitungszeit"
-          value={processingTimeFormatted}
-          icon={Clock}
-          timeInSeconds={processingTimeDecimal.toFixed(2)}
-        />
-      </div>
+          <StatCard
+            title="SL Brutto"
+            value={`${slGross.toFixed(1)}%`}
+            icon={TrendingUp}
+          />
+          <StatCard
+            title="Durchschnittliche Verweilzeit"
+            value={dwellTimeFormatted}
+            icon={Clock}
+            timeInSeconds={dwellTimeDecimal.toFixed(2)}
+          />
+          <StatCard
+            title="AHT (Durchschnittliche Bearbeitungszeit)"
+            value={processingTimeFormatted}
+            icon={Clock}
+            timeInSeconds={processingTimeDecimal.toFixed(2)}
+          />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartCard title="E-Mail-Bearbeitungsübersicht">
             <div className="h-[300px]">
@@ -667,7 +667,7 @@ useEffect(() => {
               ))}
             </select>
           </div>
-  
+
           <div className="hidden sm:flex space-x-8">
             {tabs.map((tab) => (
               <button
@@ -687,7 +687,7 @@ useEffect(() => {
             ))}
           </div>
         </div>
-  
+
         <div className="py-4">
           {/* Use the isFilterLoading state to conditionally show skeleton loaders */}
           {activeTab === "uebersicht" && (

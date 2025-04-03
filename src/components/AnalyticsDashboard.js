@@ -572,7 +572,7 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
         change: bookingSubKPIs['Pending change']
       },
       {
-        title: "Optional",
+        title: "Option",
         value: bookingData['OP'] || 0,
         icon: TrendingUp,
         change: bookingSubKPIs['OP change']
@@ -743,7 +743,7 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
     // Status options with "All" as the first option
     const statusOptions = [
       { value: "ALL", label: "Alle Statusse" },
-      { value: "OP", label: "Optional" },
+      { value: "OP", label: "Option" },
       { value: "OK", label: "Bestätigt (OK)" },
       { value: "XX", label: "Storniert" },
       { value: "RF", label: "Bestätigt (RF)" }
