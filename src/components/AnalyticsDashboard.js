@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useRef} from 'react';
 import { ResponsiveContainer, BarChart, Bar, Pie, Line, XAxis, YAxis, Tooltip, Legend, ComposedChart, PieChart } from 'recharts';
 import { Mail, PhoneCall, Phone, TrendingUp, TrendingDown, XCircle, Clock, CheckCircle, Send, Users, Activity, CreditCard } from 'lucide-react';
 
@@ -128,23 +128,24 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+// Add this to your AnalyticsDashboard component
 const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
-  // Add this right after your useState declarations in the AnalyticsDashboard component
+  // Keep your existing state declarations
   const [data, setData] = useState({
     salesServiceData: null,
     bookingData: null,
     bookingSubKPIs: null,
     conversionData: {
-      'organisch_conversion': '5.08%',
-      'cb_conversion': '0.0%',
-      'sucess_bookings': 3,
+      'organisch_conversion': '0%',
+      'cb_conversion': '0%',
+      'sucess_bookings': 0,
       'Conversion Performance': {
-        'total_calls': 75,
-        'organisch_wrong_call': 16,
-        'organisch_true_sales_call': 59,
-        'organisch_bookings': 3,
-        'cb_wrong_call': 6,
-        'cb_true_sales_call': 69,
+        'total_calls': 0,
+        'organisch_wrong_call': 0,
+        'organisch_true_sales_call': 0,
+        'organisch_bookings': 0,
+        'cb_wrong_call': 0,
+        'cb_true_sales_call': 0,
         'cb_bookings': 0
       }
     },
@@ -153,70 +154,80 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sales');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentStatusFilter, setCurrentStatusFilter] = useState("ALL"); // Default to "ALL"
-
+  const [currentStatusFilter, setCurrentStatusFilter] = useState("ALL");
+  const [isFilterChanging, setIsFilterChanging] = useState(false);
+  
+  // Add these refs for optimized data fetching
+  const dataCache = useRef({});
+  const abortController = useRef(null);
+  const lastFetchTime = useRef({});
+  const cacheTTL = 60000; // Cache time-to-live: 1 minute (adjust as needed)
+  
   const access_token = localStorage.getItem('access_token');
   const config = {
     headers: {
-      'Authorization': `Bearer ${access_token}`
+      'Authorization': `Bearer ${access_token}`,
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   };
-  // Add this useEffect at the beginning to check admin status only once
-  useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        const access_token = localStorage.getItem('access_token');
-        const response = await fetch("https://solasolution.ecomtask.de/profile", {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          setIsAdmin(userData.role && userData.role.toLowerCase() === 'admin');
-        } else {
-          console.error("Failed to fetch user profile");
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error);
-        setIsAdmin(false);
-      }
-    };
-
-    checkUserRole();
-  }, []); // Empty dependency array means this runs only once
-
-  // Add this state to track filter changes specifically
-  const [isFilterChanging, setIsFilterChanging] = useState(false);
-
-  // Modify the fetchData function to use isFilterChanging
-  const fetchData = async (dateParams) => {
-    // Show filter loading animation when filters change
-    setIsFilterChanging(true);
-
+  
+  // Helper to format date consistently
+  const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Get cache key for current parameters
+  const getCacheKey = (company, dateParams, statusFilter) => {
     const { startDate, endDate, isAllTime } = dateParams;
-
-    // Modified date formatting to preserve exact date
-    const formatDate = (date) => {
-      if (!date) return null;
-
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-
-      return `${year}-${month}-${day}`;
-    };
-
+    return `${company || 'default'}_${formatDate(startDate) || 'none'}_${formatDate(endDate) || 'none'}_${isAllTime ? 'all' : 'range'}_${statusFilter}`;
+  };
+  
+  // Check if cache data is still fresh
+  const isCacheFresh = (cacheKey) => {
+    const lastFetch = lastFetchTime.current[cacheKey];
+    return lastFetch && (Date.now() - lastFetch < cacheTTL);
+  };
+  
+  // Optimized fetchData function
+  const fetchData = async (dateParams) => {
+    // Show loading UI
+    setIsFilterChanging(true);
+    
+    const { startDate, endDate, isAllTime } = dateParams;
+    
+    // Generate cache key for this query
+    const cacheKey = getCacheKey(selectedCompany, dateParams, currentStatusFilter);
+    
+    // Use cached data if available and fresh
+    if (dataCache.current[cacheKey] && isCacheFresh(cacheKey)) {
+      console.log('Using cached data for', selectedCompany);
+      setData(dataCache.current[cacheKey]);
+      setIsFilterChanging(false);
+      setLoading(false);
+      return;
+    }
+    
+    // Cancel any previous requests
+    if (abortController.current) {
+      abortController.current.abort();
+    }
+    
+    // Create new abort controller
+    abortController.current = new AbortController();
+    
+    // Build query parameters
     const queryString = new URLSearchParams({
       ...(startDate && { start_date: formatDate(startDate) }),
       ...(endDate && { end_date: formatDate(endDate) }),
       include_all: isAllTime || false,
       ...(selectedCompany && { company: selectedCompany })
     }).toString();
-
+    
     // Only add current_status parameter if not "ALL"
     const trackingQueryString = new URLSearchParams({
       ...(startDate && { start_date: formatDate(startDate) }),
@@ -224,27 +235,42 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       ...(currentStatusFilter !== "ALL" && { current_status: currentStatusFilter }),
       ...(selectedCompany && { company: selectedCompany })
     }).toString();
-
+    
     try {
-      // Prepare all API calls, including tracking API if admin
+      // Prepare API requests with timeout
+      const fetchOptions = {
+        ...config,
+        signal: abortController.current.signal
+      };
+      
+      // Set timeout to prevent hanging requests
+      const timeoutId = setTimeout(() => {
+        if (abortController.current) {
+          abortController.current.abort();
+        }
+      }, 12000); // 12 second timeout
+      
+      // Make parallel API requests
       const apiCalls = [
-        fetch(`https://solasolution.ecomtask.de/analytics_sales_service?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/analytics_booking?${queryString}`, config),
-        fetch('https://solasolution.ecomtask.de/analytics_booking_subkpis', config),
-        fetch(`https://solasolution.ecomtask.de/analytics_conversion?${queryString}`, config)
+        fetch(`https://solasolution.ecomtask.de/analytics_sales_service?${queryString}`, fetchOptions),
+        fetch(`https://solasolution.ecomtask.de/analytics_booking?${queryString}`, fetchOptions),
+        fetch('https://solasolution.ecomtask.de/analytics_booking_subkpis', fetchOptions),
+        fetch(`https://solasolution.ecomtask.de/analytics_conversion?${queryString}`, fetchOptions)
       ];
-
-      // Only add the tracking API call if user is admin
+      
+      // Add tracking API call if user is admin
       if (isAdmin) {
-        apiCalls.push(fetch(`https://solasolution.ecomtask.de/track_op_bookings?${trackingQueryString}`, config));
+        apiCalls.push(fetch(`https://solasolution.ecomtask.de/track_op_bookings?${trackingQueryString}`, fetchOptions));
       }
-
+      
+      // Wait for all responses
       const responses = await Promise.all(apiCalls);
-
-      // Process all responses
+      clearTimeout(timeoutId);
+      
+      // Process JSON data from all responses
       const dataPromises = responses.map(res => res.json());
       const responseData = await Promise.all(dataPromises);
-
+      
       // Extract data from responses
       const [
         salesServiceDataJson,
@@ -253,41 +279,61 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
         conversionDataJson,
         ...rest
       ] = responseData;
-
-      // Prepare the data object
+      
+      // Construct new data object
       const newData = {
         salesServiceData: salesServiceDataJson,
         bookingData: bookingDataJson,
         bookingSubKPIs: bookingSubKPIsJson,
         conversionData: conversionDataJson,
-        trackedBookings: [] // Default empty array
+        trackedBookings: []
       };
-
-      // If admin and we have tracking data, add it
+      
+      // Add tracking data if available (admin only)
       if (isAdmin && rest.length > 0) {
         newData.trackedBookings = rest[0].tracked_op_bookings || [];
       }
-
+      
+      // Store in cache with timestamp
+      dataCache.current[cacheKey] = newData;
+      lastFetchTime.current[cacheKey] = Date.now();
+      
+      // Update state with new data
       setData(newData);
     } catch (error) {
-      console.error('Fehler beim Abrufen der Analysedaten:', error);
+      // Handle errors - don't show abort errors (they're expected during navigation)
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching analytics data:', error);
+      }
+      
+      // Try to use cached data even if expired
+      if (dataCache.current[cacheKey]) {
+        console.log('Using expired cache data after fetch error');
+        setData(dataCache.current[cacheKey]);
+      }
     } finally {
-      // Turn off both loading states when done
+      // Turn off loading states with small delay to prevent flickering
       setTimeout(() => {
         setIsFilterChanging(false);
         setLoading(false);
-      }, 300); // Small delay to prevent flickering
+      }, 300);
     }
   };
-
-  // Update useEffect to handle loading state
+  
+  // Update effect to handle loading state and cleanup
   useEffect(() => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      // Set loading state before fetching
-      setIsFilterChanging(true);
       fetchData(dateRange);
     }
+    
+    return () => {
+      // Cleanup: abort any pending requests when dependencies change
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
   }, [dateRange, selectedCompany, currentStatusFilter]);
+  
 
 
   const SalesServiceTab = () => {

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useRef, useCallback } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 import { Users, Inbox, CircleCheck, TriangleAlert, Circle } from 'lucide-react';
 
@@ -165,85 +165,170 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     performance: null
   });
   const [loading, setLoading] = useState(true);
-
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  
+  // Add caching logic
+  const dataCache = useRef({});
+  const abortController = useRef(null);
+  const isMounted = useRef(true);
+  
+  // Cache expiration time (5 minutes)
+  const CACHE_TTL = 5 * 60 * 1000;
+  
+  // Format date function (reused for API and cache keys)
+  const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Generate cache key based on parameters
+  const getCacheKey = useCallback((company, dateParams) => {
+    return `task_${company || 'all'}_${formatDate(dateParams.startDate) || 'none'}_${formatDate(dateParams.endDate) || 'none'}_${dateParams.isAllTime ? 'all' : 'range'}`;
+  }, []);
+  
+  // Check if cache is valid
+  const isCacheValid = useCallback((cacheKey) => {
+    const cache = dataCache.current[cacheKey];
+    return cache && (Date.now() - cache.timestamp < CACHE_TTL);
+  }, [CACHE_TTL]);
+  
+  // Optimized fetch function
+  const fetchData = useCallback(async () => {
+    try {
+      // Show loading UI
+      setIsFilterLoading(true);
+      
+      // Generate cache key for current parameters
+      const cacheKey = getCacheKey(selectedCompany, dateRange);
+      
+      // Check if we have valid cached data
+      if (dataCache.current[cacheKey] && isCacheValid(cacheKey)) {
+        console.log('Using cached task data for:', selectedCompany);
+        
+        // Use cached data
+        setData(dataCache.current[cacheKey].data);
+        
+        // Short timeout to prevent UI flicker
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 100);
+        return;
+      }
+      
+      // Cancel any in-progress requests
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+      
+      // Create new abort controller
+      abortController.current = new AbortController();
+      
+      const access_token = localStorage.getItem('access_token');
+      
+      // Build query parameters
+      const queryString = new URLSearchParams({
+        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+        include_all: dateRange.isAllTime || false,
+        ...(selectedCompany && { company: selectedCompany })
+      }).toString();
+      
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        signal: abortController.current.signal
+      };
+      
+      // Set timeout to prevent hanging requests
+      const timeoutId = setTimeout(() => {
+        if (abortController.current) {
+          abortController.current.abort();
+        }
+      }, 15000); // 15 second timeout
+      
+      // Fetch data in parallel
+      const [kpisRes, overviewRes, performanceRes] = await Promise.all([
+        fetch(`https://solasolution.ecomtask.de/tasks_kpis?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/tasks_overview?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/tasks_performance?${queryString}`, config)
+          .then(res => res.json())
+      ]);
+      
+      // Clear timeout since request completed
+      clearTimeout(timeoutId);
+      
+      // Create data object
+      const newData = {
+        kpis: kpisRes,
+        overview: overviewRes,
+        performance: performanceRes
+      };
+      
+      // Store in cache with timestamp
+      dataCache.current[cacheKey] = {
+        data: newData,
+        timestamp: Date.now()
+      };
+      
+      // Update state if component still mounted
+      if (isMounted.current) {
+        setData(newData);
+      }
+    } catch (error) {
+      // Skip abort errors (expected during navigation)
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching data:', error);
+        
+        // Try to use expired cache data as fallback
+        const cacheKey = getCacheKey(selectedCompany, dateRange);
+        if (dataCache.current[cacheKey]) {
+          setData(dataCache.current[cacheKey].data);
+        }
+      }
+    } finally {
+      // Use timeout to prevent flickering
+      if (isMounted.current) {
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 300);
+      }
+    }
+  }, [dateRange, selectedCompany, getCacheKey, isCacheValid]);
+  
+  // Track component mount state
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
+  }, []);
+  
+  // Fetch data when parameters change
+  useEffect(() => {
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      fetchData();
+    }
+  }, [dateRange, selectedCompany, fetchData]);
+  
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
     { id: "overview", name: "Übersicht" },
     { id: "performance", name: "Leistungsmetriken" }
   ];
-
-  // Add this state to track filter loading specifically
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
-
-  // Modify the useEffect for data fetching to handle filter loading state
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Set filter loading state to show skeleton UI during data fetching
-        setIsFilterLoading(true);
-        setLoading(true);
-
-        const access_token = localStorage.getItem('access_token');
-
-        // Modified date formatting to preserve exact date
-        const formatDate = (date) => {
-          if (!date) return null;
-
-          const d = new Date(date);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-
-          return `${year}-${month}-${day}`;
-        };
-
-        // Build query parameters including company filter
-        const queryString = new URLSearchParams({
-          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany }) // Add company parameter
-        }).toString();
-
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        };
-
-        const [kpisRes, overviewRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/tasks_kpis?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/tasks_overview?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/tasks_performance?${queryString}`, config)
-            .then(res => res.json())
-        ]);
-
-        setData({
-          kpis: kpisRes,
-          overview: overviewRes,
-          performance: performanceRes
-        });
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        // Small timeout to prevent flickering for very fast responses
-        setTimeout(() => {
-          setIsFilterLoading(false);
-          setLoading(false);
-        }, 300);
-      }
-    };
-
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      // Set filter loading state before initiating the fetch
-      setIsFilterLoading(true);
-      fetchData();
-    }
-  }, [dateRange, selectedCompany]); // These are your filter parameters
-
 
   const OverviewTab = () => {
     if (!data.kpis || !data.overview) return <Loading />;

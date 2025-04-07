@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
 
@@ -192,46 +192,79 @@ const convertTimeToSeconds = (timeStr) => {
 
 const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const [activeTab, setActiveTab] = useState('uebersicht');
-  // const [dateRange, setDateRange] = useState({
-  //   startDate: null,
-  //   endDate: null,
-  //   isAllTime: false
-  // });
-  // const [selectedCompany, setSelectedCompany] = useState('');
   const [overviewData, setOverviewData] = useState(null);
   const [subKPIs, setSubKPIs] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [domain, setDomain] = useState(null);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
-
   const tabs = [
     { id: "uebersicht", name: "Übersicht" },
     { id: "performance", name: "Leistungsmetriken" }
   ];
 
-  // List of clients that should only have Sales view (no Service toggle)
-  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
-  const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
-
-  // If client is in our restricted list, force sales view
-  useEffect(() => {
-    if (isSalesOnlyClient) {
-      setDomain("Sales");
-    }
-  }, [selectedCompany, isSalesOnlyClient]);
-
-  // Add this state to track filter loading specifically
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
-
-  // Modify the fetchData function to use filter loading state
-  const fetchData = async () => {
+  // Add data caching
+  const dataCache = useRef({});
+  const abortController = useRef(null);
+  const isMounted = useRef(true);
+  const lastFetchTime = useRef({});
+  
+  // Cache expiration time - 5 minutes
+  const CACHE_TTL = 5 * 60 * 1000;
+  
+  // Check if cache is still valid
+  const isCacheValid = (cacheKey) => {
+    const timestamp = lastFetchTime.current[cacheKey];
+    return timestamp && (Date.now() - timestamp < CACHE_TTL);
+  };
+  
+  // Create unique cache key from all query parameters
+  const getCacheKey = useCallback((company, dateParams, domainValue) => {
+    const formatDate = (date) => {
+      if (!date) return 'none';
+      const d = new Date(date);
+      return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    };
+    
+    return `${company || 'all'}_${formatDate(dateParams.startDate)}_${formatDate(dateParams.endDate)}_${dateParams.isAllTime ? 'all' : 'range'}_${domainValue || 'all'}`;
+  }, []);
+  
+  // Modified fetchData function with caching
+  const fetchData = useCallback(async () => {
     try {
-      // Show skeleton loading when filters change
       setIsFilterLoading(true);
-      setLoading(true);
+      
+      // Generate cache key for current parameters
+      const cacheKey = getCacheKey(selectedCompany, dateRange, domain);
+      
+      // Check if we have valid cached data
+      if (dataCache.current[cacheKey] && isCacheValid(cacheKey)) {
+        console.log('Using cached data for', selectedCompany);
+        const cachedData = dataCache.current[cacheKey];
+        
+        setOverviewData(cachedData.overviewData);
+        setSubKPIs(cachedData.subKPIs);
+        setPerformanceData(cachedData.performanceData);
+        
+        // Short delay to prevent UI flash
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 100);
+        return;
+      }
+      
+      // Cancel any in-progress requests
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+      
+      // Create new controller for this request
+      abortController.current = new AbortController();
+      
       const access_token = localStorage.getItem('access_token');
-
+      
       const formatDate = (date) => {
         if (!date) return null;
         const d = new Date(date);
@@ -240,7 +273,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       };
-
+      
       const queryString = new URLSearchParams({
         ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
         ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
@@ -248,46 +281,104 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
         ...(selectedCompany && { company: selectedCompany }),
         ...(domain && { domain: domain })
       }).toString();
-
+      
       const config = {
         headers: {
-          'Authorization': `Bearer ${access_token}`
-        }
+          'Authorization': `Bearer ${access_token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        signal: abortController.current.signal
       };
-
+      
+      // Set timeout to prevent hanging requests
+      const timeoutId = setTimeout(() => {
+        if (abortController.current) {
+          abortController.current.abort();
+        }
+      }, 15000); // 15 second timeout
+      
       const responses = await Promise.all([
         fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
         fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
         fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
       ]);
-
+      
+      clearTimeout(timeoutId);
+      
       const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
         responses.map(res => res.json())
       );
-
-      setOverviewData(overviewRes);
-      setSubKPIs(subKPIsRes);
-      setPerformanceData(performanceRes);
+      
+      // Store data in cache with timestamp
+      dataCache.current[cacheKey] = {
+        overviewData: overviewRes,
+        subKPIs: subKPIsRes,
+        performanceData: performanceRes
+      };
+      lastFetchTime.current[cacheKey] = Date.now();
+      
+      // Update state if component still mounted
+      if (isMounted.current) {
+        setOverviewData(overviewRes);
+        setSubKPIs(subKPIsRes);
+        setPerformanceData(performanceRes);
+      }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      // Ignore abort errors (expected during navigation)
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching data:', error);
+        
+        // Try using expired cache as fallback
+        const cacheKey = getCacheKey(selectedCompany, dateRange, domain);
+        if (dataCache.current[cacheKey]) {
+          const cachedData = dataCache.current[cacheKey];
+          setOverviewData(cachedData.overviewData);
+          setSubKPIs(cachedData.subKPIs);
+          setPerformanceData(cachedData.performanceData);
+        }
+      }
     } finally {
-      // Use a small timeout to prevent flickering for very fast responses
-      setTimeout(() => {
-        setIsFilterLoading(false);
-        setLoading(false);
-      }, 300);
+      // Use a small timeout to prevent flickering
+      if (isMounted.current) {
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 300);
+      }
     }
-  };
-
-  // Now, modify the useEffect to trigger the filter loading state
+  }, [dateRange, selectedCompany, domain, getCacheKey]);
+  
+  // Setup and cleanup
+  useEffect(() => {
+    isMounted.current = true;
+    
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
+  }, []);
+  
+  // Fetch data when parameters change
   useEffect(() => {
     if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      // Set filter loading state before initiating the fetch
       setIsFilterLoading(true);
       fetchData();
     }
-  }, [dateRange, selectedCompany, domain]); // These are your filter parameters
-
+  }, [dateRange, selectedCompany, domain, fetchData]);
+  
+  // Handle company selection for sales-only clients
+  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
+  const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
+  
+  useEffect(() => {
+    if (isSalesOnlyClient) {
+      setDomain("Sales");
+    }
+  }, [selectedCompany, isSalesOnlyClient]);
+  
 
   // Updated brand-aligned colors
   const chartColors = {

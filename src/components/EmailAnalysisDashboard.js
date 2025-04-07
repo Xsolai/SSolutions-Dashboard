@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useRef , useCallback} from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Mail, Send, TrendingUp, Inbox, Archive, Clock, Timer, Reply, Forward, CheckCircle } from 'lucide-react';
 
@@ -159,6 +159,36 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [domain, setDomain] = useState(null);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  
+  // Add data caching refs
+  const dataCache = useRef({});
+  const abortController = useRef(null);
+  const isMounted = useRef(true);
+  
+  // Cache expiration - 5 minutes
+  const CACHE_DURATION = 5 * 60 * 1000;
+  
+  // Format date consistently for cache keys and API requests
+  const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Generate cache key from all parameters
+  const getCacheKey = useCallback((company, dateParams, domainValue) => {
+    return `email_${company || 'all'}_${formatDate(dateParams.startDate) || 'none'}_${formatDate(dateParams.endDate) || 'none'}_${dateParams.isAllTime ? 'all' : 'range'}_${domainValue || 'all'}`;
+  }, []);
+  
+  // Check if cache is valid (not expired)
+  const isCacheValid = useCallback((cacheKey) => {
+    const cacheItem = dataCache.current[cacheKey];
+    return cacheItem && (Date.now() - cacheItem.timestamp < CACHE_DURATION);
+  }, [CACHE_DURATION]);
 
   // List of clients that should only have Sales view (no Service toggle)
   const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
@@ -171,90 +201,167 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     }
   }, [selectedCompany, isSalesOnlyClient]);
 
+  // Optimized fetch function with caching
+  const fetchData = useCallback(async () => {
+    try {
+      // Show loading state
+      setIsFilterLoading(true);
+      
+      // Generate cache key for current request parameters
+      const cacheKey = getCacheKey(selectedCompany, dateRange, domain);
+      
+      // Check if we have valid cached data
+      if (dataCache.current[cacheKey] && isCacheValid(cacheKey)) {
+        console.log('Using cached email data for:', selectedCompany);
+        const cachedData = dataCache.current[cacheKey].data;
+        
+        // Set all data from cache
+        setEmailData(cachedData.emailData);
+        setEmailSubKPIs(cachedData.emailSubKPIs);
+        setOverviewData(cachedData.overviewData);
+        setSubKPIs(cachedData.subKPIs);
+        setPerformanceData(cachedData.performanceData);
+        
+        // Short timeout to prevent flickering
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 100);
+        return;
+      }
+      
+      // Cancel any ongoing requests when parameters change
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+      
+      // Create new abort controller for this request
+      abortController.current = new AbortController();
+      
+      const access_token = localStorage.getItem('access_token');
+      
+      // Build query string with all parameters
+      const queryString = new URLSearchParams({
+        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+        ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
+        include_all: dateRange.isAllTime || false,
+        ...(selectedCompany && { company: selectedCompany }),
+        ...(domain && { domain: domain })
+      }).toString();
+      
+      // Request config with timeout
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        signal: abortController.current.signal
+      };
+      
+      // Set timeout to prevent hanging requests
+      const timeoutId = setTimeout(() => {
+        if (abortController.current) {
+          abortController.current.abort();
+        }
+      }, 15000); // 15 second timeout
+      
+      // Fetch all data in parallel
+      const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
+        fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
+          .then(res => res.json()),
+        fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
+          .then(res => res.json()),
+        fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
+          .then(res => res.json())
+      ]);
+      
+      // Clear timeout since request completed
+      clearTimeout(timeoutId);
+      
+      // Prepare data object for caching
+      const dataToCache = {
+        emailData: emailRes,
+        emailSubKPIs: emailSubKPIsRes,
+        overviewData: overviewRes,
+        subKPIs: subKPIsRes,
+        performanceData: performanceRes
+      };
+      
+      // Save to cache with timestamp
+      dataCache.current[cacheKey] = {
+        data: dataToCache,
+        timestamp: Date.now()
+      };
+      
+      // Update state if component is still mounted
+      if (isMounted.current) {
+        setEmailData(emailRes);
+        setEmailSubKPIs(emailSubKPIsRes);
+        setOverviewData(overviewRes);
+        setSubKPIs(subKPIsRes);
+        setPerformanceData(performanceRes);
+      }
+    } catch (error) {
+      // Handle errors (ignore abort errors)
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching email data:', error);
+        
+        // Try to use cached data as fallback even if expired
+        const cacheKey = getCacheKey(selectedCompany, dateRange, domain);
+        if (dataCache.current[cacheKey]) {
+          const cachedData = dataCache.current[cacheKey].data;
+          setEmailData(cachedData.emailData);
+          setEmailSubKPIs(cachedData.emailSubKPIs);
+          setOverviewData(cachedData.overviewData);
+          setSubKPIs(cachedData.subKPIs);
+          setPerformanceData(cachedData.performanceData);
+        }
+      }
+    } finally {
+      // Use small timeout to prevent flickering
+      if (isMounted.current) {
+        setTimeout(() => {
+          setIsFilterLoading(false);
+          setLoading(false);
+        }, 300);
+      }
+    }
+  }, [dateRange, selectedCompany, domain, getCacheKey, isCacheValid]);
+  
+  // Fetch data when parameters change
+  useEffect(() => {
+    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
+      fetchData();
+    }
+    
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
+  }, [dateRange, selectedCompany, domain, fetchData]);
+  
+  // Track component mount state
+  useEffect(() => {
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const handleDropdownChange = (e) => setActiveTab(e.target.value);
 
   const tabs = [
     { id: "uebersicht", name: "Übersicht" },
     { id: "leistung", name: "Leistungskennzahlen" }
   ];
-
-
-  // Add this state to track filter loading specifically
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
-
-  // Modify the useEffect to handle filter loading
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Show filter loading animation when filters change
-        setIsFilterLoading(true);
-        setLoading(true);
-
-        const access_token = localStorage.getItem('access_token');
-
-        // Modified date formatting to preserve exact date
-        const formatDate = (date) => {
-          if (!date) return null;
-
-          const d = new Date(date);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-
-          return `${year}-${month}-${day}`;
-        };
-
-        // Build query parameters including company filter
-        const queryString = new URLSearchParams({
-          ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
-          ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
-          include_all: dateRange.isAllTime || false,
-          ...(selectedCompany && { company: selectedCompany }),
-          ...(domain && { domain: domain })
-        }).toString();
-
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        };
-
-        const [emailRes, emailSubKPIsRes, overviewRes, subKPIsRes, performanceRes] = await Promise.all([
-          fetch(`https://solasolution.ecomtask.de/analytics_email?${queryString}`, config)
-            .then(res => res.json()),
-          fetch('https://solasolution.ecomtask.de/analytics_email_subkpis', config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_overview_sub_kpis?${queryString}`, config)
-            .then(res => res.json()),
-          fetch(`https://solasolution.ecomtask.de/email_performance?${queryString}`, config)
-            .then(res => res.json())
-        ]);
-
-        setEmailData(emailRes);
-        setEmailSubKPIs(emailSubKPIsRes);
-        setOverviewData(overviewRes);
-        setSubKPIs(subKPIsRes);
-        setPerformanceData(performanceRes);
-      } catch (error) {
-        console.error('Fehler beim Datenabruf:', error);
-      } finally {
-        // Small timeout to prevent flickering for very fast responses
-        setTimeout(() => {
-          setIsFilterLoading(false);
-          setLoading(false);
-        }, 300);
-      }
-    };
-
-    if (dateRange.startDate || dateRange.endDate || dateRange.isAllTime) {
-      // Set filter loading state before initiating the fetch
-      setIsFilterLoading(true);
-      fetchData();
-    }
-  }, [dateRange, selectedCompany, domain]);
-
 
   const UebersichtTab = () => {
     if (!overviewData || !subKPIs) return <Loading />;
