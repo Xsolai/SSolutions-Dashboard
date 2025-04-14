@@ -431,6 +431,11 @@ async def get_anaytics_email_data(
     # Print or return the formatted result
     print(avg_hours_dwell, avg_minutes_dwell, avg_seconds_dwell)
     
+    if domain == "all":
+        avg_hours_dwell = int(avg_hours_dwell/2)
+        avg_minutes_dwell = int(avg_minutes_dwell/2)
+        avg_seconds_dwell = round(avg_seconds_dwell/2)  # Properly round seconds
+    
     for pt in processing_times:
         hours, minutes, seconds = time_format(pt)
         total_processing_time_sec += seconds

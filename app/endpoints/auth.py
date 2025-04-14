@@ -165,7 +165,7 @@ def register_user(request: RegistrationRequest, db: Session = Depends(get_db)):
     """
     # Determine the role based on the email domain
     if request.email.endswith(EMPLOYEE_DOMAIN):
-        role = "employee"
+        role = "customer"
     # elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
     #     role = "customer"
     else:
