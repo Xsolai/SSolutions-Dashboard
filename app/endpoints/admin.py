@@ -293,7 +293,7 @@ def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can create users.")
     if request.email.endswith(EMPLOYEE_DOMAIN):
-        role = "employee"
+        role = "customer"
     # elif any(request.email.lower().endswith(domain.lower()) for domain in CUSTOMER_DOMAINS):
     #     role = "customer"
     else:
