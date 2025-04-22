@@ -348,6 +348,7 @@ async def get_calls(
             func.avg(AllQueueStatisticsData.asr)).filter(
             AllQueueStatisticsData.date.between(start_date, end_date)
         ).scalar() or 0
+        # print("excluded asr", asr)
         total_call_reasons = total_call_reasons_query.filter(
             GuruCallReason.date.between(start_date, end_date)
         ).scalar() or 0 if total_call_reasons_query else 0
@@ -388,7 +389,8 @@ async def get_calls(
             # print("Total calls: ", total_calls)
             answered_calls = int(row.answered_calls or 0)
             # print("Answered calls: ", answered_calls)
-            asr = (answered_calls / (total_calls if total_calls>0 else 1)) * 100 if total_calls > 0 else 0
+            # asr = (answered_calls / (total_calls if total_calls>0 else 1)) * 100 if total_calls > 0 else 0
+            # print("internal asr", asr)
             result.append({
                 "call metrics":{
                     "weekday": row.weekday,  # Convert weekday number to name
@@ -407,7 +409,7 @@ async def get_calls(
                     "sla_percent": round(row.sla or 0, 2),
                     "asr": round(asr, 2)},
             })
-    
+    # print("asr", asr)
     return {
         "total_calls": calls, 
         "total_call_reasons": total_call_reasons, 
