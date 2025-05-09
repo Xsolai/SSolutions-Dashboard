@@ -53,8 +53,10 @@ async def get_tasks_kpis(
     if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
-        elif "Urlaubsguru" in company:
-            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
+        elif company=="Urlaubsguru":
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru Auf%"))
+        elif company=="UrlaubsguruKF":
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru KF%"))
         elif "Bild" in company:
             query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
         elif "Galeria" in company:
@@ -75,8 +77,10 @@ async def get_tasks_kpis(
         if company!="all":
             if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(GuruTask.customer.like("%5VFL%"))
-            elif "guru" in company and "guru" in accessible_companies:
-                query = query.filter(GuruTask.customer.like(f"%Guru%"))
+            elif company=="Urlaubsguru" and "guru" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru Au%"))
+            elif company=="UrlaubsguruKF" and "guru_kf" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru KF%"))
             elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(GuruTask.customer.like("%BILD%"))
             elif "Galeria" in company and "Galeria" in accessible_companies:
@@ -145,8 +149,10 @@ async def get_tasks_overview(
     if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
-        elif "Urlaubsguru" in company:
-            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
+        elif company=="Urlaubsguru":
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru Auf%"))
+        elif company=="UrlaubsguruKF":
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru KF%"))
         elif "Bild" in company:
             query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
         elif "Galeria" in company:
@@ -167,8 +173,10 @@ async def get_tasks_overview(
         if company!="all":
             if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(GuruTask.customer.like("%5VFL%"))
-            elif "guru" in company and "guru" in accessible_companies:
-                query = query.filter(GuruTask.customer.like(f"%Guru%"))
+            elif company=="Urlaubsguru" and "guru" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru Au%"))
+            elif company=="UrlaubsguruKF" and "guru_kf" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru KF%"))
             elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(GuruTask.customer.like("%BILD%"))
             elif "Galeria" in company and "Galeria" in accessible_companies:
@@ -287,8 +295,10 @@ async def get_tasks_performance(
     if is_admin_or_employee:
         if "5vorflug" in company:
             query = db.query(GuruTask).filter(GuruTask.customer.like("%5VFL%"))
-        elif "Urlaubsguru" in company:
-            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru%"))
+        elif company=="Urlaubsguru":
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru Auf%"))
+        elif company=="UrlaubsguruKF":
+            query = db.query(GuruTask).filter(GuruTask.customer.like(f"%Guru KF%"))
         elif "Bild" in company:
             query = db.query(GuruTask).filter(GuruTask.customer.like("%BILD%"))
         elif "Galeria" in company:
@@ -309,8 +319,10 @@ async def get_tasks_performance(
         if company!="all":
             if "5vorflug" in company and "5vorflug" in accessible_companies:
                 query = query.filter(GuruTask.customer.like("%5VFL%"))
-            elif "guru" in company and "guru" in accessible_companies:
-                query = query.filter( GuruTask.customer.like(f"%Guru%"))
+            elif company=="Urlaubsguru" and "guru" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru Au%"))
+            elif company=="UrlaubsguruKF" and "guru_kf" in accessible_companies:
+                query = query.filter(GuruTask.customer.like(f"%Guru KF%"))
             elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(GuruTask.customer.like("%BILD%"))
             elif "Galeria" in company and "Galeria" in accessible_companies:

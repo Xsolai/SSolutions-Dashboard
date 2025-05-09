@@ -120,12 +120,19 @@ async def get_email_overview(
             email_query = db.query(EmailData).filter(
             EmailData.customer.like("%5vorFlug%")  
             )
-        elif "Urlaubsguru" in company:
+        elif company=="Urlaubsguru":
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%Guru%") 
+            WorkflowReportGuruKF.customer.like(f"%Guru %") 
             )
             email_query = db.query(EmailData).filter(
-            EmailData.customer.like(f"%Guru%")
+            EmailData.customer.like(f"%Guru %")
+            )
+        elif "UrlaubsguruKF" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%GuruKF%") 
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%GuruKF%")
             )
         elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
@@ -176,12 +183,19 @@ async def get_email_overview(
                 email_query = email_query.filter(
                 EmailData.customer.like("%5vorFlug%")  
                 )
-            elif "Urlaubsguru" in company and "guru" in accessible_companies:
+            elif company=="Urlaubsguru" and "guru" in accessible_companies:
                 query = query.filter(
-                WorkflowReportGuruKF.customer.like(f"%Guru%")  
+                WorkflowReportGuruKF.customer.like(f"%Guru %")  
                 )
                 email_query = email_query.filter(
-                EmailData.customer.like(f"%Guru%")
+                EmailData.customer.like(f"%Guru %")
+                )
+            elif company=="UrlaubsguruKF" and "guru_kf" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%GuruKF%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%GuruKF%")
                 )
             elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(
@@ -479,12 +493,19 @@ async def get_email_overview_sub_kpis(
             email_query = db.query(EmailData).filter(
             EmailData.customer.like("%5vorFlug%")  
             )
-        elif "Urlaubsguru" in company:
+        elif company=="Urlaubsguru":
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%Guru%") 
+            WorkflowReportGuruKF.customer.like(f"%Guru %") 
             )
             email_query = db.query(EmailData).filter(
-            EmailData.customer.like(f"%Guru%")
+            EmailData.customer.like(f"%Guru %")
+            )
+        elif "UrlaubsguruKF" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%GuruKF%") 
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%GuruKF%")
             )
         elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
@@ -535,12 +556,19 @@ async def get_email_overview_sub_kpis(
                 email_query = email_query.filter(
                 EmailData.customer.like("%5vorFlug%")  
                 )
-            elif "Urlaubsguru" in company and "guru" in accessible_companies:
+            elif company=="Urlaubsguru" and "guru" in accessible_companies:
                 query = query.filter(
-                WorkflowReportGuruKF.customer.like(f"%Guru%")  
+                WorkflowReportGuruKF.customer.like(f"%Guru %")  
                 )
                 email_query = email_query.filter(
-                EmailData.customer.like(f"%Guru%")
+                EmailData.customer.like(f"%Guru %")
+                )
+            elif company=="UrlaubsguruKF" and "guru_kf" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%GuruKF%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%GuruKF%")
                 )
             elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(
@@ -728,12 +756,19 @@ async def get_mailbox_SL(
             email_query = db.query(EmailData).filter(
             EmailData.customer.like("%5vorFlug%")  
             )
-        elif "Urlaubsguru" in company:
+        elif company=="Urlaubsguru":
             query = db.query(WorkflowReportGuruKF).filter(
-            WorkflowReportGuruKF.customer.like(f"%Guru%") 
+            WorkflowReportGuruKF.customer.like(f"%Guru %") 
             )
             email_query = db.query(EmailData).filter(
-            EmailData.customer.like(f"%Guru%")
+            EmailData.customer.like(f"%Guru %")
+            )
+        elif "UrlaubsguruKF" in company:
+            query = db.query(WorkflowReportGuruKF).filter(
+            WorkflowReportGuruKF.customer.like(f"%GuruKF%") 
+            )
+            email_query = db.query(EmailData).filter(
+            EmailData.customer.like(f"%GuruKF%")
             )
         elif "Bild" in company:
             query = db.query(WorkflowReportGuruKF).filter(
@@ -784,12 +819,19 @@ async def get_mailbox_SL(
                 email_query = email_query.filter(
                 EmailData.customer.like("%5vorFlug%")  
                 )
-            elif "Urlaubsguru" in company and "guru" in accessible_companies:
+            elif company=="Urlaubsguru" and "guru" in accessible_companies:
                 query = query.filter(
-                WorkflowReportGuruKF.customer.like(f"%Guru%")  
+                WorkflowReportGuruKF.customer.like(f"%Guru %")  
                 )
                 email_query = email_query.filter(
-                EmailData.customer.like(f"%Guru%")
+                EmailData.customer.like(f"%Guru %")
+                )
+            elif company=="UrlaubsguruKF" and "guru_kf" in accessible_companies:
+                query = query.filter(
+                WorkflowReportGuruKF.customer.like(f"%GuruKF%")  
+                )
+                email_query = email_query.filter(
+                EmailData.customer.like(f"%GuruKF%")
                 )
             elif "Bild" in company and "bild" in accessible_companies:
                 query = query.filter(

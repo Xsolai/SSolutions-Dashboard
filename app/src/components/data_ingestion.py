@@ -15,6 +15,7 @@ def populate_guru_call_reason(data, db: Session, date):
                 continue 
             db_record = GuruCallReason(
                 date=date,
+                # customer=row.get('file_name', ""),
                 agent=row.get('Agent', ''),
                 total_calls=row.get('Gesamt [#]', 0),
                 cb_sales=row.get('CB SALES [#]', 0),

@@ -449,6 +449,9 @@ def domains_checker(db, user_id, filter_5vf, filter_bild, target_company=None):
     accessible_companies = []
     if "urlaubsguru" in user_domains:
         accessible_companies.append("guru")
+    if "gurukf" in user_domains:
+        print("gurukf found")
+        accessible_companies.append("guru_kf")
     if "5vorflug" in user_domains:
         accessible_companies.append("5vorflug")
     if "bild" in user_domains:
@@ -514,10 +517,15 @@ def domains_checker(db, user_id, filter_5vf, filter_bild, target_company=None):
         filters.append(QueueStatistics.queue_name.like("%guru%"))
         filters.append(QueueStatistics.queue_name.like("%5vorFlug%"))
         filters.append(QueueStatistics.queue_name.like("%BILD%"))
+        filters.append(QueueStatistics.queue_name.notlike(f"%Urlaubsguru_KF%"))
         summe_filters.append(AllQueueStatisticsData.customer.like("%guru%"))
         summe_filters.append(AllQueueStatisticsData.customer.like("%5vFlug%"))
         summe_filters.append(AllQueueStatisticsData.customer.like("%Bild%"))
-        # return accessible_companies, filters, summe_filters
+        summe_filters.append(AllQueueStatisticsData.customer.notlike(f"%GuruKF%"))
+    if "guru_kf" in accessible_companies:
+        filters.append(QueueStatistics.queue_name.like(f"%Urlaubsguru_KF%"))
+        summe_filters.append(AllQueueStatisticsData.customer.like(f"%GuruKF%"))
+        return accessible_companies, filters, summe_filters
     
     return accessible_companies, filters, summe_filters
 
@@ -535,9 +543,11 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild, target_company=N
     accessible_companies = []
     if "urlaubsguru" in user_domains:
         accessible_companies.append("guru")
+    if "gurukf" in user_domains:
+        accessible_companies.append("guru_kf")
     if "5vorflug" in user_domains:
         accessible_companies.append("5vorflug")
-    if "bild" in user_domains:
+    if "bild" in user_domains:  
         accessible_companies.append("bild")
     if "adac" in user_domains:
         accessible_companies.append("ADAC")
@@ -595,10 +605,13 @@ def domains_checker_email(db, user_id, filter_5vf, filter_bild, target_company=N
     if "guru" in accessible_companies:
         filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_5vf}%"))
         filters.append(WorkflowReportGuruKF.customer.like(f"%{filter_bild}%"))
-        filters.append(WorkflowReportGuruKF.customer.like(f"%Guru%"))
+        filters.append(WorkflowReportGuruKF.customer.like(f"%Guru %"))
         email_filters.append(EmailData.customer.like(f"%{filter_5vf}%"))
         email_filters.append(EmailData.customer.like(f"%{filter_bild}%"))
-        email_filters.append(EmailData.customer.like(f"%Guru%"))
+        email_filters.append(EmailData.customer.like(f"%Guru %"))
+    if "guru_kf" in accessible_companies:
+        filters.append(WorkflowReportGuruKF.customer.like(f"%GuruKF%"))
+        email_filters.append(EmailData.customer.like(f"%GuruKF%"))
     
     return accessible_companies, filters, email_filters
 
@@ -889,7 +902,7 @@ def time_formatter(hours, minutes, seconds):
     if int(hours)>0:
         return f"{str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}"
     if int(hours)<=0 and int(minutes)>0:
-        return f"{str(minutes).zfill(2)}:{str(seconds).zfill(2)}"
+        return f"00:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}"
     else:
         return f"00:00:{str(seconds).zfill(2)}"
     
