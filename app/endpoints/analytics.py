@@ -819,9 +819,14 @@ async def get_sales_and_service(
             query = db.query(AllQueueStatisticsData).filter(
             AllQueueStatisticsData.customer.like("%5vFlug%")  
         )
-        elif "Urlaubsguru" in company:
+        elif company=="Urlaubsguru":
             query = db.query(AllQueueStatisticsData).filter(
-            AllQueueStatisticsData.customer.like(f"%Guru%")
+            AllQueueStatisticsData.customer.like(f"%Guru%"),
+            AllQueueStatisticsData.customer.notlike(f"%GuruKF%")
+            )
+        elif company=="UrlaubsguruKF":
+            query = db.query(AllQueueStatisticsData).filter(
+            AllQueueStatisticsData.customer.like(f"%GuruKF%")
             )
         elif "Bild" in company:
             query = db.query(AllQueueStatisticsData).filter(
@@ -858,10 +863,14 @@ async def get_sales_and_service(
                 print("executing for 5vf")
                 query = query.filter(AllQueueStatisticsData.customer.like(f"%5vFlug%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
-            elif "Urlaubsguru" in company and "guru" in accessible_companies:
+            elif company=="Urlaubsguru"  and "guru" in accessible_companies:
                 print("executing for guru")
-                query = query.filter(AllQueueStatisticsData.customer.like(f"%Guru%"))
-                
+                query = query.filter(AllQueueStatisticsData.customer.like(f"%Guru%"),
+            AllQueueStatisticsData.customer.notlike(f"%GuruKF%"))
+                total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+            elif company=="UrlaubsguruKF"  and "guru_kf" in accessible_companies:
+                print("executing for guru")
+                query = query.filter(AllQueueStatisticsData.customer.like(f"%GuruKF%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
             elif "Bild" in company and "bild" in accessible_companies:
                 print("executing for bild")
