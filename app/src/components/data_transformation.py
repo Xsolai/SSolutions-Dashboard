@@ -53,6 +53,10 @@ def extract_filename_part(file_name):
             match = re.search(r"^(.*?)_Aufgaben_daily", file_name)
             if match:
                 return match.group(1)
+        # elif re.search(r"^(.*?)_Call ?Reason", file_name, re.IGNORECASE):
+        #     match = re.search(r"^(.*?)_Call ?Reason", file_name, re.IGNORECASE)
+        #     if match:
+        #         return match.group(1)
         else:
             match = re.search(r"^(.*?_daily)", file_name)
             if match:

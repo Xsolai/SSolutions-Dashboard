@@ -44,7 +44,7 @@ def run_task():
 
         # Today's date for file processing
         TODAY_DATE = datetime.now().strftime('%d-%b-%Y')
-        # TODAY_DATE = "15-Apr-2025"  # Hardcoded for now
+        # TODAY_DATE = "07-May-2025"  # Hardcoded for now
         YESTERDAY_DATE = (datetime.now() - timedelta(days=1)).date()
 
         weeday_name = parse_date_to_weekday(YESTERDAY_DATE) if YESTERDAY_DATE else None
@@ -54,9 +54,13 @@ def run_task():
         logging.info(f"Found {len(all_files)} files in attachments for date {TODAY_DATE}")
 
         files = {
-            "call_reason": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+            "guru_call_reason": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
                 if "Guru_CallReason" in file and (file.endswith('.csv'))
+            )),
+            "adac_call_reason": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
+                str(file) for file in all_files 
+                if "ADAC_Call Reason" in file and (file.endswith('.csv'))
             )),
             "daily_booking_list": os.path.join(os.getcwd(), "attachments", TODAY_DATE, " ".join(
                 str(file) for file in all_files 
@@ -205,7 +209,7 @@ def run_task():
             try:
                 data = None  # Initialize data to None
                 if os.path.exists(path) and os.path.isfile(path): 
-                    if file_type == "call_reason":
+                    if file_type in ["guru_call_reason"]:
                         data = load_csv_data(path)
                         # print(data)
                     elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service", "ADAC_daily", "Galeria_daily", "Urlaub_daily"]:
@@ -228,9 +232,9 @@ def run_task():
 
                 # Populate database only if data is not None and not empty
                 if data is not None and not data.empty:
-                    if file_type == "call_reason":
+                    if file_type in ["guru_call_reason"]:
                         populate_guru_call_reason(data=data, db=db, date=YESTERDAY_DATE)
-                        add_file_record(db=db, filename="Guru_CallReason", status="added")
+                        add_file_record(db=db, filename=file_type, status="added")
                     elif file_type in ["5vFlug_service", "5vFlug_sales", "GuruKFdaily", "Guru_service_daily", "Guru_sales_daily", "Bild_sales", "Bild_service", "ADAC_daily", "Galeria_daily", "Urlaub_daily"]:
                         populate_queue_statistics(data, db, date=YESTERDAY_DATE, day=weeday_name)
                         add_file_record(db=db, filename=file_type, status="added")
@@ -241,9 +245,9 @@ def run_task():
                         add_file_record(db=db, filename=file_type, status="added")
                         populate_email_data(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added for email data")
-                    elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
-                        populate_email_data(data, db, date=YESTERDAY_DATE)
-                        add_file_record(db=db, filename=file_type, status="added for email data")
+                    # elif file_type in ["ID_14", "ID_15", "ID_29", "ID_32", "ID_33"]:
+                    #     populate_email_data(data, db, date=YESTERDAY_DATE)
+                    #     add_file_record(db=db, filename=file_type, status="added for email data")
                     elif file_type in ["guru_task", "bild_task", "5vf_task", "guruKF_task", "urlaub_task", "galeria_task", "ADAC_task"]:
                         populate_guru_task_data(data, db, date=YESTERDAY_DATE)
                         add_file_record(db=db, filename=file_type, status="added")

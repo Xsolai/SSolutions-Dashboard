@@ -27,6 +27,7 @@ class User(Base):
 class GuruCallReason(Base):
     __tablename__ = 'guru_call_reason'
     id = Column(Integer, primary_key=True, index=True)
+    # customer = Column(String, nullable=True)
     date = Column(Date)
     agent = Column(String)
     total_calls = Column(Integer) 
@@ -37,6 +38,26 @@ class GuruCallReason(Base):
     guru_service = Column(Integer)
     guru_wrong = Column(Integer)
     other_guru = Column(Integer) 
+    
+class ADACCallReason(Base):
+    __tablename__ = 'adac_call_reason'
+    id = Column(Integer, primary_key=True, index=True)
+    customer = Column(String, nullable=True)
+    date = Column(Date)
+    agent = Column(String)
+    total_calls = Column(Integer) 
+    adac_hotels = Column(Integer)
+    adac_ferries = Column(Integer)
+    adac_holiday_homes = Column(Integer)
+    adac_flights = Column(Integer)
+    adac_cruise = Column(Integer)
+    adac_rental_cars = Column(Integer)
+    adac_member_trips = Column(Integer)
+    adac_package_tours = Column(Integer)
+    adac_motorhomes = Column(Integer)
+    adac_service = Column(Integer)
+    adac_wrong = Column(Integer)
+    adac_outbound = Column(Integer)
 
 # class DailyCallData(Base):
 #     __tablename__ = "daily_call_data"

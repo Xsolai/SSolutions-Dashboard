@@ -261,6 +261,9 @@ def get_companies(
         elif "urlaubsguru" in company_name:
             # print(company_name)
             result_set.add("Urlaubsguru")
+        elif "gurukf" in company_name:
+            # print(company_name)
+            result_set.add("UrlaubsguruKF")
         elif "bild" in company_name:
             # print(company_name)
             result_set.add("Bild")
