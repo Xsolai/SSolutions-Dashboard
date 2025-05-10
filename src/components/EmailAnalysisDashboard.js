@@ -572,7 +572,7 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                     stroke="#F0B72F"
                     strokeWidth={2}
                     dot={{ fill: '#F0B72F' }}
-                    name="Bearbeitungszeit (Sek)"
+                    name="Bearbeitungszeit (Min)"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -691,7 +691,7 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 <Line
                   type="monotone"
                   dataKey="processing_time" // Use "processing_time" from the data
-                  name="Bearbeitungszeit (Sek)"
+                  name="Bearbeitungszeit (Minuten)"
                   stroke={chartColors.primary}
                   strokeWidth={2}
                   dot={{ fill: chartColors.primary, r: 4 }}
