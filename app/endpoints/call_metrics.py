@@ -309,6 +309,10 @@ async def get_calls(
                     "Daily Call Volume": []  
                 } 
         
+    prev_query = query 
+    prev_summe_query = summe_query
+    prev_total_call_reasons_query = total_call_reasons_query
+    
     if domain != "all":
         if company in ["ADAC", "Galeria", "Urlaub"]:
             query = query
@@ -430,12 +434,204 @@ async def get_calls(
                     "sla_percent": round(row.sla or 0, 2),
                     "asr": round(asr, 2)},
             })
-    # print("asr", asr)
+    sla = get_sla_percentage(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company)
+    if domain == "all":
+        # Query for sales data
+        sales_calls = prev_summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), AllQueueStatisticsData.customer.like("%Sales%")
+        ).scalar() or 0
+        
+        # Query for service data
+        service_calls = prev_summe_query.with_entities(func.sum(AllQueueStatisticsData.calls)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), AllQueueStatisticsData.customer.like("%Service%")
+        ).scalar() or 0
+        
+        # ASR calculations
+        asr_sales = prev_summe_query.with_entities(
+            func.avg(AllQueueStatisticsData.asr)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), AllQueueStatisticsData.customer.like("%Sales%")
+        ).scalar() or 0
+        
+        asr_service = prev_summe_query.with_entities(
+            func.avg(AllQueueStatisticsData.asr)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), AllQueueStatisticsData.customer.like("%Service%")
+        ).scalar() or 0
+        
+        # SLA calculations
+        sla_sales = prev_summe_query.with_entities(
+            func.avg(AllQueueStatisticsData.sla_20_20)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), AllQueueStatisticsData.customer.like("%Sales%")
+        ).scalar() or 0
+        
+        sla_service = prev_summe_query.with_entities(
+            func.avg(AllQueueStatisticsData.sla_20_20)).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), AllQueueStatisticsData.customer.like("%Service%")
+        ).scalar() or 0
+        
+        print(service_calls, sales_calls, sla_service, sla_sales)
+        
+        # Total calls
+        total_calls = sales_calls + service_calls
+        
+        # Weighted ASR and SLA calculation
+        if total_calls > 0:
+            asr = ((asr_sales * sales_calls) + (asr_service * service_calls)) / total_calls
+            sla = ((sla_sales * sales_calls) + (sla_service * service_calls)) / total_calls
+        else:
+            asr = 0
+            sla = 0
+        
+        # Gather weekday data for sales
+        weekday_data_sales = prev_summe_query.with_entities(
+            AllQueueStatisticsData.weekday.label("weekday"),
+            func.sum(AllQueueStatisticsData.calls).label("total_calls"),
+            func.sum(AllQueueStatisticsData.accepted).label("answered_calls"),
+            func.avg(AllQueueStatisticsData.avg_wait_time).label("avg_wait_time"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("max_wait_time"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("avg_handling_time"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("sla"),
+            func.sum(AllQueueStatisticsData.abandoned_before_answer).label("dropped_calls")
+        ).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), 
+            AllQueueStatisticsData.customer.like("%Sales%")
+        ).group_by(
+            AllQueueStatisticsData.weekday
+        ).all()
+        
+        # Gather weekday data for service
+        weekday_data_service = prev_summe_query.with_entities(
+            AllQueueStatisticsData.weekday.label("weekday"),
+            func.sum(AllQueueStatisticsData.calls).label("total_calls"),
+            func.sum(AllQueueStatisticsData.accepted).label("answered_calls"),
+            func.avg(AllQueueStatisticsData.avg_wait_time).label("avg_wait_time"),
+            func.max(AllQueueStatisticsData.max_wait_time).label("max_wait_time"),
+            func.avg(AllQueueStatisticsData.avg_handling_time_inbound).label("avg_handling_time"),
+            func.avg(AllQueueStatisticsData.sla_20_20).label("sla"),
+            func.sum(AllQueueStatisticsData.abandoned_before_answer).label("dropped_calls")
+        ).filter(
+            AllQueueStatisticsData.date.between(start_date, end_date), 
+            AllQueueStatisticsData.customer.like("%Service%")
+        ).group_by(
+            AllQueueStatisticsData.weekday
+        ).all()
+        
+        # Combine the weekday data for sales and service
+        weekday_combined = {}
+        
+        # Process sales data by weekday
+        for row in weekday_data_sales:
+            if row.weekday is not None:
+                weekday_combined[row.weekday] = {
+                    "sales_calls": int(row.total_calls or 0),
+                    "sales_answered": int(row.answered_calls or 0),
+                    "sales_dropped": int(row.dropped_calls or 0),
+                    "sales_avg_wait": row.avg_wait_time or 0,
+                    "sales_max_wait": row.max_wait_time or 0,
+                    "sales_avg_handling": row.avg_handling_time or 0,
+                    "sales_sla": row.sla or 0
+                }
+        
+        # Process service data by weekday and merge with sales data
+        for row in weekday_data_service:
+            if row.weekday is not None:
+                if row.weekday in weekday_combined:
+                    weekday_combined[row.weekday].update({
+                        "service_calls": int(row.total_calls or 0),
+                        "service_answered": int(row.answered_calls or 0),
+                        "service_dropped": int(row.dropped_calls or 0),
+                        "service_avg_wait": row.avg_wait_time or 0,
+                        "service_max_wait": row.max_wait_time or 0,
+                        "service_avg_handling": row.avg_handling_time or 0,
+                        "service_sla": row.sla or 0
+                    })
+                else:
+                    weekday_combined[row.weekday] = {
+                        "service_calls": int(row.total_calls or 0),
+                        "service_answered": int(row.answered_calls or 0),
+                        "service_dropped": int(row.dropped_calls or 0),
+                        "service_avg_wait": row.avg_wait_time or 0,
+                        "service_max_wait": row.max_wait_time or 0,
+                        "service_avg_handling": row.avg_handling_time or 0,
+                        "service_sla": row.sla or 0
+                    }
+        
+        # Create the final result
+        result = []
+        
+        for weekday, data in weekday_combined.items():
+            # Set default values for any missing data
+            sales_calls = data.get("sales_calls", 0)
+            sales_answered = data.get("sales_answered", 0)
+            sales_dropped = data.get("sales_dropped", 0)
+            sales_avg_wait = data.get("sales_avg_wait", 0)
+            sales_max_wait = data.get("sales_max_wait", 0)
+            sales_avg_handling = data.get("sales_avg_handling", 0)
+            sales_sla = data.get("sales_sla", 0)
+            
+            service_calls = data.get("service_calls", 0)
+            service_answered = data.get("service_answered", 0)
+            service_dropped = data.get("service_dropped", 0)
+            service_avg_wait = data.get("service_avg_wait", 0)
+            service_max_wait = data.get("service_max_wait", 0)
+            service_avg_handling = data.get("service_avg_handling", 0)
+            service_sla = data.get("service_sla", 0)
+            
+            # Calculate combined metrics for this weekday
+            total_weekday_calls = sales_calls + service_calls
+            total_weekday_answered = sales_answered + service_answered
+            total_weekday_dropped = sales_dropped + service_dropped
+            
+            # Calculate weekday-specific ASR (answered / total calls)
+            weekday_asr = (total_weekday_answered / total_weekday_calls * 100) if total_weekday_calls > 0 else 0
+            
+            # Calculate weekday-specific weighted SLA
+            if total_weekday_calls > 0:
+                weekday_sla = ((sales_sla * sales_calls) + (service_sla * service_calls)) / total_weekday_calls
+            else:
+                weekday_sla = 0
+            
+            # Calculate weighted average wait time
+            if total_weekday_calls > 0:
+                avg_wait_time = ((sales_avg_wait * sales_calls) + (service_avg_wait * service_calls)) / total_weekday_calls
+                max_wait_time = max(sales_max_wait, service_max_wait)
+                avg_handling_time = ((sales_avg_handling * sales_answered) + (service_avg_handling * service_answered)) / total_weekday_answered if total_weekday_answered > 0 else 0
+            else:
+                avg_wait_time = 0
+                max_wait_time = 0
+                avg_handling_time = 0
+            
+            # Format time values
+            avg_wait_formatted = f"00:{str(int(avg_wait_time/60)).zfill(2)}:{str(int(avg_wait_time%60)).zfill(2)}"
+            max_wait_formatted = f"00:{str(int(max_wait_time/60)).zfill(2)}:{str(int(max_wait_time%60)).zfill(2)}"
+            avg_handling_formatted = f"00:{str(int(avg_handling_time/60)).zfill(2)}:{str(int(avg_handling_time%60)).zfill(2)}"
+            
+            # Add the combined data to results
+            result.append({
+                "call metrics": {
+                    "weekday": weekday,
+                    "total_calls": total_weekday_calls,
+                    "answered_calls": total_weekday_answered,
+                    "dropped_calls": total_weekday_dropped,
+                },
+                "Time metrics": {
+                    "weekday": weekday,
+                    "avg_wait_time_sec": avg_wait_formatted,
+                    "max_wait_time_sec": max_wait_formatted,
+                    "avg_handling_time": avg_handling_formatted
+                },
+                "% metrics": {
+                    "weekday": weekday,
+                    "sla_percent": round(weekday_sla, 2),
+                    "asr": round(weekday_asr, 2)
+                },
+            })
+        
+        
     return {
         "total_calls": calls, 
         "total_call_reasons": total_call_reasons, 
         "asr": round(asr, 2),
-        "SLA":round(get_sla_percentage(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company), 2),
+        "SLA":round(sla, 2),
         "avg wait time (min)": f"00:{str(int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60)).zfill(2)}:{str(int(get_average_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) % 60)).zfill(2)}",
         "max. wait time (min)": f"00:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60)).zfill(2)}:{str(int(get_max_wait_time(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) % 60)).zfill(2)}",
         "After call work time (min)": f"00:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) / 60)).zfill(2)}:{str(int(get_inbound_after_call(summe_query, start_date=start_date, end_date=end_date, domain=domain, company=company) % 60)).zfill(2)}",
