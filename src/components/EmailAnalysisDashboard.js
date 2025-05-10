@@ -23,7 +23,14 @@ const CustomTooltip = ({ active, payload, label }) => {
     if (name?.toLowerCase().includes('%')) {
       return `${Number(value).toFixed(1)}%`;
     }
-    if (name?.toLowerCase().includes('zeit') || name?.toLowerCase().includes('time')) {
+    if (name?.toLowerCase().includes('zeit') || 
+        name?.toLowerCase().includes('time') || 
+        name?.toLowerCase().includes('sec') || 
+        name?.toLowerCase().includes('min')) {
+      // Return both seconds and minutes for time values
+      if (name?.toLowerCase().includes('sek') || name?.toLowerCase().includes('sec')) {
+        return `${Number(value).toFixed(1)} Sek`;
+      }
       return `${Number(value).toFixed(1)} Min`;
     }
     return value.toLocaleString();
@@ -78,7 +85,7 @@ const Loading = () => (
 );
 
 // Base Components
-const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
+const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds, timeInMinutes }) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
       <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
@@ -90,9 +97,10 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
       <div className="text-[26px] leading-[36px] font-nexa-black text-[#001E4A]">
         {value}
       </div>
-      {timeInSeconds !== undefined && (
-        <div className="text-base font-nexa-book text-[#001E4A]">
-          {timeInSeconds} min
+      {(timeInSeconds !== undefined || timeInMinutes !== undefined) && (
+        <div className="text-base font-nexa-book text-[#001E4A] text-right">
+          {timeInSeconds && <div>{timeInSeconds} sek</div>}
+          {timeInMinutes && <div>{timeInMinutes} min</div>}
         </div>
       )}
     </div>
@@ -503,13 +511,15 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             title="Durchschnittliche Verweilzeit"
             value={dwellTimeFormatted}
             icon={Clock}
-            timeInSeconds={dwellTimeDecimal.toFixed(2)}
+            timeInSeconds={Math.round(convertToSeconds(dwellTimeFormatted))}
+            timeInMinutes={dwellTimeDecimal.toFixed(2)}
           />
           <StatCard
             title="AHT (Durchschnittliche Bearbeitungszeit)"
             value={processingTimeFormatted}
             icon={Clock}
-            timeInSeconds={processingTimeDecimal.toFixed(2)}
+            timeInSeconds={Math.round(convertToSeconds(processingTimeFormatted))}
+            timeInMinutes={processingTimeDecimal.toFixed(2)}
           />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -562,7 +572,7 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                     stroke="#F0B72F"
                     strokeWidth={2}
                     dot={{ fill: '#F0B72F' }}
-                    name="Bearbeitungszeit (Min)"
+                    name="Bearbeitungszeit (Sek)"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -681,7 +691,7 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 <Line
                   type="monotone"
                   dataKey="processing_time" // Use "processing_time" from the data
-                  name="Bearbeitungszeit (Minuten)"
+                  name="Bearbeitungszeit (Sek)"
                   stroke={chartColors.primary}
                   strokeWidth={2}
                   dot={{ fill: chartColors.primary, r: 4 }}
