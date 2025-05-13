@@ -487,6 +487,27 @@ async def get_email_overview(
             EmailData.customer.like("%Service%")
         ).scalar() or 0
         total_emails = sales_recieved+sales_new_recieved+service_recieved+service_new_recieved
+        
+        sales_service_level_gross = prev_email_query.with_entities(
+            func.avg(EmailData.service_level_gross)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).scalar() or 0
+        
+        service_service_level_gross = prev_email_query.with_entities(
+            func.avg(EmailData.service_level_gross)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).scalar() or 0
+        all_sla = (sales_service_level_gross * (sales_recieved+sales_new_recieved))+(service_service_level_gross * (service_recieved+service_new_recieved))
+        print(total_emails, sales_service_level_gross, service_service_level_gross)
+        
+        print(all_sla)
+        
+        service_level_gross = all_sla/total_emails
+        
         # For sales and service service level trends
         sales_service_level_gross_data = prev_email_query.with_entities(
             EmailData.date.label("interval"),
