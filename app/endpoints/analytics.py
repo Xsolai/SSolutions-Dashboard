@@ -284,6 +284,9 @@ async def get_anaytics_email_data(
                     "Processing Count Trend": [],
                 }
     
+    prev_query = query
+    prev_email_query = email_query
+    
     if domain != "all":
         if company in ["ADAC", "Galeria", "Urlaub"]:
             query = query
@@ -539,6 +542,58 @@ async def get_anaytics_email_data(
         }
         for interval, count in sorted(interval_count_data.items())
     ]
+    
+    if domain == "all":
+        # Filter data based on the interval (date) column
+        sales_email_recieved = prev_email_query.with_entities(
+            func.sum(EmailData.received)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).scalar() or 0
+        
+        service_email_recieved = prev_email_query.with_entities(
+            func.sum(EmailData.received)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).scalar() or 0
+        
+        sale_email_new_recieved = prev_email_query.with_entities(
+            func.sum(EmailData.new_received)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).scalar() or 0
+        
+        service_email_new_recieved = prev_email_query.with_entities(
+            func.sum(EmailData.new_received)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).scalar() or 0
+        
+        total_emails = sales_email_recieved+service_email_recieved+sale_email_new_recieved+service_email_new_recieved
+        
+        sales_service_level_gross = prev_email_query.with_entities(
+            func.avg(EmailData.service_level_gross)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).scalar() or 0
+        
+        service_service_level_gross = prev_email_query.with_entities(
+            func.avg(EmailData.service_level_gross)
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).scalar() or 0
+        all_sla = (sales_service_level_gross * (sales_email_recieved+sale_email_new_recieved))+(service_service_level_gross * (service_email_recieved+service_email_new_recieved))
+        print(total_emails, sales_service_level_gross, service_service_level_gross)
+        
+        print(all_sla)
+        
+        service_level_gross = all_sla/total_emails
     
 
     return {
@@ -1005,9 +1060,9 @@ async def get_sales_and_service(
         ).filter(AllQueueStatisticsData.customer.like("%Service%"), AllQueueStatisticsData.date.between(start_date, end_date)).first()
         
         # “All” value = (Value1 × Calls1 + Value2 × Calls2) / Total Calls
-        acc_calls = ((sale_metrics.sale_ACC or 0) * (sale_metrics.sale_calls_handled or 0))+((service_metrics.service_ACC or 0) * (service_metrics.service_calls_handled or 0))
-        sla_calls = ((sale_metrics.sale_SL or 0) * (sale_metrics.sale_calls_handled or 0))+((service_metrics.service_SL or 0) * (service_metrics.service_calls_handled or 0))
-        total_calls = (sale_metrics.sale_calls_handled or 0) + (service_metrics.service_calls_handled or 0)
+        acc_calls = ((sale_metrics.sale_ACC or 0) * (sale_metrics.sale_calls_offered or 0))+((service_metrics.service_ACC or 0) * (service_metrics.service_calls_offered or 0))
+        sla_calls = ((sale_metrics.sale_SL or 0) * (sale_metrics.sale_calls_offered or 0))+((service_metrics.service_SL or 0) * (service_metrics.service_calls_offered or 0))
+        total_calls = (sale_metrics.sale_calls_offered or 0) + (service_metrics.service_calls_offered or 0)
         all_acc = round(acc_calls/(total_calls if total_calls > 0 else 1), 2)
         all_sla = round(sla_calls/(total_calls if total_calls > 0 else 1), 2)
         # print(all_sla, total_calls)

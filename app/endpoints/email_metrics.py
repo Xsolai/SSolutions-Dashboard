@@ -233,7 +233,8 @@ async def get_email_overview(
                     "service_level_gross": 0,
                     "daily_service_level_gross": []
                 }
-    
+    prev_query = query
+    prev_email_query = email_query
     if domain != "all":
         if domain=="Sales" :
             query = query.filter(WorkflowReportGuruKF.customer.notlike(f"%Service%"))
@@ -420,6 +421,14 @@ async def get_email_overview(
             EmailData.date.between(start_date, end_date)
         ).scalar() or 0
         
+        total_emails_new_recieved = email_query.with_entities(
+            func.sum(
+                EmailData.new_received
+            )
+        ).filter(
+            EmailData.date.between(start_date, end_date)
+        ).scalar() or 0
+        
         archived = email_query.with_entities(
             func.sum(
                 EmailData.archived
@@ -441,6 +450,117 @@ async def get_email_overview(
             {"interval": row.interval, "service_level_gross": round(row.service_level_gross or 0, 2)}
             for row in service_level_gross_data
         ]
+    if domain == "all":
+        sales_recieved = prev_email_query.with_entities(
+            func.sum(
+                EmailData.received
+            )
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).scalar() or 0
+        
+        sales_new_recieved = prev_email_query.with_entities(
+            func.sum(
+                EmailData.new_received
+            )
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).scalar() or 0
+        
+        service_recieved = prev_email_query.with_entities(
+            func.sum(
+                EmailData.received
+            )
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).scalar() or 0
+        
+        service_new_recieved = prev_email_query.with_entities(
+            func.sum(
+                EmailData.new_received
+            )
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).scalar() or 0
+        total_emails = sales_recieved+sales_new_recieved+service_recieved+service_new_recieved
+        # For sales and service service level trends
+        sales_service_level_gross_data = prev_email_query.with_entities(
+            EmailData.date.label("interval"),
+            func.avg(EmailData.service_level_gross).label("service_level_gross"),
+            func.sum(EmailData.received + EmailData.new_received).label("total_emails")
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.notlike("%Service%")
+        ).group_by(EmailData.date).order_by(EmailData.date.desc()).limit(10).all()
+
+        service_service_level_gross_data = prev_email_query.with_entities(
+            EmailData.date.label("interval"),
+            func.avg(EmailData.service_level_gross).label("service_level_gross"),
+            func.sum(EmailData.received + EmailData.new_received).label("total_emails")
+        ).filter(
+            EmailData.date.between(start_date, end_date),
+            EmailData.customer.like("%Service%")
+        ).group_by(EmailData.date).order_by(EmailData.date.desc()).limit(10).all()
+
+        # Create a dictionary to store combined data by date
+        combined_data = {}
+
+        # Process sales data
+        for row in sales_service_level_gross_data:
+            date = row.interval
+            sla = row.service_level_gross or 0
+            emails = row.total_emails or 0
+            
+            print("total emails: ", total_emails)
+            
+            if date not in combined_data:
+                combined_data[date] = {
+                    "sales_sla": sla,
+                    "sales_emails": emails,
+                    "service_sla": 0,
+                    "service_emails": 0
+                }
+            else:
+                combined_data[date]["sales_sla"] = sla
+                combined_data[date]["sales_emails"] = emails
+
+        # Process service data
+        for row in service_service_level_gross_data:
+            date = row.interval
+            sla = row.service_level_gross or 0
+            emails = row.total_emails or 0
+            
+            if date not in combined_data:
+                combined_data[date] = {
+                    "sales_sla": 0,
+                    "sales_emails": 0,
+                    "service_sla": sla,
+                    "service_emails": emails
+                }
+            else:
+                combined_data[date]["service_sla"] = sla
+                combined_data[date]["service_emails"] = emails
+
+        # Calculate using weighted average logic and format the results
+        service_level_gross_trend = []
+        for date, data in sorted(combined_data.items(), key=lambda x: x[0], reverse=True):
+            total_emails = data["sales_emails"] + data["service_emails"]
+            
+            if total_emails > 0:
+                # Apply weighted average formula
+                weighted_sla = ((data["sales_sla"] * data["sales_emails"]) + 
+                                (data["service_sla"] * data["service_emails"])) / total_emails
+            else:
+                weighted_sla = 0
+            
+            service_level_gross_trend.append({
+                "interval": date,
+                "service_level_gross": round(weighted_sla, 2)
+            })
     
     return {
     # "Total Processing Time (sec)": f"{int(total_processing_time_min)}m{int(total_processing_time_seconds % 60)}s" 
