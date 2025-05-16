@@ -1024,41 +1024,133 @@ async def get_call_performance(
     
     # Base query setup
     if is_admin_or_employee:
+        # if "5vorflug" in company:
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like("%5vorFlug%")  
+        # )
+        # # elif "Urlaubsguru" in company:
+        # #     query = db.query(QueueStatistics).filter(
+        # #     QueueStatistics.queue_name.like(f"%guru%")
+        # #     )
+        # elif company=="Urlaubsguru":
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like(f"%guru%"),
+        #     QueueStatistics.queue_name.notlike(f"%Urlaubsguru_KF%")
+        #     )
+        # elif "UrlaubsguruKF" in company:
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like(f"%Urlaubsguru_KF%")
+        #     )
+        # elif "Bild" in company:
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like("%BILD%")  
+        # )
+        # elif "Galeria" in company:
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like(f"%Galeria%")  
+        # )
+        # elif "ADAC" in company:
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like(f"%ADAC%")  
+        # )
+        # elif "Urlaub" in company:
+        #     query = db.query(QueueStatistics).filter(
+        #     QueueStatistics.queue_name.like(f"%Urlaub_de%")  
+        # )
+        # else:
+        #     query = db.query(QueueStatistics)
         if "5vorflug" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%5vorFlug%")  
-        )
-        # elif "Urlaubsguru" in company:
-        #     query = db.query(QueueStatistics).filter(
-        #     QueueStatistics.queue_name.like(f"%guru%")
-        #     )
+                QueueStatistics.queue_name.like("%5vorFlug%")  
+            )
+            company_queues = [
+                ("5vorFlug Service", "5vorFlug Service"),
+                ("5vorFlug Sales", "5vorFlug Sales")
+            ]
         elif company=="Urlaubsguru":
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%guru%"),
-            QueueStatistics.queue_name.notlike(f"%Urlaubsguru_KF%")
+                QueueStatistics.queue_name.like(f"%guru%"),
+                QueueStatistics.queue_name.notlike(f"%Urlaubsguru_KF%")
             )
+            company_queues = [
+                ("Holidayguru_CB_CH", "Holidayguru CB CH"),
+                ("Urlaubsguru AT", "Urlaubsguru AT"),
+                ("Urlaubsguru DE", "Urlaubsguru DE"),
+                ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+                ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+                ("UGT Notfall", "UGT Notfall"),
+                ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+                ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+                ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+                ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+                ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+                ("Holidayguru CB CH", "Holidayguru CB CH"),
+                ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
+            ]
         elif "UrlaubsguruKF" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%Urlaubsguru_KF%")
+                QueueStatistics.queue_name.like(f"%Urlaubsguru_KF%")
             )
+            company_queues = [
+                ("Urlaubsguru_KF", "Urlaubsguru_KF")
+            ]
         elif "Bild" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like("%BILD%")  
-        )
+                QueueStatistics.queue_name.like("%BILD%")  
+            )
+            company_queues = [
+                ("BILD Reisen Service", "BILD Reisen Service"),
+                ("BILD Reisen Sales", "BILD Reisen Sales")
+            ]
         elif "Galeria" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%Galeria%")  
-        )
+                QueueStatistics.queue_name.like(f"%Galeria%")  
+            )
+            company_queues = [
+                ("Galeria", "Galeria")
+            ]
         elif "ADAC" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%ADAC%")  
-        )
+                QueueStatistics.queue_name.like(f"%ADAC%")  
+            )
+            company_queues = [
+                ("ADAC Pauschal", "ADAC Pauschal"),
+                ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen")
+            ]
         elif "Urlaub" in company:
             query = db.query(QueueStatistics).filter(
-            QueueStatistics.queue_name.like(f"%Urlaub_de%")  
-        )
+                QueueStatistics.queue_name.like(f"%Urlaub_de%")  
+            )
+            company_queues = [
+                ("Urlaub_de", "Urlaub_de")
+            ]
         else:
             query = db.query(QueueStatistics)
+            # If company is "all", include all queues
+            company_queues = [
+                ("5vorFlug Service", "5vorFlug Service"),
+                ("5vorFlug Sales", "5vorFlug Sales"),
+                ("BILD Reisen Service", "BILD Reisen Service"),
+                ("BILD Reisen Sales", "BILD Reisen Sales"),
+                ("ADAC Pauschal", "ADAC Pauschal"),
+                ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
+                ("Galeria", "Galeria"),
+                ("Urlaub_de", "Urlaub_de"),
+                ("Holidayguru_CB_CH", "Holidayguru CB CH"),
+                ("Urlaubsguru AT", "Urlaubsguru AT"),
+                ("Urlaubsguru DE", "Urlaubsguru DE"),
+                ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+                ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+                ("UGT Notfall", "UGT Notfall"),
+                ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+                ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+                ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+                ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+                ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+                ("Holidayguru CB CH", "Holidayguru CB CH"),
+                ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
+                ("Urlaubsguru_KF", "Urlaubsguru_KF")
+            ]
         
         # Call Reasons Breakdown
         call_reasons = {
@@ -1085,34 +1177,34 @@ async def get_call_performance(
         #     ("GuruBILD_Sales", "GuruBILD_Sales"),
         #     ("GuruBILD_Service", "GuruBILD_Service")
         # ]
-        queues = [
-            ("5vorFlug Service", "5vorFlug Service"),
-            ("5vorFlug Sales", "5vorFlug Sales"),
-            ("BILD Reisen Service", "BILD Reisen Service"),
-            ("BILD Reisen Sales", "BILD Reisen Sales"),
-            ("ADAC Pauschal", "ADAC Pauschal"),
-            ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
-            ("Galeria", "Galeria"),
-            ("Urlaub_de", "Urlaub_de"),
-            ("Holidayguru_CB_CH", "Holidayguru CB CH"),
-            ("Urlaubsguru AT", "Urlaubsguru AT"),
-            ("Urlaubsguru DE", "Urlaubsguru DE"),
-            ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
-            ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
-            ("UGT Notfall", "UGT Notfall"),
-            ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
-            ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
-            ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
-            ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
-            ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
-            ("Holidayguru CB CH", "Holidayguru CB CH"),
-            ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
-            ("Urlaubsguru_KF", "Urlaubsguru_KF")
-        ]
+        # queues = [
+        #     ("5vorFlug Service", "5vorFlug Service"),
+        #     ("5vorFlug Sales", "5vorFlug Sales"),
+        #     ("BILD Reisen Service", "BILD Reisen Service"),
+        #     ("BILD Reisen Sales", "BILD Reisen Sales"),
+        #     ("ADAC Pauschal", "ADAC Pauschal"),
+        #     ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
+        #     ("Galeria", "Galeria"),
+        #     ("Urlaub_de", "Urlaub_de"),
+        #     ("Holidayguru_CB_CH", "Holidayguru CB CH"),
+        #     ("Urlaubsguru AT", "Urlaubsguru AT"),
+        #     ("Urlaubsguru DE", "Urlaubsguru DE"),
+        #     ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+        #     ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+        #     ("UGT Notfall", "UGT Notfall"),
+        #     ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+        #     ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+        #     ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+        #     ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+        #     ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+        #     ("Holidayguru CB CH", "Holidayguru CB CH"),
+        #     ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
+        #     ("Urlaubsguru_KF", "Urlaubsguru_KF")
+        # ]
         
         queue_stats = {}
-        for queue_name, display_name in queues:
-            print(queue_name)
+        for queue_name, display_name in company_queues:
+            # print(queue_name)
             queue_filter = query.filter(QueueStatistics.queue_name.like(queue_name))
             filtered_query = filter_query_by_date(queue_filter)
             
@@ -1132,7 +1224,7 @@ async def get_call_performance(
                 "Call By queue": queue_stats
             }  
         # if accessible_companies in ["ADAC", "Galeria", "Urlaub"]:
-        if company in ["ADAC", "Galeria", "Urlaub", "Bild", "UrlaubsguruKF"]:
+        if company in ["ADAC", "Galeria", "Urlaub", "Bild", "UrlaubsguruKF", "5vorflug"]:
             return {
                 "Call Reasons Breakdown": {},
                 "Call By queue": queue_stats
@@ -1152,6 +1244,10 @@ async def get_call_performance(
                 print("executing for 5vf")
                 query = query.filter(QueueStatistics.queue_name.like(f"%5vorFlug%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+                company_queues = [
+                ("5vorFlug Service", "5vorFlug Service"),
+                ("5vorFlug Sales", "5vorFlug Sales")
+            ]
             # elif "Urlaubsguru" in company and "guru" in accessible_companies:
             #     print("executing for guru")
             #     query = query.filter(QueueStatistics.queue_name.like(f"%guru%"))
@@ -1160,26 +1256,58 @@ async def get_call_performance(
                 print("executing for guru")
                 query = query.filter(QueueStatistics.queue_name.like(f"%guru%"), QueueStatistics.queue_name.notlike(f"%Urlaubsguru_KF%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+                company_queues = [
+                ("Holidayguru_CB_CH", "Holidayguru CB CH"),
+                ("Urlaubsguru AT", "Urlaubsguru AT"),
+                ("Urlaubsguru DE", "Urlaubsguru DE"),
+                ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+                ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+                ("UGT Notfall", "UGT Notfall"),
+                ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+                ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+                ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+                ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+                ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+                ("Holidayguru CB CH", "Holidayguru CB CH"),
+                ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
+            ]
             elif "UrlaubsguruKF" in company and "guru_kf" in accessible_companies:
                 print("executing for gurukf")
                 query = query.filter(QueueStatistics.queue_name.like(f"%Urlaubsguru_KF%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+                company_queues = [
+                ("Urlaubsguru_KF", "Urlaubsguru_KF")
+            ]
             elif "Bild" in company and "bild" in accessible_companies:
                 print("executing for bild")
                 query = query.filter(QueueStatistics.queue_name.like("%BILD%"))
                 total_call_reasons_query = db.query(func.sum(GuruCallReason.total_calls))
+                company_queues = [
+                ("BILD Reisen Service", "BILD Reisen Service"),
+                ("BILD Reisen Sales", "BILD Reisen Sales")
+            ]
             elif "Galeria" in company and "Galeria" in accessible_companies:
                 query = query.filter(
                 QueueStatistics.queue_name.like(f"%Galeria%")  
                 )
+                company_queues = [
+                ("Galeria", "Galeria")
+            ]
             elif "ADAC" in company and "ADAC" in accessible_companies:
                 query = query.filter(
                 QueueStatistics.queue_name.like(f"%ADAC%")  
                 )
+                company_queues = [
+                ("ADAC Pauschal", "ADAC Pauschal"),
+                ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen")
+            ]
             elif "Urlaub" in company and "Urlaub" in accessible_companies:
                 query = query.filter(
                 QueueStatistics.queue_name.like(f"%Urlaub_de%")  
                 )
+                company_queues = [
+                    ("Urlaub_de", "Urlaub_de")
+                ]
             else:
                 return {
                     "Call Reasons Breakdown": [],
@@ -1195,33 +1323,33 @@ async def get_call_performance(
             "others": get_call_reason_sum('other_guru', start_date=start_date, end_date=end_date)
         }
         
-        queues = [
-            ("5vorFlug Service", "5vorFlug Service"),
-            ("5vorFlug Sales", "5vorFlug Sales"),
-            ("BILD Reisen Service", "BILD Reisen Service"),
-            ("BILD Reisen Sales", "BILD Reisen Sales"),
-            ("ADAC Pauschal", "ADAC Pauschal"),
-            ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
-            ("Galeria", "Galeria"),
-            ("Urlaub_de", "Urlaub_de"),
-            ("Holidayguru_CB_CH", "Holidayguru CB CH"),
-            ("Urlaubsguru AT", "Urlaubsguru AT"),
-            ("Urlaubsguru DE", "Urlaubsguru DE"),
-            ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
-            ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
-            ("UGT Notfall", "UGT Notfall"),
-            ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
-            ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
-            ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
-            ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
-            ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
-            ("Holidayguru CB CH", "Holidayguru CB CH"),
-            ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
-            ("Urlaubsguru_KF", "Urlaubsguru_KF")
-        ]
+        # queues = [
+        #     ("5vorFlug Service", "5vorFlug Service"),
+        #     ("5vorFlug Sales", "5vorFlug Sales"),
+        #     ("BILD Reisen Service", "BILD Reisen Service"),
+        #     ("BILD Reisen Sales", "BILD Reisen Sales"),
+        #     ("ADAC Pauschal", "ADAC Pauschal"),
+        #     ("ADAC Mitgliederreisen", "ADAC Mitgliederreisen"),
+        #     ("Galeria", "Galeria"),
+        #     ("Urlaub_de", "Urlaub_de"),
+        #     ("Holidayguru_CB_CH", "Holidayguru CB CH"),
+        #     ("Urlaubsguru AT", "Urlaubsguru AT"),
+        #     ("Urlaubsguru DE", "Urlaubsguru DE"),
+        #     ("Urlaubsguru_CB_AT", "Urlaubsguru CB AT"),
+        #     ("Urlaubsguru_CB_DE", "Urlaubsguru CB DE"),
+        #     ("UGT Notfall", "UGT Notfall"),
+        #     ("Urlaubsguru Service AT", "Urlaubsguru Service AT"),
+        #     ("Urlaubsguru Service AT CB", "Urlaubsguru Service AT CB"),
+        #     ("Urlaubsguru Service CH", "Urlaubsguru Service CH"),
+        #     ("Urlaubsguru Service DE", "Urlaubsguru Service DE"),
+        #     ("Urlaubsguru Service DE CB", "Urlaubsguru Service DE CB"),
+        #     ("Holidayguru CB CH", "Holidayguru CB CH"),
+        #     ("Urlaubsguru Service CB CH", "Urlaubsguru Service CB CH"),
+        #     ("Urlaubsguru_KF", "Urlaubsguru_KF")
+        # ]
         
         queue_stats = {}
-        for queue_name, display_name in queues:
+        for queue_name, display_name in company_queues:
             queue_filter = query.filter(QueueStatistics.queue_name == queue_name)
             filtered_query = filter_query_by_date(queue_filter)
             
@@ -1241,7 +1369,7 @@ async def get_call_performance(
                 "Call By queue": queue_stats
             }  
         # if accessible_companies in ["ADAC", "Galeria", "Urlaub"]:
-        if any(domain in ["ADAC", "Galeria", "Urlaub", "Bild", "guru_kf"] for domain in accessible_companies) and any(domain in ["ADAC", "Galeria", "Urlaub", "Bild", "UrlaubsguruKF"] for domain in accessible_companies):
+        if any(domain in ["ADAC", "Galeria", "Urlaub", "Bild", "guru_kf", "5vorflug"] for domain in accessible_companies) and any(domain in ["ADAC", "Galeria", "Urlaub", "Bild", "UrlaubsguruKF", "5vorflug"] for domain in accessible_companies):
             return {
                 "Call Reasons Breakdown": {},
                 "Call By queue": queue_stats
