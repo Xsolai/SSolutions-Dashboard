@@ -1,24 +1,44 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
-import { Phone, Activity, CheckCircle, Clock, Clipboard, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+} from "recharts";
+import {
+  Phone,
+  Activity,
+  CheckCircle,
+  Clock,
+  Clipboard,
+  CreditCard,
+} from "lucide-react";
 
 // Brand Colors
 const colors = {
-  primary: '#F0B72F',    // SolaGelb
-  dark: '#001E4A',       // SolaBlau
-  gray: '#E6E2DF',       // SolaGrau
-  white: '#ffffff'
+  primary: "#F0B72F", // SolaGelb
+  dark: "#001E4A", // SolaBlau
+  gray: "#E6E2DF", // SolaGrau
+  white: "#ffffff",
 };
 
 // Chart Colors
 const CHART_COLORS = [
-  '#F0B72F',    // Primary (SolaGelb)
-  '#001E4A',    // Secondary (SolaBlau)
-  '#E6E2DF',    // Tertiary (SolaGrau)
-  '#001E4A80',  // SolaBlau with opacity
-  '#F0B72F80',  // SolaGelb with opacity
-  '#E6E2DF80'   // SolaGrau with opacity
+  "#F0B72F", // Primary (SolaGelb)
+  "#001E4A", // Secondary (SolaBlau)
+  "#E6E2DF", // Tertiary (SolaGrau)
+  "#001E4A80", // SolaBlau with opacity
+  "#F0B72F80", // SolaGelb with opacity
+  "#E6E2DF80", // SolaGrau with opacity
 ];
 
 // Skeleton Components
@@ -56,10 +76,19 @@ const Loading = () => (
 );
 
 // Component for statistics cards
-const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds }) => (
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  change,
+  description,
+  timeInSeconds,
+}) => (
   <div className="bg-white p-4 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
     <div className="flex items-center justify-between mb-1">
-      <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">{title}</h3>
+      <h3 className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">
+        {title}
+      </h3>
       <div className="p-2 bg-[#F0B72F]/10 rounded-lg">
         <Icon className="h-5 w-5 text-[#F0B72F]" />
       </div>
@@ -76,9 +105,13 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
     </div>
     {change !== undefined && description && (
       <p className="text-[15px] font-nexa-book text-[#001E4A]/70">
-        <span className={`inline-block mr-2 ${parseFloat(change) < 0 ? 'text-[#001E4A]' : 'text-[#001E4A]'}`}>
-          {typeof change === 'number'
-            ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%`
+        <span
+          className={`inline-block mr-2 ${
+            parseFloat(change) < 0 ? "text-[#001E4A]" : "text-[#001E4A]"
+          }`}
+        >
+          {typeof change === "number"
+            ? `${change > 0 ? "+" : ""}${change.toFixed(1)}%`
             : change}
         </span>
         {description}
@@ -90,41 +123,44 @@ const StatCard = ({ title, value, icon: Icon, change, description, timeInSeconds
 // Component for chart cards
 const ChartCard = ({ title, children, isWideChart = false }) => (
   <div className="bg-white p-3.5 sm:p-6 rounded-lg border border-[#E6E2DF] hover:border-[#F0B72F] transition-all">
-    <h3 className="text-[20px] leading-[36px] font-nexa-black text-[#001E4A] mb-6">{title}</h3>
-    <div className={isWideChart ? "overflow-x-auto overflow-y-hidden modern-scrollbar" : ""}>
+    <h3 className="text-[20px] leading-[36px] font-nexa-black text-[#001E4A] mb-6">
+      {title}
+    </h3>
+    <div
+      className={
+        isWideChart ? "overflow-x-auto overflow-y-hidden modern-scrollbar" : ""
+      }
+    >
       <div className={isWideChart ? "min-w-[1000px] lg:min-w-full" : "w-full"}>
-        <div className="h-[300px]">
-          {children}
-        </div>
+        <div className="h-[300px]">{children}</div>
       </div>
     </div>
   </div>
 );
-
 
 // First, add the CustomTooltip component
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
 
   const formatValue = (value, name) => {
-    if (typeof value !== 'number') return value;
+    if (typeof value !== "number") return value;
 
     // Handle percentage values
     if (
-      name?.toLowerCase().includes('%') ||
-      name?.toLowerCase().includes('prozent') ||
-      name?.toLowerCase().includes('serviceniveau') ||
-      name?.toLowerCase().includes('asr')
+      name?.toLowerCase().includes("%") ||
+      name?.toLowerCase().includes("prozent") ||
+      name?.toLowerCase().includes("serviceniveau") ||
+      name?.toLowerCase().includes("asr")
     ) {
       return `${Number(value).toFixed(1)}%`;
     }
 
     // Handle time values
     if (
-      name?.toLowerCase().includes('zeit') ||
-      name?.toLowerCase().includes('time') ||
-      name?.toLowerCase().includes('sec') ||
-      name?.toLowerCase().includes('min')
+      name?.toLowerCase().includes("zeit") ||
+      name?.toLowerCase().includes("time") ||
+      name?.toLowerCase().includes("sec") ||
+      name?.toLowerCase().includes("min")
     ) {
       return `${Number(value).toFixed(1)} Min`;
     }
@@ -158,28 +194,28 @@ const CustomTooltip = ({ active, payload, label }) => {
 const chartConfig = {
   xAxis: {
     tick: {
-      fill: '#001E4A',
-      fontFamily: 'Nexa-Book',
-      fontSize: '12px'
+      fill: "#001E4A",
+      fontFamily: "Nexa-Book",
+      fontSize: "12px",
     },
-    axisLine: { stroke: '#E6E2DF' }
+    axisLine: { stroke: "#E6E2DF" },
   },
   yAxis: {
     tick: {
-      fill: '#001E4A',
-      fontFamily: 'Nexa-Book',
-      fontSize: '12px'
+      fill: "#001E4A",
+      fontFamily: "Nexa-Book",
+      fontSize: "12px",
     },
-    axisLine: { stroke: '#E6E2DF' },
-    grid: { stroke: '#E6E2DF', strokeDasharray: '3 3' }
+    axisLine: { stroke: "#E6E2DF" },
+    grid: { stroke: "#E6E2DF", strokeDasharray: "3 3" },
   },
   legend: {
     wrapperStyle: {
-      fontFamily: 'Nexa-Book',
-      fontSize: '14px',
-      paddingTop: '10px'
-    }
-  }
+      fontFamily: "Nexa-Book",
+      fontSize: "14px",
+      paddingTop: "10px",
+    },
+  },
 };
 
 const convertTimeToSeconds = (timeStr) => {
@@ -189,7 +225,7 @@ const convertTimeToSeconds = (timeStr) => {
 };
 
 const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
-  const [activeTab, setActiveTab] = useState('uebersicht');
+  const [activeTab, setActiveTab] = useState("uebersicht");
   // const [dateRange, setDateRange] = useState({
   //   startDate: null,
   //   endDate: null,
@@ -205,52 +241,63 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
 
   const tabs = [
     { id: "uebersicht", name: "Übersicht" },
-    { id: "performance", name: "Leistungsmetriken" }
+    { id: "performance", name: "Leistungsmetriken" },
   ];
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const access_token = localStorage.getItem('access_token');
+      const access_token = localStorage.getItem("access_token");
 
       const formatDate = (date) => {
         if (!date) return null;
         const d = new Date(date);
         const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
       };
 
       const queryString = new URLSearchParams({
-        ...(dateRange.startDate && { start_date: formatDate(dateRange.startDate) }),
+        ...(dateRange.startDate && {
+          start_date: formatDate(dateRange.startDate),
+        }),
         ...(dateRange.endDate && { end_date: formatDate(dateRange.endDate) }),
         include_all: dateRange.isAllTime || false,
         ...(selectedCompany && { company: selectedCompany }),
-        ...(domain && { domain: domain })
+        ...(domain && { domain: domain }),
       }).toString();
 
       const config = {
         headers: {
-          'Authorization': `Bearer ${access_token}`
-        }
+          Authorization: `Bearer ${access_token}`,
+        },
       };
 
       const responses = await Promise.all([
-        fetch(`https://solasolution.ecomtask.de/call_overview?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`, config),
-        fetch(`https://solasolution.ecomtask.de/call_performance?${queryString}`, config)
+        fetch(
+          `https://solasolution.ecomtask.de/call_overview?${queryString}`,
+          config
+        ),
+        fetch(
+          `https://solasolution.ecomtask.de/calls_sub_kpis?${queryString}`,
+          config
+        ),
+        fetch(
+          `https://solasolution.ecomtask.de/call_performance?${queryString}`,
+          config
+        ),
       ]);
 
       const [overviewRes, subKPIsRes, performanceRes] = await Promise.all(
-        responses.map(res => res.json())
+        responses.map((res) => res.json())
       );
 
       setOverviewData(overviewRes);
       setSubKPIs(subKPIsRes);
       setPerformanceData(performanceRes);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -264,12 +311,12 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
 
   // Updated brand-aligned colors
   const chartColors = {
-    primary: '#F0B72F',      // SolaGelb
-    secondary: '#001E4A',    // SolaBlau
-    tertiary: '#E6E2DF',     // SolaGrau
-    primaryLight: '#F0B72F80',  // SolaGelb with opacity
-    secondaryLight: '#001E4A80', // SolaBlau with opacity
-    tertiaryLight: '#E6E2DF80'   // SolaGrau with opacity
+    primary: "#F0B72F", // SolaGelb
+    secondary: "#001E4A", // SolaBlau
+    tertiary: "#E6E2DF", // SolaGrau
+    primaryLight: "#F0B72F80", // SolaGelb with opacity
+    secondaryLight: "#001E4A80", // SolaBlau with opacity
+    tertiaryLight: "#E6E2DF80", // SolaGrau with opacity
   };
 
   const UebersichtTab = () => {
@@ -278,66 +325,83 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     const uebersichtStats = [
       {
         title: "Gesamtanrufe",
-        value: overviewData?.total_calls?.toLocaleString() || '0',
+        value: overviewData?.total_calls?.toLocaleString() || "0",
         icon: Phone,
-        change: subKPIs['total_calls_change'],
-        description: "im Vergleich zur letzten Periode"
+        change: subKPIs["total_calls_change"],
+        description: "im Vergleich zur letzten Periode",
       },
       {
         title: "Serviceniveau",
         value: `${overviewData?.SLA || 0}%`,
         icon: CheckCircle,
-        change: subKPIs['SLA_change'],
-        description: "im Vergleich zur letzten Periode"
+        change: subKPIs["SLA_change"],
+        description: "im Vergleich zur letzten Periode",
       },
       {
         title: "ASR",
         value: `${overviewData?.asr || 0}%`,
         icon: Activity,
-        change: subKPIs['asr_change'],
-        description: "im Vergleich zur letzten Periode"
+        change: subKPIs["asr_change"],
+        description: "im Vergleich zur letzten Periode",
       },
       {
         title: "Durchschnittliche Wartezeit",
-        value: `${overviewData?.['avg wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg wait time (min)']) / 60).toFixed(2),
+        value: `${overviewData?.["avg wait time (min)"] || 0}`,
+        timeInSeconds: (
+          convertTimeToSeconds(overviewData?.["avg wait time (min)"]) / 60
+        ).toFixed(2),
         icon: Clock,
-        change: subKPIs['avg wait time_change'],
-        description: "im Vergleich zur letzten Periode"
+        change: subKPIs["avg wait time_change"],
+        description: "im Vergleich zur letzten Periode",
       },
-      
+
       {
         title: "Maximale Wartezeit",
-        value: `${overviewData?.['max. wait time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['max. wait time (min)'])).toFixed(2),
+        value: `${overviewData?.["max. wait time (min)"] || 0}`,
+        timeInSeconds: convertTimeToSeconds(
+          overviewData?.["max. wait time (min)"]
+        ).toFixed(2),
         icon: Clock,
-        change: subKPIs['max. wait time_change'],
-        description: "im Vergleich zur letzten Periode"
+        change: subKPIs["max. wait time_change"],
+        description: "im Vergleich zur letzten Periode",
       },
       {
         title: "Durchschnittliche Bearbeitungszeit",
-        value: `${overviewData?.['avg handling time (min)'] || 0}`,
-        timeInSeconds: (convertTimeToSeconds(overviewData?.['avg handling time (min)']) / 60).toFixed(2),
+        value: `${overviewData?.["avg handling time (min)"] || 0}`,
+        timeInSeconds: (
+          convertTimeToSeconds(overviewData?.["avg handling time (min)"]) / 60
+        ).toFixed(2),
         icon: Clock,
-        change: subKPIs['avg_handling_time_change'],
-        description: "im Vergleich zur letzten Periode"
+        change: subKPIs["avg_handling_time_change"],
+        description: "im Vergleich zur letzten Periode",
       },
-  
+
       {
         title: "Verlorene Anrufe",
-        value: overviewData?.['Dropped calls'] || 0,
+        value: overviewData?.["Dropped calls"] || 0,
         icon: Phone,
-        change: subKPIs['Dropped calls_change'],
-        description: "im Vergleich zur letzten Periode"
-      }
+        change: subKPIs["Dropped calls_change"],
+        description: "im Vergleich zur letzten Periode",
+      },
     ];
 
-    const dailyCallData = overviewData?.['Daily Call Volume'] || [];
+    const dailyCallData = overviewData?.["Daily Call Volume"] || [];
 
     // Sort dailyCallData based on the weekday (assuming "call metrics.weekday" is a string like 'Monday', 'Tuesday', etc.)
     const sortedDailyCallData = dailyCallData.sort((a, b) => {
-      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      return daysOfWeek.indexOf(a['call metrics'].weekday) - daysOfWeek.indexOf(b['call metrics'].weekday);
+      const daysOfWeek = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ];
+      return (
+        daysOfWeek.indexOf(a["call metrics"].weekday) -
+        daysOfWeek.indexOf(b["call metrics"].weekday)
+      );
     });
 
     sortedDailyCallData.forEach((entry) => {
@@ -347,7 +411,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       entry["Time metrics"].max_wait_time_sec = convertTimeToSeconds(
         entry["Time metrics"].max_wait_time_sec
       );
-    });    
+    });
 
     return (
       <div className="space-y-4">
@@ -359,9 +423,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
                 border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                ${
+                  !domain
+                    ? "bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]"
+                    : "bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10"
                 }
               `}
             >
@@ -372,9 +437,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black
                 border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                ${
+                  domain === "Sales"
+                    ? "bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]"
+                    : "bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10"
                 }
               `}
             >
@@ -385,9 +451,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                ${
+                  domain === "Service"
+                    ? "bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]"
+                    : "bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10"
                 }
               `}
             >
@@ -410,7 +477,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis {...chartConfig.xAxis} dataKey="call metrics.weekday"  />
+                  <XAxis
+                    {...chartConfig.xAxis}
+                    dataKey="call metrics.weekday"
+                  />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend {...chartConfig.legend} />
@@ -444,7 +514,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   data={sortedDailyCallData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
                 >
-                  <XAxis {...chartConfig.xAxis}                     dataKey="Time metrics.weekday"                  />
+                  <XAxis
+                    {...chartConfig.xAxis}
+                    dataKey="Time metrics.weekday"
+                  />
                   <YAxis {...chartConfig.yAxis} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend {...chartConfig.legend} />
@@ -479,7 +552,7 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 data={sortedDailyCallData}
                 margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
               >
-                <XAxis {...chartConfig.xAxis}                   dataKey="% metrics.weekday" />
+                <XAxis {...chartConfig.xAxis} dataKey="% metrics.weekday" />
                 <YAxis {...chartConfig.yAxis} domain={[0, 100]} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend {...chartConfig.legend} />
@@ -509,40 +582,37 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     );
   };
 
-
-
   const PerformanceTab = () => {
     if (!performanceData) return <Loading />;
 
-    const anrufGruende = performanceData['Call Reasons Breakdown'] || {};
-    const warteschlangenDaten = performanceData['Call By queue'] || {};
-
+    const anrufGruende = performanceData["Call Reasons Breakdown"] || {};
+    const warteschlangenDaten = performanceData["Call By queue"] || {};
+    const hasData = Object.keys(anrufGruende).length > 0;
     // Transform data for calls per queue
     const callsPerQueue = Object.entries(warteschlangenDaten)
-      .filter(([key]) => key.includes('Calls'))
+      .filter(([key]) => key.includes("Calls"))
       .map(([key, value]) => ({
-        queue: key.replace(' Calls', ''),
-        calls: value || 0
+        queue: key.replace(" Calls", ""),
+        calls: value || 0,
       }));
 
     // Transform data for minutes per queue
     const minutesPerQueue = Object.entries(warteschlangenDaten)
-      .filter(([key]) => key.includes('Calls'))
+      .filter(([key]) => key.includes("Calls"))
       .map(([key, value]) => ({
-        queue: key.replace(' Calls', ''),
-        minutes: warteschlangenDaten[`${key.replace(' Calls', '')} AHT`] || 0
+        queue: key.replace(" Calls", ""),
+        minutes: warteschlangenDaten[`${key.replace(" Calls", "")} AHT`] || 0,
       }));
 
     // Define an array of colors for pie chart sections
     const pieColors = [
-      chartColors.primary,     // SolaGelb
-      chartColors.secondary,   // SolaBlau
-      chartColors.tertiary,    // SolaGrau
-      chartColors.primaryLight,   // SolaGelb with opacity
+      chartColors.primary, // SolaGelb
+      chartColors.secondary, // SolaBlau
+      chartColors.tertiary, // SolaGrau
+      chartColors.primaryLight, // SolaGelb with opacity
       chartColors.secondaryLight, // SolaBlau with opacity
-      chartColors.tertiaryLight  // SolaGrau with opacity
+      chartColors.tertiaryLight, // SolaGrau with opacity
     ];
-
 
     return (
       <div className="space-y-6">
@@ -554,9 +624,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-l-lg
                 border transition-all duration-200
-                ${!domain 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                ${
+                  !domain
+                    ? "bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]"
+                    : "bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10"
                 }
               `}
             >
@@ -567,9 +638,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black
                 border transition-all duration-200
-                ${domain === "Sales" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                ${
+                  domain === "Sales"
+                    ? "bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]"
+                    : "bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10"
                 }
               `}
             >
@@ -580,9 +652,10 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className={`
                 px-4 py-2 text-[17px] leading-[27px] font-nexa-black rounded-r-lg
                 border-t border-b border-r transition-all duration-200
-                ${domain === "Service" 
-                  ? 'bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]' 
-                  : 'bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10'
+                ${
+                  domain === "Service"
+                    ? "bg-[#F0B72F] text-[#001E4A] border-[#F0B72F]"
+                    : "bg-white text-[#001E4A]/70 border-[#E6E2DF] hover:bg-[#E6E2DF]/10"
                 }
               `}
             >
@@ -590,43 +663,44 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
             </button>
           </div>
         </div>
-
-        <ChartCard title="Verteilung der Anrufgründe">
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={Object.entries(anrufGruende).map(([key, value]) => ({
-                    name: key.replace(/_/g, ' ').toUpperCase(),
-                    value: value || 0
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={120}
-                  label
-                >
-                  {Object.entries(anrufGruende).map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={pieColors[index % pieColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{
-                    fontFamily: 'Nexa-Book',
-                    fontSize: '14px',
-                    bottom: 35,
-                    color: chartColors.secondary  // Added text color
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
+        {hasData && (
+          <ChartCard title="Verteilung der Anrufgründe">
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={Object.entries(anrufGruende).map(([key, value]) => ({
+                      name: key.replace(/_/g, " ").toUpperCase(),
+                      value: value || 0,
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    label
+                  >
+                    {Object.entries(anrufGruende).map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={pieColors[index % pieColors.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    wrapperStyle={{
+                      fontFamily: "Nexa-Book",
+                      fontSize: "14px",
+                      bottom: 35,
+                      color: chartColors.secondary,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           <ChartCard isWideChart={true} title="Anrufe nach Warteschlange">
@@ -639,9 +713,9 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   <XAxis
                     dataKey="queue"
                     tick={{
-                      fill: '#001E4A',
-                      fontSize: '12px',
-                      fontFamily: 'Nexa-Book'
+                      fill: "#001E4A",
+                      fontSize: "12px",
+                      fontFamily: "Nexa-Book",
                     }}
                     angle={-65}
                     textAnchor="end"
@@ -649,17 +723,17 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   />
                   <YAxis
                     tick={{
-                      fill: '#001E4A',
-                      fontSize: '12px',
-                      fontFamily: 'Nexa-Book'
+                      fill: "#001E4A",
+                      fontSize: "12px",
+                      fontFamily: "Nexa-Book",
                     }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend
                     wrapperStyle={{
-                      fontFamily: 'Nexa-Book',
-                      fontSize: '14px',
-                      bottom: 20
+                      fontFamily: "Nexa-Book",
+                      fontSize: "14px",
+                      bottom: 20,
                     }}
                   />
                   <Bar
@@ -683,9 +757,9 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   <XAxis
                     dataKey="queue"
                     tick={{
-                      fill: '#001E4A',
-                      fontSize: '12px',
-                      fontFamily: 'Nexa-Book'
+                      fill: "#001E4A",
+                      fontSize: "12px",
+                      fontFamily: "Nexa-Book",
                     }}
                     angle={-65}
                     textAnchor="end"
@@ -693,17 +767,17 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                   />
                   <YAxis
                     tick={{
-                      fill: '#001E4A',
-                      fontSize: '12px',
-                      fontFamily: 'Nexa-Book'
+                      fill: "#001E4A",
+                      fontSize: "12px",
+                      fontFamily: "Nexa-Book",
                     }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend
                     wrapperStyle={{
-                      fontFamily: 'Nexa-Book',
-                      fontSize: '14px',
-                      bottom: 20
+                      fontFamily: "Nexa-Book",
+                      fontSize: "14px",
+                      bottom: 20,
                     }}
                   />
                   <Bar
@@ -721,7 +795,6 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
     );
   };
 
-
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
       <div className="max-w-full mx-auto p-4 sm:p-6">
@@ -733,7 +806,9 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
               className="w-full px-4 py-2 text-[17px] leading-[27px] font-nexa-book text-[#001E4A] border border-[#E6E2DF] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
             >
               {tabs.map((tab) => (
-                <option key={tab.id} value={tab.id}>{tab.name}</option>
+                <option key={tab.id} value={tab.id}>
+                  {tab.name}
+                </option>
               ))}
             </select>
           </div>
@@ -746,10 +821,11 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
                 className={`
                 px-6 py-3 text-[17px] leading-[27px] font-nexa-black 
                 transition-all duration-200 border-b-2
-                ${activeTab === tab.id
+                ${
+                  activeTab === tab.id
                     ? "text-[#001E4A] border-[#F0B72F]"
                     : "text-[#001E4A]/70 border-transparent hover:text-[#001E4A] hover:border-[#F0B72F]/50"
-                  }
+                }
               `}
               >
                 {tab.name}
