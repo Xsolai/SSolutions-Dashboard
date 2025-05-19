@@ -199,7 +199,7 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   }, [CACHE_DURATION]);
 
   // List of clients that should only have Sales view (no Service toggle)
-  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub'];
+  const salesOnlyClients = ['Galeria', 'ADAC', 'Urlaub','UrlaubsguruKF'];
   const isSalesOnlyClient = selectedCompany && salesOnlyClients.includes(selectedCompany);
 
   // If client is in our restricted list, force sales view
@@ -215,7 +215,8 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
       // Show loading state
       setIsFilterLoading(true);
       
-      // Generate cache key for current request parameters
+      // Generate cache key for current request paramey
+      // ters
       const cacheKey = getCacheKey(selectedCompany, dateRange, domain);
       
       // Check if we have valid cached data

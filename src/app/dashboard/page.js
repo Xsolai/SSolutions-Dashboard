@@ -304,6 +304,8 @@ const Home = () => {
           setRole(data.role);
           localStorage.setItem("username", data.username);
           localStorage.setItem("email", data.email);
+          localStorage.setItem("role", data.role);
+
         }
       } catch (error) {
         console.error("Fehler beim Abrufen des Profils:", error);
