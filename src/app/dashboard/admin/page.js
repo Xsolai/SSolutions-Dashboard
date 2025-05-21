@@ -367,8 +367,6 @@ const normalizeDomain = (domain) => {
   return COMPANY_DOMAIN_MAP[domain.toLowerCase()] || null;
 };
 
-
-
 const permissionGroups = [
   {
     title: 'Call Center APIs',
@@ -535,6 +533,7 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
       if (!domainKey) return; // ignore unknown domains
 
       const currentDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
+      const domainKey = COMPANY_DOMAIN_MAP[key.toLowerCase()] || key.toLowerCase();
       let newDomains;
 
       if (currentDomains.includes(domainKey)) {
