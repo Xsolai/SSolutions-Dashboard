@@ -231,10 +231,23 @@ def get_companies(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(oauth2.get_current_user)
 ):
-    # print("Current user: ", current_user.get("email"))
+    # Fetch full user object
     current_user = db.query(models.User).filter(models.User.email == current_user.get("email")).first()
-    # if not current_user or current_user.role.lower() != "admin":
-    #     raise HTTPException(status_code=403, detail="Only admins can access this resource.")
+
+    # If user is admin, return all predefined companies
+    if current_user and current_user.role.lower() == "admin":
+        all_companies = [
+            {"company": "5vorflug"},
+            {"company": "Urlaubsguru"},
+            {"company": "UrlaubsguruKF"},
+            {"company": "Bild"},
+            {"company": "Galeria"},
+            {"company": "ADAC"},
+            {"company": "Urlaub"}
+        ]
+        return all_companies
+
+    # Otherwise, get user-specific companies from permission domains
     user_permissions = db.query(models.Permission).filter(models.Permission.user_id == current_user.id).first()
     if not user_permissions:
         raise HTTPException(
@@ -242,46 +255,32 @@ def get_companies(
             detail="No permissions found for the user."
         )
 
-    companies = [
+    domain_entries = [
         filter_type.strip() 
         for filter_type in user_permissions.domains.split(",") 
         if filter_type.strip()
     ]
-    print("Companies: ", companies)
-    # companies = db.query(models.AllQueueStatisticsData.customer).distinct().all()
-    # if not companies:
-    #     raise HTTPException(status_code=404, detail="No customer found.")
-    # return [{"company": company.customer.lower()} for company in companies]
+
     result_set = set()
-    for company in companies:
+    for company in domain_entries:
         company_name = company.lower()
         if "5vorflug" in company_name:
-            # print(company_name)
             result_set.add("5vorflug")
         elif "urlaubsguru" in company_name:
-            # print(company_name)
             result_set.add("Urlaubsguru")
         elif "gurukf" in company_name:
-            # print(company_name)
             result_set.add("UrlaubsguruKF")
         elif "bild" in company_name:
-            # print(company_name)
             result_set.add("Bild")
         elif "galeria" in company_name:
-            # print(company_name)
             result_set.add("Galeria")
         elif "adac" in company_name:
-            # print(company_name)
             result_set.add("ADAC")
         elif company_name == "urlaub":
-            # print(company_name)
             result_set.add("Urlaub")
-    
+
     result = [{"company": name} for name in result_set] 
-    if not result:
-        return None
-    
-    return result 
+    return result if result else None
 
 @router.post("/admin/create_user")
 def create_user(request: RegistrationRequest, db: Session = Depends(get_db),
