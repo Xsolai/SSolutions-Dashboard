@@ -350,6 +350,17 @@ const SearchBox = styled(TextField)({
   },
 });
 
+// Mapping of company display names to domain values expected by the backend
+const COMPANY_DOMAIN_MAP = {
+  '5vorflug': '5vorflug',
+  'urlaubsguru': 'urlaubsguru',
+  'urlaubsgurukf': 'gurukf',
+  'bild': 'bild',
+  'galeria': 'galeria',
+  'adac': 'adac',
+  'urlaub': 'urlaub'
+};
+
 
 
 const permissionGroups = [
@@ -404,7 +415,8 @@ const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, 
   const isItemSelected = (itemKey) => {
     if (type === 'domains') {
       const selectedDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
-      return selectedDomains.includes(itemKey.toLowerCase());
+      const domainKey = COMPANY_DOMAIN_MAP[itemKey.toLowerCase()] || itemKey.toLowerCase();
+      return selectedDomains.includes(domainKey);
     } else {
       const selectedItems = permissions[type]?.split(',').map(d => d.trim()).filter(Boolean) || [];
       return selectedItems.includes(itemKey);
@@ -513,12 +525,13 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
   const handleFilterToggle = (filterType, key) => {
     if (filterType === 'domains') {
       const currentDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
+      const domainKey = COMPANY_DOMAIN_MAP[key.toLowerCase()] || key.toLowerCase();
       let newDomains;
 
-      if (currentDomains.includes(key.toLowerCase())) {
-        newDomains = currentDomains.filter(d => d !== key.toLowerCase());
+      if (currentDomains.includes(domainKey)) {
+        newDomains = currentDomains.filter(d => d !== domainKey);
       } else {
-        newDomains = [...currentDomains, key.toLowerCase()];
+        newDomains = [...currentDomains, domainKey];
       }
 
       onPermissionChange({
