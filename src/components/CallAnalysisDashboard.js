@@ -392,7 +392,11 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   };
 
   const UebersichtTab = () => {
-    if (loading || !overviewData || !subKPIs) return <Loading />;
+    if (loading) return <Loading />;
+    if (!overviewData || !subKPIs)
+      return (
+        <div className="p-4 text-center">Keine Daten verfügbar</div>
+      );
 
     const uebersichtStats = [
       {
@@ -668,7 +672,9 @@ const CallAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   };
 
   const PerformanceTab = () => {
-    if (!performanceData) return <Loading />;
+    if (loading) return <Loading />;
+    if (!performanceData)
+      return <div className="p-4 text-center">Keine Daten verfügbar</div>;
 
     const anrufGruende = performanceData["Call Reasons Breakdown"] || {};
     const warteschlangenDaten = performanceData["Call By queue"] || {};

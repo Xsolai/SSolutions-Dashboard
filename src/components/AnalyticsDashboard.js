@@ -405,7 +405,11 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
   const SalesServiceTab = () => {
     const [domain, setDomain] = useState(null);
 
-    if (!data.salesServiceData) return <Loading />;
+    if (loading) return <Loading />;
+    if (!data.salesServiceData)
+      return (
+        <div className="p-4 text-center">Keine Daten verfügbar</div>
+      );
 
     // List of clients that should only have Sales view (no Service toggle)
     const salesOnlyClients = ["Galeria", "ADAC", "Urlaub"];
@@ -681,7 +685,11 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
   };
 
   const BookingTab = () => {
-    if (!data.bookingData || !data.bookingSubKPIs) return <Loading />;
+    if (loading) return <Loading />;
+    if (!data.bookingData || !data.bookingSubKPIs)
+      return (
+        <div className="p-4 text-center">Keine Daten verfügbar</div>
+      );
 
     const bookingData = data.bookingData || {};
     const bookingSubKPIs = data.bookingSubKPIs || {};

@@ -331,7 +331,9 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   ];
 
   const OverviewTab = () => {
-    if (!data.kpis || !data.overview) return <Loading />;
+    if (loading) return <Loading />;
+    if (!data.kpis || !data.overview)
+      return <div className="p-4 text-center">Keine Daten verfügbar</div>;
 
     const tasksByWeekday = data.overview['Tasks created by weekday'] || [];
     const tasksByMonth = data.overview['Tasks created by date'] || [];
@@ -471,7 +473,9 @@ const TaskAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   };
 
   const PerformanceTab = () => {
-    if (!data.performance) return <Loading />;
+    if (loading) return <Loading />;
+    if (!data.performance)
+      return <div className="p-4 text-center">Keine Daten verfügbar</div>;
 
     // Chart styling configuration
     const chartStyle = {

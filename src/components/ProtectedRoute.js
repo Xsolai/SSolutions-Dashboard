@@ -49,8 +49,11 @@ const ProtectedRoute = ({ children }) => {
         setIsLoading(false); // Finish loading state
       }
     };
+    const timeoutId = setTimeout(() => setIsLoading(false), 10000); // safety timeout
 
     checkAuth();
+
+    return () => clearTimeout(timeoutId);
   }, [router]);
 
   if (isLoading) {

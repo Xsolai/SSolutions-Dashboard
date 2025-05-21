@@ -373,7 +373,11 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   ];
 
   const UebersichtTab = () => {
-    if (!overviewData || !subKPIs) return <Loading />;
+    if (loading) return <Loading />;
+    if (!overviewData || !subKPIs)
+      return (
+        <div className="p-4 text-center">Keine Daten verfügbar</div>
+      );
 
     // Get values from both data sources, with fallbacks
     const slGross = emailData?.['SL Gross'] || 0;
@@ -621,7 +625,9 @@ const EmailAnalysisDashboard = ({ dateRange, selectedCompany }) => {
   };
 
   const LeistungTab = () => {
-    if (!performanceData) return <Loading />;
+    if (loading) return <Loading />;
+    if (!performanceData)
+      return <div className="p-4 text-center">Keine Daten verfügbar</div>;
 
     return (
       <div className="space-y-6">
