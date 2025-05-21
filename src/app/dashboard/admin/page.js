@@ -361,7 +361,11 @@ const COMPANY_DOMAIN_MAP = {
   'urlaub': 'urlaub'
 };
 
-
+// Normalize a domain to the value expected by the backend.
+// Returns null if the domain is unknown.
+const normalizeDomain = (domain) => {
+  return COMPANY_DOMAIN_MAP[domain.toLowerCase()] || null;
+};
 
 const permissionGroups = [
   {
@@ -415,7 +419,8 @@ const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, 
   const isItemSelected = (itemKey) => {
     if (type === 'domains') {
       const selectedDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
-      const domainKey = COMPANY_DOMAIN_MAP[itemKey.toLowerCase()] || itemKey.toLowerCase();
+      const domainKey = normalizeDomain(itemKey);
+      if (!domainKey) return false;
       return selectedDomains.includes(domainKey);
     } else {
       const selectedItems = permissions[type]?.split(',').map(d => d.trim()).filter(Boolean) || [];
@@ -500,10 +505,10 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
       if (!response.ok) throw new Error('Failed to fetch companies');
 
       const data = await response.json();
-      const companyList = data.map(item => ({
-        key: item.company.toLowerCase(),
-        label: item.company
-      }));
+      // Only include companies that we know how to map to a domain
+      const companyList = data
+        .map(item => ({ key: item.company.toLowerCase(), label: item.company }))
+        .filter(item => normalizeDomain(item.key));
 
       setAllPermissions(prev => ({
         ...prev,
@@ -524,6 +529,9 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
   // In PermissionFilters component
   const handleFilterToggle = (filterType, key) => {
     if (filterType === 'domains') {
+      const domainKey = normalizeDomain(key);
+      if (!domainKey) return; // ignore unknown domains
+
       const currentDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
       const domainKey = COMPANY_DOMAIN_MAP[key.toLowerCase()] || key.toLowerCase();
       let newDomains;
@@ -615,10 +623,17 @@ const PermissionForm = ({ open, onClose, user }) => {
 
       if (userPermissions) {
         const { permissions: userPerms } = userPermissions;
+        // Normalize stored domain values to ensure only known keys are kept
+        const normalizedDomains = (userPerms.domains || '')
+          .split(',')
+          .map(d => d.trim())
+          .map(normalizeDomain)
+          .filter(Boolean);
+
         setPermissions({
           ...userPerms,
           date_filter: userPerms.date_filter || '',
-          domains: userPerms.domains || ''
+          domains: normalizedDomains.join(',')
         });
       }
     } catch (err) {
