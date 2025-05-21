@@ -350,6 +350,23 @@ const SearchBox = styled(TextField)({
   },
 });
 
+// Mapping of company display names to domain values expected by the backend
+const COMPANY_DOMAIN_MAP = {
+  '5vorflug': '5vorflug',
+  'urlaubsguru': 'urlaubsguru',
+  'urlaubsgurukf': 'gurukf',
+  'bild': 'bild',
+  'galeria': 'galeria',
+  'adac': 'adac',
+  'urlaub': 'urlaub'
+};
+
+// Normalize a domain to the value expected by the backend.
+// Returns null if the domain is unknown.
+const normalizeDomain = (domain) => {
+  return COMPANY_DOMAIN_MAP[domain.toLowerCase()] || null;
+};
+
 
 
 const permissionGroups = [
@@ -404,7 +421,9 @@ const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, 
   const isItemSelected = (itemKey) => {
     if (type === 'domains') {
       const selectedDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
-      return selectedDomains.includes(itemKey.toLowerCase());
+      const domainKey = normalizeDomain(itemKey);
+      if (!domainKey) return false;
+      return selectedDomains.includes(domainKey);
     } else {
       const selectedItems = permissions[type]?.split(',').map(d => d.trim()).filter(Boolean) || [];
       return selectedItems.includes(itemKey);
@@ -488,10 +507,10 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
       if (!response.ok) throw new Error('Failed to fetch companies');
 
       const data = await response.json();
-      const companyList = data.map(item => ({
-        key: item.company.toLowerCase(),
-        label: item.company
-      }));
+      // Only include companies that we know how to map to a domain
+      const companyList = data
+        .map(item => ({ key: item.company.toLowerCase(), label: item.company }))
+        .filter(item => normalizeDomain(item.key));
 
       setAllPermissions(prev => ({
         ...prev,
@@ -512,13 +531,16 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
   // In PermissionFilters component
   const handleFilterToggle = (filterType, key) => {
     if (filterType === 'domains') {
+      const domainKey = normalizeDomain(key);
+      if (!domainKey) return; // ignore unknown domains
+
       const currentDomains = permissions.domains?.toLowerCase().split(',').map(d => d.trim()).filter(Boolean) || [];
       let newDomains;
 
-      if (currentDomains.includes(key.toLowerCase())) {
-        newDomains = currentDomains.filter(d => d !== key.toLowerCase());
+      if (currentDomains.includes(domainKey)) {
+        newDomains = currentDomains.filter(d => d !== domainKey);
       } else {
-        newDomains = [...currentDomains, key.toLowerCase()];
+        newDomains = [...currentDomains, domainKey];
       }
 
       onPermissionChange({
@@ -602,10 +624,17 @@ const PermissionForm = ({ open, onClose, user }) => {
 
       if (userPermissions) {
         const { permissions: userPerms } = userPermissions;
+        // Normalize stored domain values to ensure only known keys are kept
+        const normalizedDomains = (userPerms.domains || '')
+          .split(',')
+          .map(d => d.trim())
+          .map(normalizeDomain)
+          .filter(Boolean);
+
         setPermissions({
           ...userPerms,
           date_filter: userPerms.date_filter || '',
-          domains: userPerms.domains || ''
+          domains: normalizedDomains.join(',')
         });
       }
     } catch (err) {
