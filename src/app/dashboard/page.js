@@ -257,8 +257,7 @@ const getNavigationItems = (role) => {
     { id: "analytics", label: "Globale Analyse", icon: BarChart3, description: "Umfassende Analyse aller Bereiche" },
     { id: "call-analysis", label: "Anruf Analyse", icon: Phone, description: "Detaillierte Auswertung der Anrufdaten" },
     { id: "email-analysis", label: "E-Mail Analyse", icon: Mail, description: "Detaillierte Auswertung der E-Mail-Daten" },
-    { id: "task-analysis", label: "Aufgaben Analyse", icon: FileText, description: "Detaillierte Auswertung der Aufgabendaten" },
-    { id: "ai-assistant", label: "AI-Mitarbeiter", icon: Bot, description: "Automatisierte Bericht-Erstellung mit Versand", comingSoon: true },
+    { id: "task-analysis", label: "Aufgaben Analyse", icon: FileText, description: "Detaillierte Auswertung der Aufgabendaten" }
   ];
 
   if (role === "admin") {
