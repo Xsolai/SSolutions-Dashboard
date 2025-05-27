@@ -3,10 +3,15 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+// Import der neuen modernen Komponenten
+import ModernButton from './ModernButton';
+import ModernInput from './ModernInput';
+// Import des Logos
+import logo from '@/assets/images/logo.png';
 
 // Move schema outside component to prevent recreation on each render
 const schema = z.object({
@@ -17,10 +22,6 @@ const schema = z.object({
     .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Das Passwort muss mindestens ein Sonderzeichen enthalten'),
 });
 
-// Memoize static classes
-const inputClass = "mt-1 block w-full px-3 py-2 bg-white border rounded-md text-[17px] leading-[27px] font-nexa-book text-[#001E4A] border-[#F0B72F] placeholder-gray-400 focus:outline-none focus:border-[#F0B72F] focus:ring-1 focus:ring-[#F0B72F] hover:border-[#E6E2DF] transition-all duration-200";
-const buttonClass = "w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-[17px] leading-[27px] font-nexa-black text-[#001E4A] bg-[#F0B72F] hover:bg-[#F0B72F]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001E4A] transition-colors duration-200 disabled:opacity-50";
-
 // Create axios instance with default config
 const api = axios.create({
   baseURL: 'https://solasolution.ecomtask.de',
@@ -30,13 +31,17 @@ const api = axios.create({
 });
 
 const LoginForm = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     resolver: zodResolver(schema),
-    mode: 'onChange' // Validate on change instead of submit for faster feedback
+    mode: 'onChange'
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+
+  // Watch form values
+  const emailValue = watch('email', '');
+  const passwordValue = watch('password', '');
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -48,15 +53,9 @@ const LoginForm = () => {
       const response = await api.post('/login', formData);
 
       if (response.data.access_token) {
-        // Store token and redirect simultaneously
         localStorage.setItem('access_token', response.data.access_token);
-        
-        // Prefetch the dashboard page
         router.prefetch('/dashboard');
-        
         toast.success('Anmeldung erfolgreich!');
-        
-        // Remove the timeout delay and use immediate navigation
         router.push('/dashboard');
       }
     } catch (error) {
@@ -72,92 +71,121 @@ const LoginForm = () => {
   return (
     <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-[#E6E2DF]/10">
       <Toaster />
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-[42px] leading-[54px] font-nexa-black mb-6 text-center text-[#001E4A]">
-          einloggen
-        </h2>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-[17px] leading-[27px] font-nexa-black text-[#001E4A] mb-1">
-              E-Mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              {...register('email')}
-              className={inputClass}
-              placeholder="ihre.email@beispiel.de"
-              disabled={isLoading}
+      
+      <div className="w-full max-w-md">
+        {/* Logo Section - außerhalb der Card */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center">
+            <img 
+              src={logo.src} 
+              alt="Sola Solution Logo" 
+              className="w-auto h-4 md:h-6" 
             />
-            {errors.email && 
-              <p className="mt-1 text-xs text-red-500 font-nexa-book">{errors.email.message}</p>
-            }
           </div>
+        </div>
 
-          <div>
-            <label htmlFor="password" className="block text-[17px] leading-[27px] font-nexa-black text-[#001E4A] mb-1">
-              Passwort
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                {...register('password')}
-                className={inputClass}
-                placeholder="********"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#001E4A]"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            {errors.password && 
-              <p className="mt-1 text-xs text-red-500 font-nexa-book">{errors.password.message}</p>
-            }
+        {/* Modernized Login Card */}
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-[#E6E2DF]/30 backdrop-blur-sm">
+          
+          {/* Titel Section */}
+          <div className="text-center mb-8">
+            <h2 className="text-[32px] leading-[44px] font-nexa-black text-[#001E4A] mb-2">
+              Willkommen zurück
+            </h2>
           </div>
-
-          <div className="flex items-center justify-between text-[17px] leading-[27px]">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-[#F0B72F] focus:ring-[#F0B72F] border-[#E6E2DF] rounded"
-                disabled={isLoading}
-              />
-              <label htmlFor="remember-me" className="ml-2 block font-nexa-book text-[#001E4A]">
-                Angemeldet bleiben
-              </label>
-            </div>
-            <div>
-              <a href="/reset-password" className="font-nexa-black text-[#001E4A] hover:text-[#F0B72F] transition-colors duration-200">
-                Passwort vergessen?
-              </a>
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <button
-              type="submit"
-              className={buttonClass}
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            
+            {/* Modern Email Input - Fixed with proper react-hook-form integration */}
+            <ModernInput
+              label="E-Mail"
+              type="email"
+              placeholder="ihre.email@beispiel.de"
+              value={emailValue}
+              onChange={(e) => setValue('email', e.target.value)}
+              error={errors.email?.message}
               disabled={isLoading}
-            >
-              {isLoading ? 'Anmeldung läuft...' : 'Anmelden'}
-            </button>
-          </div>
-        </form>
+              icon={<Mail className="w-5 h-5" />}
+              required
+            />
 
-        <p className="mt-4 text-center text-[17px] leading-[27px] font-nexa-book text-[#001E4A]">
-          Noch kein Konto?{' '}
-          <a href="/register" className="font-nexa-black text-[#001E4A] hover:text-[#F0B72F] transition-colors duration-200">
-            Registrieren
-          </a>
-        </p>
+            {/* Modern Password Input - Fixed with proper react-hook-form integration */}
+            <ModernInput
+              label="Passwort"
+              type="password"
+              placeholder="********"
+              value={passwordValue}
+              onChange={(e) => setValue('password', e.target.value)}
+              error={errors.password?.message}
+              disabled={isLoading}
+              icon={<Lock className="w-5 h-5" />}
+              required
+            />
+
+            {/* Modern Checkbox and Forgot Password */}
+            <div className="flex items-center justify-between text-[17px] leading-[27px]">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="
+                    h-4 w-4 rounded border-2 border-[#E6E2DF] 
+                    text-[#F0B72F] focus:ring-[#F0B72F]/30 focus:ring-2
+                    transition-all duration-200
+                  "
+                  disabled={isLoading}
+                />
+                <label htmlFor="remember-me" className="ml-3 block font-nexa-book text-[#001E4A]">
+                  Angemeldet bleiben
+                </label>
+              </div>
+              <div>
+                <a 
+                  href="/reset-password" 
+                  className="
+                    font-nexa-black text-[#001E4A] hover:text-[#F0B72F] 
+                    transition-colors duration-200 underline-offset-4 hover:underline
+                  "
+                >
+                  Passwort vergessen?
+                </a>
+              </div>
+            </div>
+
+            {/* Modern Submit Button */}
+            <div className="pt-2">
+              <ModernButton
+                type="submit"
+                variant="primary"
+                size="large"
+                disabled={isLoading}
+                loading={isLoading}
+                className="w-full"
+              >
+                {isLoading ? 'Anmeldung läuft...' : 'Anmelden'}
+              </ModernButton>
+            </div>
+          </form>
+
+          {/* Modern Registration Link */}
+          <div className="mt-8 pt-6 border-t border-[#E6E2DF]/30 text-center">
+            <p className="text-[13px] leading-[10px] font-nexa-book text-[#001E4A]">
+              Noch kein Konto?{' '}
+              <a 
+                href="/register" 
+                className="
+                  font-nexa-black text-[#001E4A] hover:text-[#F0B72F] 
+                  transition-colors duration-200 underline-offset-4 hover:underline
+                "
+              >
+                Jetzt registrieren
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

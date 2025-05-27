@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ModernDropdown from './ModernDropdown';
 
-const CompanyDropdown = ({ onCompanyChange }) => {
+const CompanyDropdown = ({ onCompanyChange, sidebarMode = false }) => {
   const [companies, setCompanies] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -104,7 +105,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
         }
       }
     } catch (error) {
-      console.error('Error fetching company data:', error);
+      // console.error('Error fetching company data:', error);
       
       // Try to use stale cache as fallback
       const cachedCompanies = localStorage.getItem(COMPANIES_CACHE_KEY);
@@ -122,7 +123,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
           setSelectedCompany(companyToSelect);
           onCompanyChange(companyToSelect);
         } catch (e) {
-          console.error('Error parsing cached companies:', e);
+          // console.error('Error parsing cached companies:', e);
         }
       }
     } finally {
@@ -158,8 +159,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
         }
       }
     } catch (error) {
-      // Silently fail - this is just a background refresh
-      console.debug('Background cache refresh failed:', error);
+      // console.debug('Background cache refresh failed:', error);
     }
   };
 
@@ -168,8 +168,7 @@ const CompanyDropdown = ({ onCompanyChange }) => {
     fetchData();
   }, [fetchData]);
 
-  const handleCompanyChange = (e) => {
-    const company = e.target.value;
+  const handleCompanyChange = (company) => {
     setSelectedCompany(company);
     
     // Save selection to localStorage
@@ -179,9 +178,15 @@ const CompanyDropdown = ({ onCompanyChange }) => {
     onCompanyChange(company);
   };
 
+  // Transform companies data for ModernDropdown
+  const dropdownOptions = companies.map(company => ({
+    value: company.company,
+    label: company.company
+  }));
+
   if (loading) {
     return (
-      <div className="px-4 py-2 rounded-lg border border-[#E6E2DF] bg-white text-[#001E4A]/50 font-nexa-book flex items-center">
+      <div className="px-4 py-2 rounded-xl border-2 border-[#E6E2DF] bg-white text-[#001E4A]/50 font-nexa-book flex items-center">
         <div className="w-4 h-4 mr-2 border-2 border-t-transparent border-[#F0B72F] rounded-full animate-spin"></div>
         Loading...
       </div>
@@ -193,24 +198,15 @@ const CompanyDropdown = ({ onCompanyChange }) => {
   }
 
   return (
-    <select
+    <ModernDropdown
+      options={dropdownOptions}
       value={selectedCompany}
       onChange={handleCompanyChange}
-      className="
-        px-4 py-2 rounded-lg 
-        text-[17px] leading-[27px] font-nexa-book text-[#001E4A]
-        border border-[#E6E2DF] bg-white 
-        hover:border-[#F0B72F] 
-        focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F] 
-        transition-all
-      "
-    >
-      {companies.map((company, index) => (
-        <option key={index} value={company.company}>
-          {company.company}
-        </option>
-      ))}
-    </select>
+      placeholder="Firma auswählen..."
+      size="medium"
+      className="min-w-[200px]"
+      sidebarMode={sidebarMode}
+    />
   );
 };
 

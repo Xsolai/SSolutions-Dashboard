@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children }) => {
 
         if (!response.ok) {
           // Log response for debugging
-          console.error("Response error: ", response.status, await response.text());
+          // console.error("Response error: ", response.status, await response.text());
           localStorage.removeItem("access_token");
           router.push("/"); // Redirect if token is not valid
           return;
@@ -42,7 +42,7 @@ const ProtectedRoute = ({ children }) => {
           router.push("/"); // Redirect if authentication fails
         }
       } catch (error) {
-        console.error("Authentication error:", error); // Log the error for debugging
+        // console.error("Authentication error:", error);
         localStorage.removeItem("access_token");
         router.push("/"); // Redirect on error
       } finally {
@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children }) => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F0B72F]"></div>
       </div>
     );
   }

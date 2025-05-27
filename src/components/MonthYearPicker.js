@@ -109,7 +109,7 @@ const MonthYearPicker = ({ isOpen, onClose }) => {
       
       onClose();
     } catch (error) {
-      console.error("Error downloading file:", error);
+      // console.error("Error downloading file:", error);
     }
   };
 
@@ -118,11 +118,11 @@ const MonthYearPicker = ({ isOpen, onClose }) => {
     const isSelected = selectedMonth === index && !isDisabled;
     
     if (isSelected) {
-      return "bg-[#F0B72F] text-[#001E4A] font-medium";
+      return "bg-[#F0B72F] text-[#1a2332] font-medium";
     } else if (isDisabled) {
-      return "bg-[#F9F9F9] text-[#CBD5E1] cursor-not-allowed";
+      return "bg-white/5 text-white/30 cursor-not-allowed border border-white/10";
     } else {
-      return "bg-[#F9F9F9] text-[#001E4A] hover:bg-[#F0B72F]/10";
+      return "bg-white/5 text-white hover:bg-[#F0B72F]/20 border border-white/10";
     }
   };
 
@@ -133,64 +133,50 @@ const MonthYearPicker = ({ isOpen, onClose }) => {
       <div className="fixed inset-0 bg-black/5 backdrop-blur-sm z-40" />
       
       <div 
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl z-50 w-full max-w-md"
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#001E4A] rounded-xl shadow-xl z-50 w-full max-w-md border border-[#F0B72F]/20"
         ref={popupRef}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-[#001E4A] flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <h2 className="text-lg font-medium text-white flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-[#F0B72F]" />
             Monat für Export wählen
           </h2>
           <button 
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors duration-200"
+            className="p-1 hover:bg-white/10 rounded-full transition-colors duration-200"
             aria-label="Schließen"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-white/70" />
           </button>
         </div>
         
-        <div className="p-6">
-          {/* Year selector */}
-          <div className="mb-4">
-            <label className="block text-[#001E4A] font-medium mb-2">Jahr</label>
-            <div className="relative">
-              <div className="flex items-center justify-between bg-[#F9F9F9] rounded-lg px-4 py-3">
-                <button 
-                  onClick={goToPrevYear}
-                  disabled={selectedYear <= minDate.year}
-                  className={`p-0.5 rounded-md transition-colors duration-200 ${
-                    selectedYear <= minDate.year 
-                      ? 'text-gray-300 cursor-not-allowed' 
-                      : 'text-[#001E4A] hover:bg-gray-200/50'
-                  }`}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                
-                <div className="text-[#001E4A] font-medium text-lg">
-                  {selectedYear}
-                </div>
-                
-                <button 
-                  onClick={goToNextYear}
-                  disabled={selectedYear >= currentYear}
-                  className={`p-0.5 rounded-md transition-colors duration-200 ${
-                    selectedYear >= currentYear 
-                      ? 'text-gray-300 cursor-not-allowed' 
-                      : 'text-[#001E4A] hover:bg-gray-200/50'
-                  }`}
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
+        <div className="p-6 space-y-6">
+          {/* Year Selection */}
+          <div className="mb-6">
+            <label className="block text-white font-medium mb-2">Jahr</label>
+            <div className="flex items-center justify-between bg-white/5 rounded-lg p-2 border border-white/10">
+              <button
+                onClick={goToPrevYear}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200"
+                disabled={selectedYear <= minDate.year}
+              >
+                <ChevronLeft className={`w-5 h-5 ${selectedYear <= minDate.year ? 'text-white/30' : 'text-white'}`} />
+              </button>
+              <span className="text-white font-medium text-lg">{selectedYear}</span>
+              <button
+                onClick={goToNextYear}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200"
+                disabled={selectedYear >= currentYear}
+              >
+                <ChevronRight className={`w-5 h-5 ${selectedYear >= currentYear ? 'text-white/30' : 'text-white'}`} />
+              </button>
             </div>
           </div>
           
-          {/* Month grid */}
+          {/* Month Selection */}
           <div className="mb-6">
-            <label className="block text-[#001E4A] font-medium mb-2">Monat</label>
+            <label className="block text-white font-medium mb-2">Monat</label>
             <div className="grid grid-cols-3 gap-2">
               {months.map((month, index) => (
                 <button
@@ -206,10 +192,10 @@ const MonthYearPicker = ({ isOpen, onClose }) => {
           </div>
           
           {/* Selected date display */}
-          <div className="mb-6 py-3 px-4 bg-[#F9F9F9] rounded-lg">
+          <div className="mb-6 py-3 px-4 bg-white/5 rounded-lg border border-white/10">
             <div className="text-center">
-              <p className="text-sm text-[#64748B] mb-1">Ausgewählter Zeitraum:</p>
-              <p className="text-[#001E4A] font-medium">
+              <p className="text-sm text-white/70 mb-1">Ausgewählter Zeitraum:</p>
+              <p className="text-white font-medium">
                 {months[selectedMonth]} {selectedYear}
               </p>
             </div>
@@ -219,13 +205,13 @@ const MonthYearPicker = ({ isOpen, onClose }) => {
           <div className="flex justify-between gap-3">
             <button
               onClick={onClose}
-              className="py-2.5 px-5 rounded-lg text-[#001E4A] border border-gray-200 hover:bg-gray-50 transition-colors duration-200 font-medium flex-1"
+              className="py-2.5 px-5 rounded-lg text-white border border-white/20 hover:bg-white/5 transition-colors duration-200 font-medium flex-1"
             >
               Abbrechen
             </button>
             <button
               onClick={handleExport}
-              className="py-2.5 px-5 rounded-lg text-[#F0B72F] bg-[#001E4A] hover:bg-[#001E4A]/90 transition-colors duration-200 font-medium flex-1 flex items-center justify-center gap-2"
+              className="py-2.5 px-5 rounded-lg text-[#001E4A] bg-[#F0B72F] hover:bg-[#F0B72F]/90 transition-colors duration-200 font-medium flex-1 flex items-center justify-center gap-2"
             >
               <Download className="w-5 h-5" />
               Exportieren
@@ -244,11 +230,11 @@ const ExportButton = () => {
   return (
     <>
       <button
-        className="px-4 py-2 rounded-xl font-nexa-black text-[17px] leading-[27px] ml-auto transition-all duration-200 text-[#F0B72F] bg-[#001E4A] border-2 hover:bg-[#001E4A]/90 active:scale-90 flex items-center gap-2"
+        className="p-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 ml-auto"
         onClick={() => setIsPickerOpen(true)}
+        title="Download"
       >
-        <Download className="w-5 h-5" />
-        Download
+        <Download className="w-5 h-5 text-gray-700" />
       </button>
       
       <MonthYearPicker 

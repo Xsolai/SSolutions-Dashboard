@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// Router removed for component
 import { motion } from 'framer-motion';
 import { CircularProgress } from '@mui/material';
 import {
@@ -19,23 +19,27 @@ import {
   Chip,
   TablePagination,
   InputAdornment,
+  Menu,
+  MenuItem,
+  Select,
+  Skeleton,
+  FormControl,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import { Skeleton } from '@mui/material';
-import FormControl from '@mui/material/FormControl';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { toast, Toaster } from 'react-hot-toast';
 import {
   Eye, EyeOff, PhoneCall, Mail, ListTodo, BarChart3, Phone, CheckSquare,
-  Calendar, ChevronDown, ChevronUp, UserPlus, Building2, BarChart2, X, ArrowLeft
+  Calendar, ChevronDown, ChevronUp, UserPlus, Building2, BarChart2, X
 } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+// Import dashboard styles
+import { dashboardStyles } from '../styles/dashboardStyles';
 
 const schema = z.object({
   username: z.string()
@@ -123,146 +127,142 @@ const CreateUserForm = ({ open, onClose, onUserCreated }) => {
 
   return (
     <div 
-    className="fixed inset-0 bg-[#001E4A]/50 flex items-center justify-center z-20"
-    onClick={(e) => e.target === e.currentTarget && handleClose()}
-  >
-    <div className="relative w-[90vw] max-w-2xl">
-      <button
-        onClick={handleClose}
-        className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#F0B72F] hover:bg-[#F0B72F]/80 rounded-full p-1 px-2 transition-all shadow-lg"
-      >
-        <span className="sr-only">Schließen</span>
-        <svg className="w-5 h-5 text-[#001E4A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      className="fixed inset-0 bg-[#001E4A]/50 backdrop-blur-sm flex items-center justify-center z-50"
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
+    >
+      <div className="relative w-[90vw] max-w-2xl">
+        <button
+          onClick={handleClose}
+          className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#F0B72F] hover:bg-[#F0B72F]/80 rounded-full p-2 transition-all shadow-lg"
+        >
+          <X className="w-5 h-5 text-[#001E4A]" />
+        </button>
 
-      <div className="bg-white rounded-[30px] overflow-hidden sm:mx-5">
-        <div className="p-4 sm:p-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-[42px] leading-[54px]  font-nexa-black text-[#001E4A] mb-6 font-nexa-black"
-          >
-            Benutzer erstellen
-          </motion.div>
+        <div className="bg-white rounded-[30px] overflow-hidden shadow-2xl border border-[#E6E2DF]">
+          <div className="p-4 sm:p-8">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className={`${dashboardStyles.textSizes.pageTitle} ${dashboardStyles.fonts.black} text-[#001E4A] mb-6`}
+            >
+              Benutzer erstellen
+            </motion.div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 font-nexa-book">
-            <div>
-              <label className="block text-[17px] leading-[27px] font-medium text-[#001E4A] mb-1">
-                Benutzername
-              </label>
-              <input
-                {...register('username')}
-                type="text"
-                className={`w-full px-3 py-2 border ${errors.username ? 'border-red-500' : 'border-[#F0B72F]'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F0B72F] text-[17px] leading-[27px] text-[#001E4A]`}
-                placeholder="maxmustermann123"
-              />
-              {errors.username && (
-                <p className="mt-1 text-xs text-red-500">{errors.username.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[17px] leading-[27px] font-medium text-[#001E4A] mb-1">
-                E-Mail
-              </label>
-              <input
-                {...register('email')}
-                type="email"
-                className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-[#F0B72F]'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F0B72F] text-[17px] leading-[27px] text-[#001E4A]`}
-                placeholder="max.mustermann@beispiel.de"
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[17px] leading-[27px] font-medium text-[#001E4A] mb-1">
-                Passwort
-              </label>
-              <div className="relative">
+            <form onSubmit={handleSubmit(onSubmit)} className={`space-y-6 ${dashboardStyles.fonts.book}`}>
+              <div>
+                <label className={`block ${dashboardStyles.textSizes.body} font-medium text-[#001E4A] mb-2`}>
+                  Benutzername
+                </label>
                 <input
-                  {...register('password')}
-                  type={showPassword ? "text" : "password"}
-                  className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-[#F0B72F]'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F0B72F] text-[17px] leading-[27px] text-[#001E4A]`}
-                  placeholder="********"
+                  {...register('username')}
+                  type="text"
+                  className={`w-full px-4 py-3 border ${errors.username ? 'border-red-500' : 'border-[#E6E2DF]'} rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F] ${dashboardStyles.textSizes.body} text-[#001E4A] transition-all duration-200`}
+                  placeholder="maxmustermann123"
                 />
+                {errors.username && (
+                  <p className="mt-2 text-sm text-red-500">{errors.username.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className={`block ${dashboardStyles.textSizes.body} font-medium text-[#001E4A] mb-2`}>
+                  E-Mail
+                </label>
+                <input
+                  {...register('email')}
+                  type="email"
+                  className={`w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-[#E6E2DF]'} rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F] ${dashboardStyles.textSizes.body} text-[#001E4A] transition-all duration-200`}
+                  placeholder="max.mustermann@beispiel.de"
+                />
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-500">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className={`block ${dashboardStyles.textSizes.body} font-medium text-[#001E4A] mb-2`}>
+                  Passwort
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('password')}
+                    type={showPassword ? "text" : "password"}
+                    className={`w-full px-4 py-3 pr-12 border ${errors.password ? 'border-red-500' : 'border-[#E6E2DF]'} rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F] ${dashboardStyles.textSizes.body} text-[#001E4A] transition-all duration-200`}
+                    placeholder="********"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#001E4A]/60 hover:text-[#001E4A] transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-2 text-sm text-red-500">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className={`block ${dashboardStyles.textSizes.body} font-medium text-[#001E4A] mb-2`}>
+                  Passwort bestätigen
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('confirmPassword')}
+                    type={showConfirmPassword ? "text" : "password"}
+                    className={`w-full px-4 py-3 pr-12 border ${errors.confirmPassword ? 'border-red-500' : 'border-[#E6E2DF]'} rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F] ${dashboardStyles.textSizes.body} text-[#001E4A] transition-all duration-200`}
+                    placeholder="********"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#001E4A]/60 hover:text-[#001E4A] transition-colors"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="mt-2 text-sm text-red-500">{errors.confirmPassword.message}</p>
+                )}
+              </div>
+
+              <div className="pt-6 border-t border-[#E6E2DF] flex justify-end gap-4">
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#001E4A]/60 hover:text-[#001E4A]"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className={`px-6 py-3 rounded-xl border border-[#E6E2DF] hover:bg-[#E6E2DF]/20 transition-all duration-200 disabled:opacity-50 ${dashboardStyles.textSizes.body} text-[#001E4A] ${dashboardStyles.fonts.black}`}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  Abbrechen
                 </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[17px] leading-[27px] font-medium text-[#001E4A] mb-1">
-                Passwort bestätigen
-              </label>
-              <div className="relative">
-                <input
-                  {...register('confirmPassword')}
-                  type={showConfirmPassword ? "text" : "password"}
-                  className={`w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-[#F0B72F]'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F0B72F] text-[17px] leading-[27px] text-[#001E4A]`}
-                  placeholder="********"
-                />
                 <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#001E4A]/60 hover:text-[#001E4A]"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  type="submit"
+                  disabled={isLoading}
+                  className={`px-6 py-3 rounded-xl bg-[#F0B72F] hover:bg-[#F0B72F]/80 text-[#001E4A] ${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body} transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl`}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-[#001E4A] border-t-transparent rounded-full"
+                      />
+                      Wird erstellt...
+                    </div>
+                  ) : 'Benutzer erstellen'}
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-xs text-red-500">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-[#E6E2DF] flex justify-end gap-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isLoading}
-                className="px-6 py-2 rounded-lg border border-[#E6E2DF] hover:bg-[#E6E2DF]/20 transition-colors disabled:opacity-50 text-[17px] leading-[27px] text-[#001E4A] font-nexa-black"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-6 py-2 rounded-lg bg-[#F0B72F] hover:bg-[#F0B72F]/80 text-[#001E4A] font-nexa-black text-[17px] leading-[27px] transition-colors disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-4 h-4 border-2 border-[#001E4A] border-t-transparent rounded-full"
-                    />
-                    Wird erstellt...
-                  </div>
-                ) : 'Benutzer erstellen'}
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   );
 };
 
-
-// Theme configuration
+// Theme configuration - modernized
 const theme = createTheme({
   typography: {
     fontFamily: '"Nexa Book", sans-serif',
@@ -296,6 +296,15 @@ const theme = createTheme({
         root: {
           fontFamily: '"Nexa Black", sans-serif',
           textTransform: 'none',
+          borderRadius: '12px',
+          padding: '12px 24px',
+          fontSize: '15px',
+          fontWeight: 600,
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 25px rgba(240, 183, 47, 0.3)',
+          },
         },
       },
     },
@@ -303,49 +312,63 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           fontFamily: '"Nexa Book", sans-serif',
-          padding: '16px',
+          padding: '20px 16px',
           fontSize: '15px',
+          borderBottom: '1px solid #E6E2DF',
         },
         head: {
           fontFamily: '"Nexa Black", sans-serif',
           fontWeight: 600,
           color: '#001e4a',
-          backgroundColor: '#fff',
+          backgroundColor: '#F8F9FA',
+          fontSize: '16px',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: '24px',
+          boxShadow: '0 4px 20px rgba(0, 30, 74, 0.08)',
+          border: '1px solid #E6E2DF',
         },
       },
     },
   },
 });
 
-// Styled components
+// Styled components - modernized
 const StyledButton = styled(Button)(({ theme }) => ({
-  borderRadius: '8px',
-  padding: '8px 20px',
+  borderRadius: '12px',
+  padding: '12px 24px',
   fontSize: '15px',
   fontFamily: '"Nexa Black", sans-serif',
-  border: '1.5px solid',
+  border: '2px solid',
   boxShadow: 'none',
-  transition: 'all 0.2s ease-in-out',
+  transition: 'all 0.3s ease-in-out',
   '&:hover': {
-    transform: 'translateY(-1px)',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
   },
 }));
 
 const SearchBox = styled(TextField)({
   '& .MuiOutlinedInput-root': {
     fontFamily: '"Nexa Book", sans-serif',
-    borderRadius: '8px',
+    borderRadius: '12px',
     backgroundColor: '#fff',
-    border: `1.5px solid #F0B72F`,
+    border: `2px solid #E6E2DF`,
+    transition: 'all 0.2s ease-in-out',
     '& fieldset': {
       border: 'none',
     },
     '&:hover': {
-      borderColor: '#E6E2DF',
+      borderColor: '#F0B72F',
+      boxShadow: '0 4px 12px rgba(240, 183, 47, 0.15)',
     },
     '&.Mui-focused': {
-      borderColor: '#001E4A',
+      borderColor: '#F0B72F',
+      boxShadow: '0 4px 20px rgba(240, 183, 47, 0.25)',
     },
   },
 });
@@ -360,8 +383,6 @@ const COMPANY_DOMAIN_MAP = {
   'adac': 'adac',
   'urlaub': 'urlaub'
 };
-
-
 
 const permissionGroups = [
   {
@@ -405,7 +426,6 @@ const permissionGroups = [
   }
 ];
 
-
 // In FilterSection component
 const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, showAll = true, maxItems = 6, loading = false }) => {
   const [showAllItems, setShowAllItems] = useState(false);
@@ -423,55 +443,55 @@ const FilterSection = ({ title, icon, items, type, permissions, onFilterToggle, 
     }
   };
   
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="border border-[#E6E2DF] rounded-xl p-6 mb-6 hover:shadow-md transition-shadow"
-      >
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-[#F0B72F]/10 text-[#001E4A]">
-            {icon}
-          </div>
-          <h3 className="font-nexa-black text-[26px] leading-[36px] text-[#001E4A]">
-            {title}
-          </h3>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="border border-[#E6E2DF] rounded-2xl p-6 mb-6 hover:shadow-lg hover:border-[#F0B72F] transition-all duration-300"
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-[#F0B72F]/15 to-[#F0B72F]/5 text-[#001E4A] shadow-lg">
+          {icon}
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 sm:grid-cols-3 gap-3"
-        >
-          {displayItems.map(item => (
-            <label
-              key={item.key}
-              className="flex items-center justify-between p-3 bg-[#E6E2DF]/20 rounded-lg cursor-pointer hover:bg-[#E6E2DF]/30 transition-colors border border-[#E6E2DF]"
-            >
-              <span className="text-[17px] leading-[27px] text-[#001E4A]">
-                {item.label}
-              </span>
-              <input
-                type="checkbox"
-                checked={isItemSelected(item.key)}
-                onChange={() => onFilterToggle(type, item.key)}
-                className="h-4 w-4 text-[#F0B72F] border-[#E6E2DF] rounded focus:ring-[#F0B72F]"
-              />
-            </label>
-          ))}
-        </motion.div>
-        {!showAll && items.length > maxItems && (
-          <button
-            onClick={() => setShowAllItems(!showAllItems)}
-            className="mt-4 text-[19px] font-nexa-black text-[#001E4A] hover:text-[#F0B72F] transition-colors flex items-center gap-2"
+        <h3 className={`${dashboardStyles.textSizes.sectionTitle} ${dashboardStyles.fonts.black} text-[#001E4A]`}>
+          {title}
+        </h3>
+      </div>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+      >
+        {displayItems.map(item => (
+          <label
+            key={item.key}
+            className="flex items-center justify-between p-4 bg-gradient-to-br from-[#E6E2DF]/20 to-[#E6E2DF]/10 rounded-xl cursor-pointer hover:from-[#F0B72F]/10 hover:to-[#F0B72F]/5 hover:border-[#F0B72F] transition-all duration-200 border border-[#E6E2DF] group"
           >
-            {showAllItems ? (
-              <>Weniger anzeigen <ChevronUp className="h-4 w-4" /></>
-            ) : (
-              <>Mehr anzeigen <ChevronDown className="h-4 w-4" /></>
-            )}
-          </button>
-        )}
+            <span className={`${dashboardStyles.textSizes.body} text-[#001E4A] group-hover:text-[#F0B72F] transition-colors`}>
+              {item.label}
+            </span>
+            <input
+              type="checkbox"
+              checked={isItemSelected(item.key)}
+              onChange={() => onFilterToggle(type, item.key)}
+              className="h-5 w-5 text-[#F0B72F] border-[#E6E2DF] rounded-md focus:ring-[#F0B72F] transition-all"
+            />
+          </label>
+        ))}
       </motion.div>
+      {!showAll && items.length > maxItems && (
+        <button
+          onClick={() => setShowAllItems(!showAllItems)}
+          className={`mt-4 ${dashboardStyles.textSizes.body} ${dashboardStyles.fonts.black} text-[#001E4A] hover:text-[#F0B72F] transition-colors flex items-center gap-2`}
+        >
+          {showAllItems ? (
+            <>Weniger anzeigen <ChevronUp className="h-4 w-4" /></>
+          ) : (
+            <>Mehr anzeigen <ChevronDown className="h-4 w-4" /></>
+          )}
+        </button>
+      )}
+    </motion.div>
   );
 };
 
@@ -581,8 +601,6 @@ const PermissionFilters = ({ permissions, onPermissionChange }) => {
   );
 };
 
-
-
 const PermissionForm = ({ open, onClose, user }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -686,34 +704,33 @@ const PermissionForm = ({ open, onClose, user }) => {
     setPermissions(updatedPermissions);
   };
 
-
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 bg-[#001E4A]/50 flex items-center justify-center z-20"
+      className="fixed inset-0 bg-[#001E4A]/50 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative w-[90vw] max-w-5xl">
         <button
           onClick={onClose}
-          className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#F0B72F] hover:bg-[#001E4A] hover:text-white rounded-full p-1 px-2 transition-all shadow-lg"
+          className="absolute -right-2 -top-2 sm:right-2 sm:-top-2 z-40 bg-[#F0B72F] hover:bg-[#F0B72F]/80 rounded-full p-2 transition-all shadow-lg"
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5 text-[#001E4A]" />
         </button>
 
-        <div className="bg-white rounded-[30px] h-[95vh] overflow-hidden sm:mx-5">
+        <div className="bg-white rounded-[30px] h-[95vh] overflow-hidden shadow-2xl border border-[#E6E2DF]">
           <div className="p-4 sm:p-8 h-full flex flex-col">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[42px] leading-[54px] font-nexa-black text-[#001E4A] mb-4"
+              className={`${dashboardStyles.textSizes.pageTitle} ${dashboardStyles.fonts.black} text-[#001E4A] mb-4`}
             >
               Berechtigungen verwalten
             </motion.div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg">
+              <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-xl border border-red-200">
                 {error}
               </div>
             )}
@@ -721,17 +738,17 @@ const PermissionForm = ({ open, onClose, user }) => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="bg-[#E6E2DF]/10 rounded-lg mb-6 p-4"
+              className="bg-gradient-to-br from-[#E6E2DF]/10 to-[#E6E2DF]/5 rounded-xl mb-6 p-4 border border-[#E6E2DF]"
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[17px] leading-[27px] text-[#001E4A]/60">Benutzername:</span>
-                  <span className="text-[17px] leading-[27px] font-nexa-black text-[#001E4A]">@{user?.username}</span>
+                  <span className={`${dashboardStyles.textSizes.body} text-[#001E4A]/60`}>Benutzername:</span>
+                  <span className={`${dashboardStyles.textSizes.body} ${dashboardStyles.fonts.black} text-[#001E4A]`}>@{user?.username}</span>
                 </div>
                 <div className="hidden sm:block text-[#E6E2DF]">|</div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[17px] leading-[27px] text-[#001E4A]/60">E-Mail:</span>
-                  <span className="text-[17px] leading-[27px]  font-nexa-black text-[#001E4A] break-all">{user?.email}</span>
+                  <span className={`${dashboardStyles.textSizes.body} text-[#001E4A]/60`}>E-Mail:</span>
+                  <span className={`${dashboardStyles.textSizes.body} ${dashboardStyles.fonts.black} text-[#001E4A] break-all`}>{user?.email}</span>
                 </div>
               </div>
             </motion.div>
@@ -763,14 +780,14 @@ const PermissionForm = ({ open, onClose, user }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1 }}
-                        className="border border-[#E6E2DF] rounded-xl p-6 hover:shadow-md transition-shadow"
+                        className="border border-[#E6E2DF] rounded-2xl p-6 hover:shadow-lg hover:border-[#F0B72F] transition-all duration-300"
                       >
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-[#F0B72F]/10 text-[#001E4A]">
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-[#F0B72F]/15 to-[#F0B72F]/5 text-[#001E4A] shadow-lg">
                               {group.icon}
                             </div>
-                            <h3 className="text-[26px] leading-[36px]  font-nexa-black text-[#001E4A]">
+                            <h3 className={`${dashboardStyles.textSizes.sectionTitle} ${dashboardStyles.fonts.black} text-[#001E4A]`}>
                               {group.title}
                             </h3>
                           </div>
@@ -789,9 +806,9 @@ const PermissionForm = ({ open, onClose, user }) => {
                           {group.permissions.map(permission => (
                             <div
                               key={permission.key}
-                              className="flex items-center justify-between p-3 rounded-lg border border-[#E6E2DF] hover:bg-[#E6E2DF]/10 transition-colors"
+                              className="flex items-center justify-between p-3 rounded-xl border border-[#E6E2DF] hover:bg-[#E6E2DF]/10 hover:border-[#F0B72F] transition-all duration-200"
                             >
-                              <span className="text-[17px] leading-[27px] text-[#001E4A]/80">{permission.label}</span>
+                              <span className={`${dashboardStyles.textSizes.body} text-[#001E4A]/80`}>{permission.label}</span>
                               <label className="relative inline-flex items-center cursor-pointer">
                                 <input
                                   type="checkbox"
@@ -815,15 +832,14 @@ const PermissionForm = ({ open, onClose, user }) => {
               <button
                 onClick={onClose}
                 disabled={saving}
-                className="px-6 py-2 rounded-lg border border-[#E6E2DF] hover:bg-[#E6E2DF]/10 transition-colors disabled:opacity-50 text-[19px]  font-nexa-black text-[#001E4A]"
+                className={`px-6 py-3 rounded-xl border border-[#E6E2DF] hover:bg-[#E6E2DF]/10 transition-all duration-200 disabled:opacity-50 ${dashboardStyles.textSizes.body} ${dashboardStyles.fonts.black} text-[#001E4A]`}
               >
                 Abbrechen
               </button>
               <button
                 onClick={handleSavePermissions}
                 disabled={saving || loading}
-                className={`px-6 py-2 rounded-lg bg-[#F0B72F] hover:bg-[#001E4A] hover:text-white text-[19px]  font-nexa-black transition-colors
-                  ${(saving || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`px-6 py-3 rounded-xl bg-[#F0B72F] hover:bg-[#F0B72F]/80 text-[#001E4A] ${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body} transition-all duration-200 shadow-lg hover:shadow-xl ${(saving || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {saving ? (
                   <div className="flex items-center gap-2">
@@ -851,24 +867,24 @@ const TableSkeleton = () => {
         <TableRow key={row}>
           <TableCell>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Skeleton variant="circular" width={30} height={30} />
-              <Skeleton variant="text" width={100} height={20} />
+              <Skeleton variant="circular" width={40} height={40} />
+              <Skeleton variant="text" width={120} height={24} />
             </Box>
           </TableCell>
           <TableCell>
-            <Skeleton variant="text" width={150} height={20} />
+            <Skeleton variant="text" width={180} height={24} />
           </TableCell>
           <TableCell>
-            <Skeleton variant="rectangular" width={80} height={20} sx={{ borderRadius: '16px' }} />
+            <Skeleton variant="rectangular" width={90} height={28} sx={{ borderRadius: '20px' }} />
           </TableCell>
           <TableCell>
-            <Skeleton variant="rectangular" width={80} height={20} sx={{ borderRadius: '16px' }} />
+            <Skeleton variant="rectangular" width={90} height={28} sx={{ borderRadius: '20px' }} />
           </TableCell>
           <TableCell align="right">
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <Skeleton variant="rectangular" width={70} height={20} sx={{ borderRadius: '4px' }} />
-              <Skeleton variant="rectangular" width={70} height={20} sx={{ borderRadius: '4px' }} />
-              <Skeleton variant="rectangular" width={70} height={30} sx={{ borderRadius: '4px' }} />
+              <Skeleton variant="rectangular" width={80} height={36} sx={{ borderRadius: '8px' }} />
+              <Skeleton variant="rectangular" width={80} height={36} sx={{ borderRadius: '8px' }} />
+              <Skeleton variant="rectangular" width={100} height={36} sx={{ borderRadius: '8px' }} />
             </Box>
           </TableCell>
         </TableRow>
@@ -889,40 +905,37 @@ const DeleteConfirmationDialog = ({ open, onClose, onConfirm, username }) => {
 
   if (!open) return null;
 
-
   return (
     <div 
-      className="fixed inset-0 bg-[#001E4A]/40 flex items-center justify-center z-20 backdrop-blur-sm"
+      className="fixed inset-0 bg-[#001E4A]/50 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative w-[90vw] max-w-md">
-        <div className="bg-white rounded-[24px] overflow-hidden shadow-lg border border-[#E6E2DF]">
+        <div className="bg-white rounded-[24px] overflow-hidden shadow-2xl border border-[#E6E2DF]">
           <div className="p-8">
-            <h3 className="text-[22px] font-next-black text-[#001E4A] mb-4">
+            <h3 className={`${dashboardStyles.textSizes.cardTitle} ${dashboardStyles.fonts.black} text-[#001E4A] mb-4`}>
               Benutzer löschen bestätigen
             </h3>
             
-            <p className="font-next-book text-[17px] leading-[27px] text-[#001E4A] mb-8">
+            <p className={`${dashboardStyles.fonts.book} ${dashboardStyles.textSizes.body} text-[#001E4A] mb-8`}>
               Sind Sie sicher, dass Sie den Benutzer{' '}
-              <span className="font-next-black">@{username}</span>{' '}
+              <span className={dashboardStyles.fonts.black}>@{username}</span>{' '}
               löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
             </p>
 
             <div className="flex justify-end gap-4">
-              <StyledButton
+              <button
                 onClick={onClose}
                 disabled={isLoading}
-                className="border-[1.5px] border-[#E6E2DF] text-[#001E4A] hover:bg-[#E6E2DF]/10 font-next-black"
-                type="button"
+                className={`px-6 py-3 rounded-xl border border-[#E6E2DF] text-[#001E4A] hover:bg-[#E6E2DF]/10 ${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body} transition-all duration-200`}
               >
                 Abbrechen
-              </StyledButton>
+              </button>
 
-              <StyledButton
+              <button
                 onClick={handleConfirm}
                 disabled={isLoading}
-                className="bg-[#dc2626] hover:bg-[#b91c1c] text-white font-next-black"
-                type="button"
+                className={`px-6 py-3 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] text-white ${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body} transition-all duration-200 shadow-lg hover:shadow-xl`}
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -940,7 +953,7 @@ const DeleteConfirmationDialog = ({ open, onClose, onConfirm, username }) => {
                 ) : (
                   'Löschen'
                 )}
-              </StyledButton>
+              </button>
             </div>
           </div>
         </div>
@@ -949,10 +962,113 @@ const DeleteConfirmationDialog = ({ open, onClose, onConfirm, username }) => {
   );
 };
 
+const ActionsMenu = ({ user, onApprove, onReject, onPermissions, onDelete, loadingStates }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
 
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-const Page = () => {
-  const router = useRouter();
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleAction = (action) => {
+    handleClose();
+    action();
+  };
+
+  const isApproved = user.status === 'approved';
+  const isRejected = user.status === 'rejected';
+  const isLoading = loadingStates.approve.has(user['user id']) || loadingStates.reject.has(user['user id']);
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className={`p-2 rounded-full hover:bg-[#F0B72F]/10 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={isLoading}
+      >
+        <MoreVertIcon className="text-[#001E4A]" />
+      </button>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            borderRadius: '16px',
+            border: '1px solid #E6E2DF',
+            minWidth: '200px',
+            overflow: 'hidden',
+            mt: 1,
+            '& .MuiMenuItem-root': {
+              fontFamily: '"Nexa Book", sans-serif',
+              fontSize: '15px',
+              py: 1.5,
+              px: 2,
+              '&:hover': {
+                backgroundColor: '#F0B72F/10',
+              },
+            },
+          },
+        }}
+      >
+        {!isApproved && (
+          <MenuItem 
+            onClick={() => handleAction(() => onApprove(user['user id']))}
+            sx={{ color: 'success.main' }}
+          >
+            {loadingStates.approve.has(user['user id']) ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-4 h-4 border-2 border-emerald-700 border-t-transparent rounded-full mr-2"
+              />
+            ) : null}
+            Genehmigen
+          </MenuItem>
+        )}
+        {!isRejected && (
+          <MenuItem 
+            onClick={() => handleAction(() => onReject(user['user id']))}
+            sx={{ color: '#F0B72F' }}
+          >
+            {loadingStates.reject.has(user['user id']) ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-4 h-4 border-2 border-[#F0B72F] border-t-transparent rounded-full mr-2"
+              />
+            ) : null}
+            Ablehnen
+          </MenuItem>
+        )}
+        <MenuItem 
+          onClick={() => handleAction(() => onPermissions(user))}
+          sx={{ color: '#001E4A' }}
+        >
+          Berechtigungen
+        </MenuItem>
+        <MenuItem 
+          onClick={() => handleAction(() => onDelete({
+            open: true,
+            userId: user['user id'],
+            username: user.username
+          }))}
+          sx={{ color: 'error.main' }}
+        >
+          Löschen
+        </MenuItem>
+      </Menu>
+    </>
+  );
+};
+
+const AdminDashboard = () => {
+  // Router removed
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1144,6 +1260,9 @@ const Page = () => {
       const usersData = await response.json();
       // console.log('📊 Geladene Benutzer-Daten:', usersData);
       // console.log('📊 Status-Verteilung:', usersData.reduce((acc, user) => {
+      //   acc[user.status] = (acc[user.status] || 0) + 1;
+      //   return acc;
+      // }, {}));
       setUsers(usersData);
     } catch (error) {
       // console.error('Error fetching users:', error);
@@ -1156,7 +1275,6 @@ const Page = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
-
 
   const handleUserCreated = (newUser) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
@@ -1193,43 +1311,34 @@ const Page = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <div className="min-h-screen bg-white/50 text-[#001e4a]">
+    <div className="bg-[#E6E2DF]/10 rounded-[50px]">
+      <ThemeProvider theme={theme}>
         <Toaster />
-        <div className="py-8 px-4 sm:px-6 lg:px-8">
-          {/* Header with logo */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-nexa-black text-[#001E4A] bg-white border-2 border-[#E6E2DF] hover:bg-[#F0B72F]/10 hover:border-[#F0B72F] rounded-lg transition-all duration-200"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Zurück zum Dashboard
-              </button>
-            </div>
-          </div>
-  
-          <Paper elevation={0} className="rounded-[24px] bg-gray-50 ">
+        <div className="max-w-full mx-auto p-4 sm:p-6">
+          
+          <Paper elevation={0} className="rounded-[24px] bg-white/80 backdrop-blur-sm border border-[#E6E2DF]">
             <Box sx={{ maxWidth: '100%', mx: 'auto', p: { xs: 3, sm: 4 } }}>
               {/* Header with controls */}
               <Box sx={{
-                mb: 4,
+                mb: 6,
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
                 justifyContent: 'space-between',
-                alignItems: { xs: 'stretch', md: 'center' },
-                gap: 2
+                alignItems: { xs: 'flex-start', md: 'center' },
+                gap: 3
               }}>
-                <Typography variant="h1" className="font-next-black text-[#001E4A]">
-                  Admin Bereich
-                </Typography>
+                <div className="w-full md:w-auto">
+                  <h1 className={`text-[38px] font-black text-[#001E4A] leading-tight`}>
+                    Admin Bereich
+                  </h1>
+                </div>
   
                 <Box sx={{
                   display: 'flex',
                   flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: 'center',
                   gap: 2,
-                  width: { xs: '100%', md: 'auto' }
+                  flexWrap: 'wrap'
                 }}>
                   <SearchBox
                     size="small"
@@ -1243,11 +1352,12 @@ const Page = () => {
                         </InputAdornment>
                       ),
                     }}
+                    sx={{ minWidth: '200px' }}
                   />
   
                   <button
                     onClick={() => setCreateUserModal(true)}
-                    className="inline-flex items-center px-4 py-2 text-sm font-nexa-black text-[#001E4A] bg-[#F0B72F] hover:bg-[#F0B72F]/80 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 gap-2"
+                    className="px-4 py-2 text-[15px] font-black text-[#001E4A] bg-[#F0B72F] hover:bg-[#F0B72F]/80 rounded-xl transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
                   >
                     <UserPlus size={18} />
                     Benutzer erstellen
@@ -1258,7 +1368,18 @@ const Page = () => {
                       value={roleFilter}
                       onChange={handleRoleChange}
                       displayEmpty
-                      className="h-[40px] rounded-lg border-[1.5px] border-[#F0B72F] bg-white font-next-book"
+                      className={`h-[48px] rounded-xl bg-white ${dashboardStyles.fonts.book} transition-all`}
+                      sx={{
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        }
+                      }}
                     >
                       <MenuItem value="all">Alle Rollen</MenuItem>
                       <MenuItem value="admin">Administrator</MenuItem>
@@ -1272,7 +1393,18 @@ const Page = () => {
                       value={statusFilter}
                       onChange={handleStatusChange}
                       displayEmpty
-                      className="h-[40px] rounded-lg border-[1.5px] border-[#F0B72F] bg-white font-next-book"
+                      className={`h-[48px] rounded-xl bg-white ${dashboardStyles.fonts.book} transition-all`}
+                      sx={{
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        }
+                      }}
                     >
                       <MenuItem value="all">Alle Status</MenuItem>
                       <MenuItem value="approved">Genehmigt</MenuItem>
@@ -1284,15 +1416,15 @@ const Page = () => {
               </Box>
   
               {/* Users Table */}
-              <TableContainer component={Paper} elevation={0} className="rounded-xl border border-[#E6E2DF]">
+              <TableContainer component={Paper} elevation={0} className="rounded-2xl border border-[#E6E2DF] overflow-hidden">
                 <Table sx={{ minWidth: 800 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell className="font-next-black">Benutzername</TableCell>
-                      <TableCell className="font-next-black">E-Mail</TableCell>
-                      <TableCell className="font-next-black">Rolle</TableCell>
-                      <TableCell className="font-next-black">Status</TableCell>
-                      <TableCell align="right" className="font-next-black">Aktionen</TableCell>
+                      <TableCell className={`${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body}`}>Benutzername</TableCell>
+                      <TableCell className={`${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body}`}>E-Mail</TableCell>
+                      <TableCell className={`${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body}`}>Rolle</TableCell>
+                      <TableCell className={`${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body}`}>Status</TableCell>
+                      <TableCell align="right" className={`${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body}`}>Aktionen</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1308,103 +1440,51 @@ const Page = () => {
                           const isPending = user.status === 'pending';
                           
                           return (
-                            <TableRow key={user['user id']} className="hover:bg-[#E6E2DF]/10">
+                            <TableRow key={user['user id']} className="hover:bg-[#F0B72F]/5 transition-colors">
                               <TableCell>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                  <Avatar className="bg-[#E6E2DF] text-[#001E4A] font-next-black">
+                                  <Avatar className="bg-gradient-to-br from-[#F0B72F] to-[#F0B72F]/80 text-[#001E4A] font-bold shadow-lg">
                                     {user.username[0].toUpperCase()}
                                   </Avatar>
-                                  <Typography className="font-next-black text-[#001E4A]">
+                                  <Typography className={`${dashboardStyles.fonts.black} ${dashboardStyles.textSizes.body} text-[#001E4A]`}>
                                     @{user.username}
                                   </Typography>
                                 </Box>
                               </TableCell>
-                              <TableCell className="font-next-book">{user.email}</TableCell>
+                              <TableCell className={`${dashboardStyles.fonts.book} ${dashboardStyles.textSizes.body}`}>{user.email}</TableCell>
                               <TableCell>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-nexa-black ${
+                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm ${dashboardStyles.fonts.black} ${
                                   user.role === 'admin' 
-                                    ? 'bg-blue-100 text-blue-800' 
+                                    ? 'bg-blue-100 text-blue-800 border border-blue-200' 
                                     : user.role === 'employee'
-                                    ? 'bg-purple-100 text-purple-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                    : 'bg-gray-100 text-gray-800 border border-gray-200'
                                 }`}>
                                   {getRoleLabel(user.role)}
                                 </span>
                               </TableCell>
                               <TableCell>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-nexa-black ${
+                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm ${dashboardStyles.fonts.black} ${
                                   user.status === 'approved' 
-                                    ? 'bg-green-100 text-green-800' 
+                                    ? 'bg-green-100 text-green-800 border border-green-200' 
                                     : user.status === 'pending'
-                                    ? 'bg-[#F0B72F]/20 text-[#B8860B]'
+                                    ? 'bg-[#F0B72F]/20 text-[#B8860B] border border-[#F0B72F]/30'
                                     : user.status === 'rejected'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-red-100 text-red-800 border border-red-200'
+                                    : 'bg-gray-100 text-gray-800 border border-gray-200'
                                 }`}>
                                   {getStatusLabel(user.status)}
                                 </span>
                               </TableCell>
                               <TableCell align="right">
-                                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                  {/* Genehmigen Button - nur anzeigen wenn nicht bereits approved */}
-                                  {!isApproved && (
-                                    <button
-                                      onClick={() => handleApprove(user['user id'])}
-                                      disabled={loadingStates.approve.has(user['user id']) || loadingStates.reject.has(user['user id'])}
-                                      className="inline-flex items-center px-4 py-2 text-sm font-nexa-black text-emerald-700 bg-white border-2 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
-                                    >
-                                      {loadingStates.approve.has(user['user id']) ? (
-                                        <motion.div
-                                          animate={{ rotate: 360 }}
-                                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                          className="w-4 h-4 border-2 border-emerald-700 border-t-transparent rounded-full mr-2"
-                                        />
-                                      ) : null}
-                                      Genehmigen
-                                    </button>
-                                  )}
-                                  
-                                  {/* Ablehnen Button - nur anzeigen wenn nicht bereits rejected */}
-                                  {!isRejected && (
-                                    <button
-                                      onClick={() => handleReject(user['user id'])}
-                                      disabled={loadingStates.approve.has(user['user id']) || loadingStates.reject.has(user['user id'])}
-                                      className="inline-flex items-center px-4 py-2 text-sm font-nexa-black text-[#B8860B] bg-white border-2 border-[#F0B72F]/30 hover:bg-[#F0B72F]/10 hover:border-[#F0B72F] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
-                                      title="User wird abgelehnt, bleibt aber im System (kann später wieder genehmigt werden)"
-                                    >
-                                      {loadingStates.reject.has(user['user id']) ? (
-                                        <motion.div
-                                          animate={{ rotate: 360 }}
-                                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                          className="w-4 h-4 border-2 border-[#B8860B] border-t-transparent rounded-full mr-2"
-                                        />
-                                      ) : null}
-                                      Ablehnen
-                                    </button>
-                                  )}
-                                  
-                                  {/* Berechtigungen Button - immer anzeigen */}
-                                  <button
-                                    onClick={() => handlePermissionClick(user)}
-                                    className="inline-flex items-center px-4 py-2 text-sm font-nexa-black text-[#001E4A] bg-white border-2 border-[#E6E2DF] hover:bg-[#F0B72F]/10 hover:border-[#F0B72F] rounded-lg transition-all duration-200"
-                                    title="Berechtigungen für diesen User verwalten"
-                                  >
-                                    Berechtigungen
-                                  </button>
-                                  
-                                  {/* Löschen Button - immer anzeigen */}
-                                  <button
-                                    onClick={() => setDeleteConfirmation({
-                                      open: true,
-                                      userId: user['user id'],
-                                      username: user.username
-                                    })}
-                                    className="inline-flex items-center px-4 py-2 text-sm font-nexa-black text-red-700 bg-white border-2 border-red-200 hover:bg-red-50 hover:border-red-300 rounded-lg transition-all duration-200"
-                                    title="User wird PERMANENT aus der Datenbank gelöscht!"
-                                  >
-                                    Löschen
-                                  </button>
-                                </Box>
+                                <ActionsMenu
+                                  user={user}
+                                  onApprove={handleApprove}
+                                  onReject={handleReject}
+                                  onPermissions={handlePermissionClick}
+                                  onDelete={setDeleteConfirmation}
+                                  loadingStates={loadingStates}
+                                />
                               </TableCell>
                             </TableRow>
                           );
@@ -1422,7 +1502,7 @@ const Page = () => {
                   labelRowsPerPage="Zeilen pro Seite:"
                   labelDisplayedRows={({ from, to, count }) =>
                     `${from}-${to} von ${count}`}
-                  className="font-next-book"
+                  className={`${dashboardStyles.fonts.book} border-t border-[#E6E2DF]`}
                 />
               </TableContainer>
             </Box>
@@ -1446,11 +1526,10 @@ const Page = () => {
           onClose={() => setPermissionPopup(false)}
           user={selectedUser}
         />
-      </div>
-    </ThemeProvider>
+      </ThemeProvider>
+    </div>
   );
 };
-
 
 // Utility functions for styles
 const getRoleLabel = (role) => ({
@@ -1467,54 +1546,4 @@ const getStatusLabel = (status) => ({
   inactive: 'Inaktiv',
 }[status] || status);
 
-const getRoleStyle = (role) => ({
-  backgroundColor: role === 'admin' ? '#f8fafc' : role === 'employee' ? '#f0f9ff' : '#F0B72F20',
-  color: role === 'admin' ? '#1e293b' : role === 'employee' ? '#0369a1' : '#B8860B',
-  borderColor: 'transparent',
-  fontWeight: 500,
-});
-
-const getStatusStyle = (status) => ({
-  backgroundColor: status === 'approved' ? '#f0fdf4' : status === 'pending' ? '#F0B72F20' : '#fef2f2',
-  color: status === 'approved' ? '#15803d' : status === 'pending' ? '#B8860B' : '#991b1b',
-  borderColor: 'transparent',
-  fontWeight: 500,
-});
-
-const getDeleteButtonStyle = () => ({
-  borderColor: '#dc2626',
-  color: '#dc2626',
-  '&:hover': {
-    borderColor: '#b91c1c',
-    backgroundColor: '#fef2f2',
-  }
-});
-
-const getApproveButtonStyle = () => ({
-  borderColor: '#22c55e',
-  color: '#16a34a',
-  '&:hover': {
-    borderColor: '#16a34a',
-    backgroundColor: '#f0fdf4',
-  }
-});
-
-const getRejectButtonStyle = () => ({
-  borderColor: '#f43f5e',
-  color: '#e11d48',
-  '&:hover': {
-    borderColor: '#e11d48',
-    backgroundColor: '#fef2f2',
-  }
-});
-
-const getPermissionButtonStyle = () => ({
-  borderColor: '#F0B72F',
-  color: '#001E4A',
-  '&:hover': {
-    borderColor: '#B8860B',
-    backgroundColor: '#F0B72F20',
-  }
-});
-
-export default Page;
+export default AdminDashboard;

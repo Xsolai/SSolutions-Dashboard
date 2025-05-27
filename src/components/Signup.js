@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-
+// Import der neuen modernen Komponenten
+import ModernButton from './ModernButton';
+import ModernInput from './ModernInput';
+// Import des Logos
+import logo from '@/assets/images/logo.png';
 
 const passwordSchema = z
   .string()
@@ -36,13 +40,17 @@ const schema = z.object({
 });
 
 const SignupForm = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     resolver: zodResolver(schema)
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Watch form values
+  const usernameValue = watch('username', '');
+  const emailValue = watch('email', '');
+  const passwordValue = watch('password', '');
+  const confirmPasswordValue = watch('confirmPassword', '');
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -66,136 +74,120 @@ const SignupForm = () => {
     }
   };
 
-  // Tailwind classes with brand colors
-  const inputClass = `
-    mt-1 block w-full px-3 py-2 
-    bg-white border rounded-md text-sm shadow-sm 
-    font-nexa-book text-[#001E4A]
-    border-[#F0B72F] 
-    placeholder-gray-400 
-    focus:outline-none focus:border-[#F0B72F] focus:ring-1 focus:ring-[#F0B72F] 
-    hover:border-[#E6E2DF] 
-    transition-all duration-200
-  `;
-
-  const buttonClass = `
-    w-full px-4 py-2 
-    font-nexa-black text-[#001E4A] 
-    bg-[#F0B72F] 
-    border border-transparent rounded-md shadow-sm 
-    hover:bg-[#F0B72F]/90 
-    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001E4A] 
-    transition-colors duration-200 
-    disabled:opacity-50 disabled:cursor-not-allowed
-  `;
-
   return (
-    <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-[#E6E2DF]/20">
+    <div className="flex justify-center items-center min-h-screen py-12 px-2 bg-[#E6E2DF]/10">
       <Toaster />
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="font-nexa-black text-[42px] leading-[54px] mb-6 text-center text-[#001E4A]">
-          Konto erstellen
-        </h2>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label htmlFor="username" className="block font-nexa-black text-[17px] leading-[27px] text-[#001E4A] mb-1">
-              Benutzername
-            </label>
-            <input
-              id="username"
-              {...register('username')}
-              className={`${inputClass} ${errors.username ? 'border-red-500' : ''}`}
+      
+      <div className="w-full max-w-md">
+        {/* Logo Section - außerhalb der Card */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center">
+            <img 
+              src={logo.src} 
+              alt="Sola Solution Logo" 
+              className="w-auto h-4 md:h-6" 
+            />
+          </div>
+        </div>
+
+        {/* Modernized Signup Card */}
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-[#E6E2DF]/30 backdrop-blur-sm">
+          
+          {/* Titel Section */}
+          <div className="text-center mb-8">
+            <h2 className="text-[32px] leading-[44px] font-nexa-black text-[#001E4A] mb-2">
+              Konto erstellen
+            </h2>
+            <p className="text-[15px] leading-[24px] font-nexa-book text-[#001E4A]/70">
+              Erhalten Sie Zugang zum Solasolution-Dashboard
+            </p>
+          </div>
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            
+            {/* Modern Username Input */}
+            <ModernInput
+              label="Benutzername"
+              type="text"
               placeholder="maxmustermann123"
-            />
-            {errors.username && 
-              <p className="mt-1 text-xs text-red-500 font-nexa-book">{errors.username.message}</p>
-            }
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block font-nexa-black text-[17px] leading-[27px] text-[#001E4A] mb-1">
-              E-Mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              {...register('email')}
-              className={`${inputClass} ${errors.email ? 'border-red-500' : ''}`}
-              placeholder="max.mustermann@beispiel.de"
-            />
-            {errors.email && 
-              <p className="mt-1 text-xs text-red-500 font-nexa-book">{errors.email.message}</p>
-            }
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block font-nexa-black text-[17px] leading-[27px] text-[#001E4A] mb-1">
-              Passwort
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                {...register('password')}
-                className={`${inputClass} ${errors.password ? 'border-red-500' : ''}`}
-                placeholder="********"
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#001E4A]"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            {errors.password && 
-              <p className="mt-1 text-xs text-red-500 font-nexa-book">{errors.password.message}</p>
-            }
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="block font-nexa-black text-[17px] leading-[27px] text-[#001E4A] mb-1">
-              Passwort bestätigen
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                {...register('confirmPassword')}
-                className={`${inputClass} ${errors.confirmPassword ? 'border-red-500' : ''}`}
-                placeholder="********"
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#001E4A]"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            {errors.confirmPassword && 
-              <p className="mt-1 text-xs text-red-500 font-nexa-book">{errors.confirmPassword.message}</p>
-            }
-          </div>
-
-          <div className="pt-4">
-            <button
-              type="submit"
-              className={buttonClass}
+              value={usernameValue}
+              onChange={(e) => setValue('username', e.target.value)}
+              error={errors.username?.message}
               disabled={isLoading}
-            >
-              {isLoading ? 'Konto wird erstellt...' : 'Registrieren'}
-            </button>
+              icon={<User className="w-5 h-5" />}
+              required
+            />
+
+            {/* Modern Email Input */}
+            <ModernInput
+              label="E-Mail"
+              type="email"
+              placeholder="max.mustermann@beispiel.de"
+              value={emailValue}
+              onChange={(e) => setValue('email', e.target.value)}
+              error={errors.email?.message}
+              disabled={isLoading}
+              icon={<Mail className="w-5 h-5" />}
+              required
+            />
+
+            {/* Modern Password Input */}
+            <ModernInput
+              label="Passwort"
+              type="password"
+              placeholder="********"
+              value={passwordValue}
+              onChange={(e) => setValue('password', e.target.value)}
+              error={errors.password?.message}
+              disabled={isLoading}
+              icon={<Lock className="w-5 h-5" />}
+              required
+            />
+
+            {/* Modern Confirm Password Input */}
+            <ModernInput
+              label="Passwort bestätigen"
+              type="password"
+              placeholder="********"
+              value={confirmPasswordValue}
+              onChange={(e) => setValue('confirmPassword', e.target.value)}
+              error={errors.confirmPassword?.message}
+              disabled={isLoading}
+              icon={<Lock className="w-5 h-5" />}
+              required
+            />
+
+            {/* Modern Submit Button */}
+            <div className="pt-2">
+              <ModernButton
+                type="submit"
+                variant="primary"
+                size="large"
+                disabled={isLoading}
+                loading={isLoading}
+                className="w-full"
+              >
+                {isLoading ? 'Konto wird erstellt...' : 'Registrieren'}
+              </ModernButton>
+            </div>
+          </form>
+          
+          {/* Modern Login Link */}
+          <div className="mt-8 pt-6 border-t border-[#E6E2DF]/30 text-center">
+            <p className="text-[13px] leading-[10px] font-nexa-book text-[#001E4A]">
+              Haben Sie bereits ein Konto?{' '}
+              <a 
+                href="/" 
+                className="
+                  font-nexa-black text-[#001E4A] hover:text-[#F0B72F] 
+                  transition-colors duration-200 underline-offset-4 hover:underline
+                "
+              >
+                einloggen
+              </a>
+            </p>
           </div>
-        </form>
-        
-        <p className="mt-4 text-center font-nexa-book text-[17px] leading-[27px] text-[#001E4A]">
-          Haben Sie bereits ein Konto?{' '}
-          <a href="/" className="font-nexa-black hover:text-[#F0B72F] transition-colors duration-200">
-            einloggen
-          </a>
-        </p>
+        </div>
       </div>
     </div>
   );
