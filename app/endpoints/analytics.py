@@ -1628,8 +1628,8 @@ async def get_conversion_data(
         cb_wrong_call = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         og_wrong_call = db.query(func.sum(GuruCallReason.guru_wrong)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         
-        cb_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.order_agent.like(f"%GUCB%"), BookingData.date.between(start_date, end_date)).scalar() or 0
-        og_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.order_agent.like(f"%GURU%"), BookingData.date.between(start_date, end_date)).scalar() or 0
+        cb_booking = query.with_entities(func.count(BookingData.order_agent)).filter(and_(BookingData.order_agent.like(f"%GU%"), BookingData.order_agent.like(f"%CB%")), BookingData.date.between(start_date, end_date)).scalar() or 0
+        og_booking = query.with_entities(func.count(BookingData.order_agent)).filter(and_(BookingData.order_agent.like(f"%GU%"), BookingData.order_agent.notlike(f"%CB%")), BookingData.date.between(start_date, end_date)).scalar() or 0
         
         print((cb_accepted_calls+cb_call_reason_booking), cb_call_reason_booking)
         
