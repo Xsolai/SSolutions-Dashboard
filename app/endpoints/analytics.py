@@ -1552,7 +1552,8 @@ async def get_conversion_data(
                 QueueStatistics.queue_name.like("%Urlaubsguru%"),
                 QueueStatistics.queue_name.like("%Holidayguru%"),
             ),
-            QueueStatistics.queue_name.notlike("%Service%")
+            QueueStatistics.queue_name.notlike("%Service%"),
+            QueueStatistics.queue_name.notlike("%Urlaubsguru_KF%"),
         )
     else:
         # Check if user has permission for Urlaubsguru
@@ -1565,7 +1566,8 @@ async def get_conversion_data(
                     QueueStatistics.queue_name.like("%Urlaubsguru%"),
                     QueueStatistics.queue_name.like("%Holidayguru%"),
                 ),
-                QueueStatistics.queue_name.notlike("%Service%"))
+                QueueStatistics.queue_name.notlike("%Service%"),
+                QueueStatistics.queue_name.notlike("%Urlaubsguru_KF%"))
         else:
             print("executing else")
             return {
@@ -1623,11 +1625,11 @@ async def get_conversion_data(
         
         cb_call_reason_booking = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         
-        cb_wrong_call = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        cb_wrong_call = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         og_wrong_call = db.query(func.sum(GuruCallReason.guru_wrong)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         
-        cb_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.date.between(start_date, end_date)).scalar() or 0
-        og_booking = 0
+        cb_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.order_agent.like(f"%GUCB%"), BookingData.date.between(start_date, end_date)).scalar() or 0
+        og_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.order_agent.like(f"%GURU%"), BookingData.date.between(start_date, end_date)).scalar() or 0
         
         print((cb_accepted_calls+cb_call_reason_booking), cb_call_reason_booking)
         
