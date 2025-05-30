@@ -1594,8 +1594,8 @@ async def get_conversion_data(
         cb_wrong_call = db.query(func.sum(GuruCallReason.guru_cb_booking)).scalar() or 0
         og_wrong_call = db.query(func.sum(GuruCallReason.guru_wrong)).scalar() or 0
         
-        cb_booking = query.with_entities(func.count(BookingData.order_agent)).scalar() or 0
-        og_booking = 0
+        cb_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.order_agent.like(f"%GUCB%")).scalar() or 0
+        og_booking = query.with_entities(func.count(BookingData.order_agent)).filter(BookingData.order_agent.like(f"%GURU%")).scalar() or 0
         
         print((cb_accepted_calls+cb_call_reason_booking), cb_call_reason_booking)
         
@@ -1623,7 +1623,7 @@ async def get_conversion_data(
         cb_accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).filter(QueueStatistics.queue_name.like("%CB%"), QueueStatistics.date.between(start_date, end_date)).scalar() or 0
         og_accepted_calls = sale_query.with_entities(func.sum(QueueStatistics.accepted)).filter(QueueStatistics.queue_name.notlike("%CB%"), QueueStatistics.date.between(start_date, end_date)).scalar() or 0
         
-        cb_call_reason_booking = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
+        cb_call_reason_booking = db.query(func.sum(GuruCallReason.guru_cb_booking)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         
         cb_wrong_call = db.query(func.sum(GuruCallReason.cb_wrong_call)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
         og_wrong_call = db.query(func.sum(GuruCallReason.guru_wrong)).filter(GuruCallReason.date.between(start_date, end_date)).scalar() or 0
@@ -1657,7 +1657,7 @@ async def get_conversion_data(
         "organisch_conversion": "100%" if organisch_conversion > 1 else f"{round(organisch_conversion*100, 3)}%",
         "cb_conversion": "100%" if cb_conversion > 1 else f"{round(cb_conversion*100, 3)}%",
         "Conversion Performance":{
-                    "total_calls": cb_effective_calls+ og_effective_calls,
+                    "total_calls": cb_accepted_calls+ og_accepted_calls,
                     "organisch_wrong_call": og_wrong_call,
                     "organisch_accepted_call": og_accepted_calls,
                     "organisch_bookings": og_booking,
