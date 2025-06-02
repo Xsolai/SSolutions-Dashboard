@@ -253,15 +253,16 @@ HistorySidebar.displayName = 'HistorySidebar';
 // Navigation items constant
 const getNavigationItems = (role) => {
   const items = [
-    { id: "overview", label: "Übersicht", icon: HomeIcon, description: "Allgemeine Dashboard-Übersicht" },
-    { id: "analytics", label: "Globale Analyse", icon: BarChart3, description: "Umfassende Analyse aller Bereiche" },
-    { id: "call-analysis", label: "Anruf Analyse", icon: Phone, description: "Detaillierte Auswertung der Anrufdaten" },
-    { id: "email-analysis", label: "E-Mail Analyse", icon: Mail, description: "Detaillierte Auswertung der E-Mail-Daten" },
-    { id: "task-analysis", label: "Aufgaben Analyse", icon: FileText, description: "Detaillierte Auswertung der Aufgabendaten" }
+    { id: "overview", label: "Übersicht", icon: HomeIcon, description: "Allgemeine Dashboard-Übersicht", showInSidebar: true },
+    { id: "analytics", label: "Globale Analyse", icon: BarChart3, description: "Umfassende Analyse aller Bereiche", showInSidebar: true },
+    { id: "call-analysis", label: "Anruf Analyse", icon: Phone, description: "Detaillierte Auswertung der Anrufdaten", showInSidebar: true },
+    { id: "email-analysis", label: "E-Mail Analyse", icon: Mail, description: "Detaillierte Auswertung der E-Mail-Daten", showInSidebar: true },
+    { id: "task-analysis", label: "Aufgaben Analyse", icon: FileText, description: "Detaillierte Auswertung der Aufgabendaten", showInSidebar: true },
+    { id: "ai-assistant", label: "AI-Mitarbeiter", icon: Bot, description: "Automatisierte Bericht-Erstellung mit Versand", comingSoon: true, showInSidebar: false },
   ];
 
   if (role === "admin") {
-    items.push({ id: "admin", label: "Admin Bereich", icon: Shield, description: "Administrative Aufgaben und Einstellungen" });
+    items.push({ id: "admin", label: "Admin Bereich", icon: Shield, description: "Administrative Aufgaben und Einstellungen", showInSidebar: true });
   }
   return items;
 };
@@ -313,6 +314,9 @@ const DashboardSidebar = React.memo(({
     setIsMobileOpen(false);
   }, [setActiveTab, setIsMobileOpen]);
 
+  // Filter items for sidebar - only show items where showInSidebar is true
+  const sidebarItems = navigationItems.filter(item => item.showInSidebar);
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -344,7 +348,7 @@ const DashboardSidebar = React.memo(({
 
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
-          {navigationItems.map((item) => (
+          {sidebarItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}

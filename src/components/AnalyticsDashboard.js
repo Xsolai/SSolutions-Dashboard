@@ -332,7 +332,7 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
 
   // Simplified fetchData function
   const fetchData = useCallback(async () => {
-    // console.log('🔄 Fetching data for:', { selectedCompany, domain, dateRange });
+    console.log('🔄 Fetching data for:', { selectedCompany, domain, dateRange });
     
     // Cancel previous request
     if (abortControllerRef.current) {
@@ -364,17 +364,38 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
         ...(domain && { domain: domain })
       }).toString();
 
+      console.log('📝 Query parameters:', {
+        queryString,
+        emailQueryString,
+        accessToken: access_token ? '✅ Present' : '❌ Missing'
+      });
+
       const fetchOptions = {
         ...config,
         signal: abortControllerRef.current.signal,
       };
 
+      // API endpoints
+      const endpoints = [
+        { name: 'Sales/Service', url: `https://solasolution.ecomtask.de/analytics_sales_service?${queryString}` },
+        { name: 'Booking', url: `https://solasolution.ecomtask.de/analytics_booking?${queryString}` },
+        { name: 'Booking SubKPIs', url: `https://solasolution.ecomtask.de/analytics_booking_subkpis?${queryString}` },
+        { name: 'Conversion', url: `https://solasolution.ecomtask.de/analytics_conversion?${queryString}` },
+        { name: 'Email', url: `https://solasolution.ecomtask.de/analytics_email?${emailQueryString}` },
+        { name: 'Email Overview', url: `https://solasolution.ecomtask.de/email_overview?${emailQueryString}` }
+      ];
+
+      console.log('🌐 API Endpoints to call:', endpoints.map(e => ({ name: e.name, url: e.url })));
+
       // Make API calls with timeout
       const timeout = setTimeout(() => {
+        console.log('⏰ Request timeout after 10 seconds');
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
       }, 10000);
+
+      console.log('📡 Starting API calls...');
 
       const [
         salesServiceResponse,
@@ -384,36 +405,79 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
         emailResponse,
         emailOverviewResponse,
       ] = await Promise.all([
-        fetch(`https://solasolution.ecomtask.de/analytics_sales_service?${queryString}`, fetchOptions),
-        fetch(`https://solasolution.ecomtask.de/analytics_booking?${queryString}`, fetchOptions),
-        fetch(`https://solasolution.ecomtask.de/analytics_booking_subkpis?${queryString}`, fetchOptions),
-        fetch(`https://solasolution.ecomtask.de/analytics_conversion?${queryString}`, fetchOptions),
-        fetch(`https://solasolution.ecomtask.de/analytics_email?${emailQueryString}`, fetchOptions),
-        fetch(`https://solasolution.ecomtask.de/email_overview?${emailQueryString}`, fetchOptions),
+        fetch(endpoints[0].url, fetchOptions),
+        fetch(endpoints[1].url, fetchOptions),
+        fetch(endpoints[2].url, fetchOptions),
+        fetch(endpoints[3].url, fetchOptions),
+        fetch(endpoints[4].url, fetchOptions),
+        fetch(endpoints[5].url, fetchOptions),
       ]);
 
       clearTimeout(timeout);
 
-      // Parse responses
+      // Log response status
+      const responses = [
+        { name: 'Sales/Service', response: salesServiceResponse },
+        { name: 'Booking', response: bookingResponse },
+        { name: 'Booking SubKPIs', response: bookingSubKPIsResponse },
+        { name: 'Conversion', response: conversionResponse },
+        { name: 'Email', response: emailResponse },
+        { name: 'Email Overview', response: emailOverviewResponse }
+      ];
+
+      console.log('📊 API Response Status:');
+      responses.forEach(({ name, response }) => {
+        const status = response.ok ? '✅' : '❌';
+        console.log(`  ${status} ${name}: ${response.status} ${response.statusText}`);
+      });
+
+      // Parse responses and log data
+      console.log('🔄 Parsing responses...');
+      
+      const salesServiceData = salesServiceResponse.ok ? await salesServiceResponse.json() : null;
+      const bookingData = bookingResponse.ok ? await bookingResponse.json() : null;
+      const bookingSubKPIs = bookingSubKPIsResponse.ok ? await bookingSubKPIsResponse.json() : null;
+      const conversionData = conversionResponse.ok ? await conversionResponse.json() : null;
+      const emailData = emailResponse.ok ? await emailResponse.json() : null;
+      const emailOverview = emailOverviewResponse.ok ? await emailOverviewResponse.json() : null;
+
       const newData = {
-        salesServiceData: salesServiceResponse.ok ? await salesServiceResponse.json() : null,
-        bookingData: bookingResponse.ok ? await bookingResponse.json() : null,
-        bookingSubKPIs: bookingSubKPIsResponse.ok ? await bookingSubKPIsResponse.json() : null,
-        conversionData: conversionResponse.ok ? await conversionResponse.json() : null,
-        emailData: emailResponse.ok ? await emailResponse.json() : null,
-        emailOverview: emailOverviewResponse.ok ? await emailOverviewResponse.json() : null,
+        salesServiceData,
+        bookingData,
+        bookingSubKPIs,
+        conversionData,
+        emailData,
+        emailOverview,
         trackedBookings: [],
       };
 
-      // console.log('✅ Data loaded successfully:', Object.keys(newData).filter(key => newData[key] !== null));
+      // Log parsed data
+      console.log('📈 Parsed Data Results:');
+      Object.entries(newData).forEach(([key, value]) => {
+        if (value !== null) {
+          console.log(`  ✅ ${key}:`, value);
+        } else {
+          console.log(`  ❌ ${key}: null`);
+        }
+      });
+
+      console.log('✅ Data loaded successfully:', Object.keys(newData).filter(key => newData[key] !== null));
       setData(newData);
 
     } catch (error) {
       if (error.name !== "AbortError") {
-        // console.error("❌ Error fetching data:", error);
+        console.error("❌ Error fetching data:", error);
+        console.error("📍 Error details:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      } else {
+        console.log("🛑 Request was aborted");
       }
     } finally {
       setLoading(false);
+      console.log('🏁 Data fetching completed');
     }
   }, [selectedCompany, domain, dateRange]);
 
@@ -443,6 +507,8 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       }
     };
   }, []);
+
+  const isUrlaubsguru = selectedCompany === 'Urlaubsguru';
 
   const SalesServiceTab = () => {
     // console.log('🎯 Rendering SalesServiceTab with domain:', domain);
@@ -896,7 +962,10 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
   const ConversionTab = () => {
     const [currentStatusFilter, setCurrentStatusFilter] = useState("ALL");
     
+    console.log('🔄 ConversionTab: Raw conversion data:', data.conversionData);
+    
     if (!data.conversionData) {
+      console.log('❌ ConversionTab: No conversion data available');
       return (
         <div className="flex items-center justify-center h-[200px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F0B72F]"></div>
@@ -911,41 +980,93 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       "Conversion Performance": {
         total_calls: 0,
         organisch_wrong_call: 0,
-        organisch_true_sales_call: 0,
+        organisch_accepted_call: 0,
         organisch_bookings: 0,
         cb_wrong_call: 0,
-        cb_true_sales_call: 0,
+        cb_accepted_call: 0,
         cb_bookings: 0,
       },
     };
+
+    console.log('📊 ConversionTab: Processed conversion data:', conversionData);
+    console.log('🔍 ConversionTab: Conversion Performance details:', conversionData["Conversion Performance"]);
+    
+    // Log the specific fields we're interested in
+    const conversionPerformance = conversionData["Conversion Performance"];
+    console.log('📈 ConversionTab: Key fields check:', {
+      organisch_accepted_call: conversionPerformance?.organisch_accepted_call,
+      cb_accepted_call: conversionPerformance?.cb_accepted_call,
+      organisch_wrong_call: conversionPerformance?.organisch_wrong_call,
+      cb_wrong_call: conversionPerformance?.cb_wrong_call,
+      organisch_bookings: conversionPerformance?.organisch_bookings,
+      cb_bookings: conversionPerformance?.cb_bookings,
+      total_calls: conversionPerformance?.total_calls
+    });
+
+    // Check if backend is still using old field names for organisch
+    console.log('🔍 ConversionTab: Checking for OLD field names:', {
+      organisch_true_sales_call: conversionPerformance?.organisch_true_sales_call,
+      cb_true_sales_call: conversionPerformance?.cb_true_sales_call
+    });
+
+    // Show ALL available fields in Conversion Performance
+    console.log('🗂️ ConversionTab: ALL fields in Conversion Performance:', 
+      conversionPerformance ? Object.keys(conversionPerformance) : 'No data'
+    );
+
+    // Detailed comparison between organisch and CB values
+    console.log('⚖️ ConversionTab: Organisch vs CB comparison:', {
+      organisch: {
+        new_accepted: conversionPerformance?.organisch_accepted_call,
+        old_accepted: conversionPerformance?.organisch_true_sales_call,
+        wrong: conversionPerformance?.organisch_wrong_call,
+        bookings: conversionPerformance?.organisch_bookings,
+        conversion_rate: conversionData.organisch_conversion
+      },
+      cb: {
+        new_accepted: conversionPerformance?.cb_accepted_call,
+        old_accepted: conversionPerformance?.cb_true_sales_call,
+        wrong: conversionPerformance?.cb_wrong_call,
+        bookings: conversionPerformance?.cb_bookings,
+        conversion_rate: conversionData.cb_conversion
+      }
+    });
 
     const combinedChartData = [
       {
         name: "Organisch",
         bookings: conversionData["Conversion Performance"]?.organisch_bookings || 0,
         wrong: conversionData["Conversion Performance"]?.organisch_wrong_call || 0,
-        handled: conversionData["Conversion Performance"]?.organisch_true_sales_call || 0,
+        handled: conversionData["Conversion Performance"]?.organisch_accepted_call || 
+                 conversionData["Conversion Performance"]?.organisch_true_sales_call || 0,
         conversion: parseFloat(conversionData.organisch_conversion) || 0,
       },
       {
         name: "CB",
         bookings: conversionData["Conversion Performance"]?.cb_bookings || 0,
         wrong: conversionData["Conversion Performance"]?.cb_wrong_call || 0,
-        handled: conversionData["Conversion Performance"]?.cb_true_sales_call || 0,
+        handled: conversionData["Conversion Performance"]?.cb_accepted_call || 
+                 conversionData["Conversion Performance"]?.cb_true_sales_call || 0,
         conversion: parseFloat(conversionData.cb_conversion) || 0,
       },
     ];
+
+    console.log('📊 ConversionTab: Combined chart data:', combinedChartData);
 
     const callOverviewData = [
       {
         name: "Gesamt",
         total: conversionData["Conversion Performance"]?.total_calls || 0,
-        organisch_true: conversionData["Conversion Performance"]?.organisch_true_sales_call || 0,
+        organisch_true: conversionData["Conversion Performance"]?.organisch_accepted_call || 
+                        conversionData["Conversion Performance"]?.organisch_true_sales_call || 0,
         organisch_wrong: conversionData["Conversion Performance"]?.organisch_wrong_call || 0,
-        cb_true: conversionData["Conversion Performance"]?.cb_true_sales_call || 0,
+        cb_true: conversionData["Conversion Performance"]?.cb_accepted_call || 
+                 conversionData["Conversion Performance"]?.cb_true_sales_call || 0,
         cb_wrong: conversionData["Conversion Performance"]?.cb_wrong_call || 0,
       },
     ];
+
+    console.log('📊 ConversionTab: Call overview data:', callOverviewData);
 
     const pieChartData = [
       {
@@ -970,6 +1091,8 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       },
     ];
 
+    console.log('🥧 ConversionTab: Pie chart data:', pieChartData);
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -986,233 +1109,143 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
             loading={loading}
           />
           <StatCard
-            title="Erfolgreich Buchungen"
-            value={conversionData.sucess_bookings || 0}
+            title="Organisch Buchungen"
+            value={conversionData["Conversion Performance"]?.organisch_bookings || 0}
+            icon={CreditCard}
+            loading={loading}
+          />
+          <StatCard
+            title="CB Buchungen"
+            value={conversionData["Conversion Performance"]?.cb_bookings || 0}
             icon={CreditCard}
             loading={loading}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <ChartCard 
-            title="Vertrieb Leistung" 
+            title="Conversion Performance - Organisch vs CB" 
             loading={loading}
             data={combinedChartData}
-            filename="Vertrieb_Leistung"
+            filename="Conversion_Performance_Complete"
             onExport={exportToExcel}
           >
-            <div className="h-[400px]">
+            <div className="h-[450px]">
               <ResponsiveContainer>
                 <ComposedChart data={combinedChartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <ChartGradients />
                   <CartesianGrid strokeDasharray="3 3" stroke="#E6E2DF" opacity={0.4} />
                   <XAxis 
                     dataKey="name" 
-                    tick={{ fill: "#001E4A", fontSize: 13 }} 
+                    tick={{ fill: "#001E4A", fontSize: 14, fontWeight: 'bold' }} 
                     stroke="#E6E2DF"
                   />
                   <YAxis 
                     yAxisId="left" 
-                    tick={{ fill: "#001E4A", fontSize: 13 }} 
+                    tick={{ fill: "#001E4A", fontSize: 12 }} 
                     stroke="#E6E2DF"
+                    label={{ value: 'Anzahl Anrufe', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#001E4A', fontSize: '12px' } }}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
                     domain={[0, 100]}
-                    tick={{ fill: "#001E4A", fontSize: 13 }}
+                    tick={{ fill: "#001E4A", fontSize: 12 }}
                     stroke="#E6E2DF"
+                    label={{ value: 'Conversion Rate (%)', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fill: '#001E4A', fontSize: '12px' } }}
                   />
-                  <Tooltip content={<ModernTooltip />} />
-                  <Legend content={<ModernLegend />} />
+                  <Tooltip content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    
+                    return (
+                      <div className="bg-white/95 backdrop-blur-sm border border-[#E6E2DF] rounded-xl shadow-lg p-4 min-w-[250px]">
+                        <p className="font-semibold text-[#001E4A] mb-3 text-base border-b border-[#E6E2DF] pb-2">
+                          {label} Performance
+                        </p>
+                        <div className="space-y-2">
+                          {payload.map((item, index) => (
+                            <div key={index} className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full shadow-sm"
+                                  style={{ backgroundColor: item.fill || item.color || item.stroke }}
+                                />
+                                <span className="text-[#001E4A]/70 text-sm">
+                                  {item.name === 'conversion' ? 'Conversion Rate' : item.name}
+                                </span>
+                              </div>
+                              <span className="text-[#001E4A] font-semibold text-sm">
+                                {item.name === 'conversion' ? `${item.value.toFixed(1)}%` : item.value.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }} />
+                  <Legend 
+                    content={({ payload }) => (
+                      <div className="flex flex-wrap justify-center gap-6 mt-4 px-4">
+                        {payload.map((entry, index) => (
+                          <div key={index} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/50 border border-[#E6E2DF]/50">
+                            <div
+                              className="w-4 h-4 rounded-sm"
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-[#001E4A] font-semibold text-sm">
+                              {entry.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  />
+                  
+                  {/* Bars für Anruf-Daten */}
+                  <Bar
+                    yAxisId="left"
+                    dataKey="handled"
+                    name="Bearbeitete Anrufe"
+                    fill="#F0B72F"
+                    radius={[4, 4, 0, 0]}
+                    stroke="#001E4A"
+                    strokeWidth={1}
+                  />
                   <Bar
                     yAxisId="left"
                     dataKey="bookings"
-                    name="Buchungen"
-                    fill={colors.success}
-                    radius={[8, 8, 0, 0]}
+                    name="Erfolgreiche Buchungen"
+                    fill="#10B981"
+                    radius={[4, 4, 0, 0]}
+                    stroke="#001E4A"
+                    strokeWidth={1}
                   />
                   <Bar
                     yAxisId="left"
                     dataKey="wrong"
                     name="Falsche Anrufe"
-                    fill={colors.danger}
-                    radius={[8, 8, 0, 0]}
+                    fill="#EF4444"
+                    radius={[4, 4, 0, 0]}
+                    stroke="#001E4A"
+                    strokeWidth={1}
                   />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="handled"
-                    name="Bearbeitete Anrufe"
-                    fill={colors.primary}
-                    radius={[8, 8, 0, 0]}
-                  />
+                  
+                  {/* Linie für Conversion Rate */}
                   <Line
                     yAxisId="right"
                     type="monotone"
                     dataKey="conversion"
-                    name="Konversionsrate %"
-                    stroke={colors.dark}
-                    strokeWidth={2}
-                    dot={{ fill: colors.dark, r: 5 }}
+                    name="Conversion Rate %"
+                    stroke="#001E4A"
+                    strokeWidth={4}
+                    dot={{ fill: "#001E4A", r: 8, strokeWidth: 3, stroke: "#fff" }}
+                    activeDot={{ r: 10, strokeWidth: 3, stroke: "#fff", fill: "#001E4A" }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
-
-          <ChartCard 
-            title="Anruf Übersicht" 
-            loading={loading}
-            data={pieChartData}
-            filename="Anruf_Uebersicht"
-            onExport={exportToExcel}
-          >
-            <div className="h-[400px]">
-              <ResponsiveContainer>
-                <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="40%"
-                    labelLine={false}
-                    label={({ name, percent }) => percent > 0.03 ? `${(percent * 100).toFixed(0)}%` : ''}
-                    outerRadius={({ width }) => Math.min(width * 0.35, 130)}
-                    innerRadius={40}
-                    dataKey="value"
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.fill} 
-                        stroke={colors.white}
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ModernTooltip />} />
-                  <Legend content={<ModernLegend />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
         </div>
-
-        {isAdmin === "admin" && (
-          <div className="grid grid-cols-1 gap-4">
-            <ChartCard title="Buchungsverfolgung">
-              <div className="mb-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h4 className="text-[17px] leading-[27px] font-bold text-[#001E4A]">
-                    Status Filter:
-                  </h4>
-                  <select
-                    value={currentStatusFilter}
-                    onChange={(e) => setCurrentStatusFilter(e.target.value)}
-                    className="px-4 py-2 border border-[#E6E2DF] rounded-md text-[15px] leading-[24px] text-[#001E4A] focus:outline-none focus:ring-2 focus:ring-[#F0B72F] focus:border-[#F0B72F]"
-                  >
-                    <option value="ALL">Alle Statusse</option>
-                    <option value="OP">Option</option>
-                    <option value="OK">Bestätigt (OK)</option>
-                    <option value="XX">Storniert</option>
-                    <option value="RF">Bestätigt (RF)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="h-[330px] overflow-y-auto">
-                <table className="w-full border-collapse">
-                  <thead className="sticky top-0 bg-white z-10">
-                    <tr className="bg-[#E6E2DF]/30">
-                      <th className="p-3 text-left text-[15px] font-bold text-[#001E4A] border-b border-[#E6E2DF]">
-                        Buchungsnummer
-                      </th>
-                      <th className="p-3 text-left text-[15px] font-bold text-[#001E4A] border-b border-[#E6E2DF]">
-                        Vorheriger Status
-                      </th>
-                      <th className="p-3 text-left text-[15px] font-bold text-[#001E4A] border-b border-[#E6E2DF]">
-                        Aktueller Status
-                      </th>
-                      <th className="p-3 text-left text-[15px] font-bold text-[#001E4A] border-b border-[#E6E2DF]">
-                        Änderungsdatum
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.trackedBookings.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="p-8 text-center text-[15px] text-[#001E4A]/70">
-                          Keine Buchungsdaten für den ausgewählten Zeitraum und Status verfügbar.
-                        </td>
-                      </tr>
-                    ) : (
-                      data.trackedBookings.map((booking, index) => (
-                        <tr
-                          key={`${booking.booking_number}-${index}`}
-                          className={`hover:bg-[#F0B72F]/10 transition-colors ${
-                            index % 2 === 0 ? "bg-white" : "bg-[#E6E2DF]/10"
-                          }`}
-                        >
-                          <td className="p-3 text-[15px] text-[#001E4A] border-b border-[#E6E2DF]">
-                            {booking.booking_number}
-                          </td>
-                          <td className="p-3 text-[15px] text-[#001E4A] border-b border-[#E6E2DF]">
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-bold ${
-                                booking.previous_status === "OP"
-                                  ? "bg-[#F0B72F]/20 text-[#001E4A]"
-                                  : booking.previous_status === "OK"
-                                  ? "bg-green-100 text-green-800"
-                                  : booking.previous_status === "XX"
-                                  ? "bg-red-100 text-red-800"
-                                  : booking.previous_status === "RF"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {booking.previous_status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-[15px] text-[#001E4A] border-b border-[#E6E2DF]">
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-bold ${
-                                booking.current_status === "OP"
-                                  ? "bg-[#F0B72F]/20 text-[#001E4A]"
-                                  : booking.current_status === "OK"
-                                  ? "bg-green-100 text-green-800"
-                                  : booking.current_status === "XX"
-                                  ? "bg-red-100 text-red-800"
-                                  : booking.current_status === "RF"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {booking.current_status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-[15px] text-[#001E4A] border-b border-[#E6E2DF]">
-                            {new Intl.DateTimeFormat("de-DE", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }).format(new Date(booking.change_date))}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {data.trackedBookings.length > 0 && (
-                <div className="mt-4 text-right text-[15px] text-[#001E4A]/70">
-                  {data.trackedBookings.length} Buchungen gefunden
-                </div>
-              )}
-            </ChartCard>
-          </div>
-        )}
       </div>
     );
   };
@@ -1223,7 +1256,7 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       name: isSalesOnlyClient ? "Vertrieb" : "Vertrieb & Service",
     },
     { id: "booking", name: "Softbuchungen" },
-    { id: "conversion", name: "Konversion" },
+    ...(isUrlaubsguru ? [{ id: "conversion", name: "Konversion" }] : []),
   ];
 
   // Tab Button Component
@@ -1239,6 +1272,13 @@ const AnalyticsDashboard = ({ dateRange, selectedCompany }) => {
       {children}
     </button>
   );
+
+  // Wenn der aktuelle Tab nicht mehr sichtbar ist (z.B. nach Firmenwechsel), auf 'sales' zurückschalten
+  useEffect(() => {
+    if (!isUrlaubsguru && activeTab === "conversion") {
+      setActiveTab("sales");
+    }
+  }, [isUrlaubsguru, activeTab]);
 
   return (
     <div className="bg-[#E6E2DF]/10 rounded-[50px]">
